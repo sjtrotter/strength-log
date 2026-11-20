@@ -28,7 +28,7 @@
     {
       "type": {
         "text": "Name",
-        "value": "Meet block — Nov 9 to Dec 5"
+        "value": "Meet block \u2014 Nov 9 to Dec 5"
       }
     },
     {
@@ -74,40 +74,70 @@
       }
     },
     {
-      "checkpoint": "squat-added"
-    },
-    {
       "tap": {
         "text": "Barbell Back Squat"
       }
     },
     {
-      "checkpoint": "squat-prescription"
+      "type": {
+        "text": "Sets",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "165",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "five-squat-sets-prescribed"
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Horizontal push"
+      }
+    },
+    {
+      "checkpoint": "bench-exercise-choices"
+    },
+    {
+      "back": true
     },
     {
       "back": true
     },
     {
       "tap": {
-        "desc": "More options for Barbell Back Squat"
+        "text": "Add exercise"
       }
-    },
-    {
-      "checkpoint": "exercise-options"
-    },
-    {
-      "back": true
     },
     {
       "tap": {
-        "desc": "More"
+        "text": "Knee flexion (leg curl)"
       }
     },
     {
-      "checkpoint": "day-editor-options"
-    },
-    {
-      "back": true
+      "checkpoint": "leg-curl-choices"
     },
     {
       "back": true
@@ -117,11 +147,23 @@
     },
     {
       "tap": {
-        "desc": "Day options"
+        "text": "Add exercise"
       }
     },
     {
-      "checkpoint": "plan-day-options"
+      "swipe": {
+        "text": "Knee flexion (leg curl)",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "movement-list-lower"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
     },
     {
       "back": true
@@ -147,7 +189,10 @@
       }
     },
     {
-      "checkpoint": "own-plan-today"
+      "advance": "20h50m"
+    },
+    {
+      "checkpoint": "monday-ready"
     },
     {
       "tap": {
@@ -166,39 +211,133 @@
       }
     },
     {
-      "checkpoint": "kg-set-editor"
-    },
-    {
-      "tap": {
-        "desc": "Set menu"
+      "type": {
+        "text": "Weight (kg)",
+        "value": "190",
+        "ime": "done"
       }
     },
     {
-      "checkpoint": "set-menu"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "All sets"
+      "type": {
+        "text": "Reps",
+        "value": "1",
+        "ime": "done"
       }
     },
     {
       "tap": {
-        "desc": "More"
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "single-before-log"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "single-logged-effort-controls"
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "single-after-recreate"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Next set",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "first-backoff"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "squat-set-2-logged"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Next set",
+        "role": "Button"
       }
     },
     {
       "tap": {
-        "text": "Lift options"
+        "tag": "workout-action-filled"
       }
     },
     {
-      "checkpoint": "lift-options"
+      "checkpoint": "squat-set-3-logged"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Next set",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "squat-set-4-logged"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Next set",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "squat-set-5-logged"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "finish-after-five-squats"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "squat-only-probe-summary"
     }
   ]
 }

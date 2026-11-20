@@ -564,12 +564,37 @@
       }
     },
     {
+      "checkpoint": "ab-wheel-created-returned-to-day"
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Core: anti-extension"
+      }
+    },
+    {
+      "tap": {
+        "text": "Core: anti-extension"
+      }
+    },
+    {
       "type": {
-        "editable": true,
-        "index": 0,
+        "text": "Search exercises",
         "value": "Ab wheel",
         "ime": "done"
       }
+    },
+    {
+      "checkpoint": "ab-wheel-exact-search"
     },
     {
       "tap": {

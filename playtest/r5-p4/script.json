@@ -3,13 +3,722 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-28",
-    "time": "12:00",
+    "date": "2026-11-30",
+    "time": "17:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "note": "Nov 25 missed for travel; guest-room pushups intentionally not logged. Nov 27 no gym, 40-minute walk; standalone walk route not discovered, keep dated note in makeup receipt."
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "General fitness",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day A"
+      }
+    },
+    {
+      "checkpoint": "nov30-offered-day-a"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "nov30-base-prescriptions"
+    },
+    {
+      "scrollTo": {
+        "textContains": "Barbell Back Squat",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Barbell Back Squat",
+        "index": 0
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "215",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Barbell Bench Press",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Barbell Bench Press",
+        "index": 0
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "165",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Lat Pulldown (wide)",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Lat Pulldown (wide)",
+        "index": 0
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "140",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "One-Arm DB Row",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "textContains": "One-Arm DB Row",
+        "index": 0
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "65",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "checkpoint": "nov30-offered-row-target"
+    },
+    {
+      "tap": {
+        "text": "Set 1 \u00b7 Work"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "15:00",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Distance (m)",
+        "value": "3629",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "nov30-corrected-prescriptions"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "nov30-first-squat"
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "desc": "One fewer rep"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-HARD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "nov30-squat-done"
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-HARD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "desc": "One fewer rep"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-HARD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "desc": "One fewer rep"
+      }
+    },
+    {
+      "tap": {
+        "desc": "One fewer rep"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-HARD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "nov30-bench-done"
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "desc": "One fewer rep"
+      }
+    },
+    {
+      "tap": {
+        "desc": "One fewer rep"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-HARD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "desc": "One fewer rep"
+      }
+    },
+    {
+      "tap": {
+        "desc": "One fewer rep"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-HARD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "nov30-pulldown-done"
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "nov30-row-done"
+    },
+    {
+      "expect": {
+        "text": "Plank"
+      }
+    },
+    {
+      "checkpoint": "nov30-first-plank"
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Set 2 of 3"
+      }
+    },
+    {
+      "checkpoint": "nov30-plank-one-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Set 3 of 3"
+      }
+    },
+    {
+      "checkpoint": "nov30-plank-two-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "nov30-plank-done"
+    },
+    {
+      "expect": {
+        "text": "Rower"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "15m"
+    },
+    {
+      "type": {
+        "tag": "workout-cardio-distance",
+        "value": "3505"
+      }
+    },
+    {
+      "checkpoint": "nov30-steady-row"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-tonal"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button",
+        "inDialog": true
+      },
+      "optional": true
+    },
+    {
+      "tap": {
+        "text": "Finish day A",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Share"
+      },
+      "timeoutMs": 20000
+    },
+    {
+      "checkpoint": "nov30-summary"
+    },
+    {
+      "scrollTo": {
+        "text": "Why"
+      }
+    },
+    {
+      "tap": {
+        "text": "Why"
+      }
+    },
+    {
+      "checkpoint": "nov30-progression-explanation"
+    },
+    {
+      "back": true
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "bench 165 too much, go back to 160 next week and do it twice.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "nov30-bench-note-saved"
+    },
+    {
+      "tap": {
+        "text": "Done",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "nov30-workout-finished"
     },
     {
       "tap": {
@@ -25,11 +734,11 @@
     },
     {
       "tap": {
-        "desc": "Day B"
+        "desc": "Day A"
       }
     },
     {
-      "checkpoint": "nov28-offered-makeup-day-b"
+      "checkpoint": "nov30-before-bench-override"
     },
     {
       "tap": {
@@ -37,38 +746,21 @@
       }
     },
     {
-      "checkpoint": "nov28-base-prescriptions"
-    },
-    {
       "scrollTo": {
-        "textContains": "Conventional Deadlift",
+        "textContains": "Barbell Bench Press",
         "index": 0
       }
     },
     {
       "tap": {
-        "textContains": "Conventional Deadlift",
+        "textContains": "Barbell Bench Press",
         "index": 0
       }
     },
     {
       "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
         "text": "Weight (lb)",
-        "value": "235",
+        "value": "160",
         "ime": "done"
       }
     },
@@ -78,607 +770,24 @@
       }
     },
     {
-      "scrollTo": {
-        "textContains": "Overhead Press (Barbell)",
-        "index": 0
-      }
+      "checkpoint": "nov30-bench-base-160"
     },
     {
-      "tap": {
-        "textContains": "Overhead Press (Barbell)",
-        "index": 0
-      }
+      "back": true
     },
     {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
+      "checkpoint": "nov30-next-day-a-after-override"
     },
     {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "100",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Leg Press",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Leg Press",
-        "index": 0
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "290",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Seated Cable Row",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Seated Cable Row",
-        "index": 0
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "120",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Incline DB Curl",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Incline DB Curl",
-        "index": 0
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "2",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "12",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Edit cardio"
-      }
-    },
-    {
-      "tap": {
-        "text": "Edit cardio"
-      }
-    },
-    {
-      "checkpoint": "nov28-offered-bike-target"
-    },
-    {
-      "tap": {
-        "text": "Cancel"
-      }
-    },
-    {
-      "checkpoint": "nov28-corrected-lifts"
+      "back": true
     },
     {
       "back": true
     },
     {
       "tap": {
-        "text": "Start day B"
-      }
-    },
-    {
-      "tap": {
-        "text": "Skip",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "nov28-first-deadlift"
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "nov28-deadlift-done"
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "nov28-ohp-done"
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "nov28-leg-press-done"
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "nov28-cable-row-done"
-    },
-    {
-      "tap": {
-        "desc": "All sets, Rope Pushdown"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Skip for this workout"
-      }
-    },
-    {
-      "expect": {
-        "text": "Incline DB Curl"
-      }
-    },
-    {
-      "checkpoint": "nov28-only-curls-remain"
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "nov28-curls-done"
-    },
-    {
-      "expect": {
-        "text": "Stationary bike"
-      }
-    },
-    {
-      "checkpoint": "nov28-bike-start"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "16m"
-    },
-    {
-      "checkpoint": "nov28-eight-rounds-done"
-    },
-    {
-      "tap": {
-        "text": "Skip",
-        "role": "Button",
-        "inDialog": true
-      },
-      "optional": true
-    },
-    {
-      "expect": {
-        "text": "Finish day B",
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "nov28-bike-saved"
-    },
-    {
-      "tap": {
-        "text": "Finish day B",
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "desc": "Share"
-      },
-      "timeoutMs": 20000
-    },
-    {
-      "checkpoint": "nov28-summary"
-    },
-    {
-      "scrollTo": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Made up Day B. Bike 8 rounds, 300-320 W. Nov 27: 40-minute walk with brother-in-law; no gym Nov 25/27.",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "checkpoint": "nov28-makeup-walk-note-saved"
-    },
-    {
-      "tap": {
-        "text": "Done",
-        "role": "Button"
+        "text": "Today",
+        "role": "Tab"
       }
     },
     {
@@ -688,7 +797,7 @@
       }
     },
     {
-      "checkpoint": "nov28-finished"
+      "checkpoint": "nov30-finished-and-next-bench-overridden"
     }
   ]
 }

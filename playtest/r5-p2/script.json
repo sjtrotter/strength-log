@@ -270,16 +270,126 @@
       "checkpoint": "nov30-first-set-a"
     },
     {
+      "note": "Nov30 actual59min LowerA. Light week Off did not cancel the active reduction. Keep actual diary weights and sets by adding each removed set and editing the workout only. Warmups off-app. No lowered weight logged as an actual."
+    },
+    {
+      "advance": "720s"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "nov30-added-third-squat"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "235",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
       "expect": {
         "text": "235 lb × 5",
         "desc": "Edit set 1"
       }
     },
     {
-      "note": "Nov30 LowerA59min. Squat235 repeat5/5/5 clean; RDL1953x8; lunges45s2x10; raises10/10/10. Warmups off-app. Nov28 app said Light week next; today capture offers before choosing actual diary loads."
+      "advance": "1s"
     },
     {
-      "advance": "720s"
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "180s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "235",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "expect": {
+        "text": "235 lb × 5",
+        "desc": "Edit set 2"
+      }
     },
     {
       "advance": "1s"
@@ -312,25 +422,35 @@
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
+        "desc": "Edit set 3"
       }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "235",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1s"
     },
     {
       "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "180s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
+        "text": "235 lb × 5",
+        "desc": "Edit set 3"
       }
     },
     {
@@ -363,6 +483,9 @@
       }
     },
     {
+      "advance": "1s"
+    },
+    {
       "expect": {
         "text": "Romanian Deadlift",
         "inDialog": false
@@ -372,6 +495,60 @@
       "checkpoint": "nov30-starting-romanian-deadlift"
     },
     {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "nov30-added-third-rdl"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "195",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "expect": {
+        "text": "195 lb × 8",
+        "desc": "Edit set 1"
+      }
+    },
+    {
       "advance": "1s"
     },
     {
@@ -402,6 +579,42 @@
     },
     {
       "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "195",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "expect": {
+        "text": "195 lb × 8",
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
         "tag": "workout-action-filled"
       }
     },
@@ -421,6 +634,42 @@
     {
       "tap": {
         "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "195",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "expect": {
+        "text": "195 lb × 8",
+        "desc": "Edit set 3"
       }
     },
     {
@@ -453,6 +702,9 @@
       }
     },
     {
+      "advance": "1s"
+    },
+    {
       "expect": {
         "text": "Walking Lunge",
         "inDialog": false
@@ -460,6 +712,39 @@
     },
     {
       "checkpoint": "nov30-starting-walking-lunge"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "45",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "expect": {
+        "text": "45 lb × 10",
+        "desc": "Edit set 1"
+      }
     },
     {
       "advance": "1s"
@@ -485,6 +770,42 @@
     {
       "tap": {
         "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "45",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "expect": {
+        "text": "45 lb × 10",
+        "desc": "Edit set 2"
       }
     },
     {
@@ -517,6 +838,9 @@
       }
     },
     {
+      "advance": "1s"
+    },
+    {
       "expect": {
         "text": "Hanging Leg Raise",
         "inDialog": false
@@ -526,6 +850,47 @@
       "checkpoint": "nov30-starting-hanging-leg-raise"
     },
     {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "nov30-added-third-leg-raise"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
       "advance": "1s"
     },
     {
@@ -556,6 +921,29 @@
     },
     {
       "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
         "tag": "workout-action-filled"
       }
     },
@@ -576,6 +964,29 @@
       "tap": {
         "tag": "workout-action-filled"
       }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1s"
     },
     {
       "advance": "1s"
@@ -599,7 +1010,7 @@
       "checkpoint": "nov30-logged-hanging-leg-raise"
     },
     {
-      "advance": "1489s"
+      "advance": "1468s"
     },
     {
       "tap": {
@@ -630,7 +1041,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "Squat235 repeat5/5/5, clean. RDL1953x8 straps; lunges45s2x10; raises10/10/10. Repeating235 worked.",
+        "value": "Squat235 repeat3x5 clean; RDL1953x8; lunges45s2x10; raises3x10. Declined light week; edited actual sets.",
         "ime": "done"
       }
     },
@@ -656,909 +1067,6 @@
     },
     {
       "checkpoint": "nov30-saved-today-a"
-    },
-    {
-      "advance": "82860s"
-    },
-    {
-      "tap": {
-        "text": "Plans",
-        "role": "Tab"
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Strength, 4 days"
-      }
-    },
-    {
-      "scrollTo": {
-        "desc": "Day B"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Day B"
-      }
-    },
-    {
-      "checkpoint": "dec1-offered-b"
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Barbell Bench Press"
-      }
-    },
-    {
-      "tap": {
-        "text": "Barbell Bench Press"
-      }
-    },
-    {
-      "checkpoint": "dec1-prescription-before-barbell-bench-press"
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "175",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "dec1-saved-barbell-bench-press"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "One-Arm DB Row"
-      }
-    },
-    {
-      "tap": {
-        "text": "One-Arm DB Row"
-      }
-    },
-    {
-      "checkpoint": "dec1-prescription-before-one-arm-db-row"
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "12",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "70",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "dec1-saved-one-arm-db-row"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Seated DB Shoulder Press"
-      }
-    },
-    {
-      "tap": {
-        "text": "Seated DB Shoulder Press"
-      }
-    },
-    {
-      "checkpoint": "dec1-prescription-before-seated-db-shoulder-press"
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "8",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "50",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "dec1-saved-seated-db-shoulder-press"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Weighted Pull-Up"
-      }
-    },
-    {
-      "tap": {
-        "text": "Weighted Pull-Up"
-      }
-    },
-    {
-      "checkpoint": "dec1-prescription-before-weighted-pull-up"
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "4",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "dec1-saved-weighted-pull-up"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Hammer Curl"
-      }
-    },
-    {
-      "tap": {
-        "text": "Hammer Curl"
-      }
-    },
-    {
-      "checkpoint": "dec1-prescription-before-hammer-curl"
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "2",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "12",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "dec1-saved-hammer-curl"
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "dec1-configured-b"
-    },
-    {
-      "tap": {
-        "text": "Start day B"
-      }
-    },
-    {
-      "tap": {
-        "text": "Skip",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "dec1-first-set-b"
-    },
-    {
-      "note": "Dec1 UpperA56min. Bench back1753x5, one-count pause every rep. Belt+305/5/5/4; seatedDB50s3x8 easy; rows70s3x12 at DB maximum; curls30s2x12 (known Hammer Curl approximation). Physical order pullups before DBpress/rows; recording app order. No triceps performed."
-    },
-    {
-      "advance": "600s"
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "180s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "180s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "dec1-logged-barbell-bench-press"
-    },
-    {
-      "advance": "180s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "One-Arm DB Row",
-        "inDialog": false
-      }
-    },
-    {
-      "checkpoint": "dec1-starting-one-arm-db-row"
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "dec1-logged-one-arm-db-row"
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "Seated DB Shoulder Press",
-        "inDialog": false
-      }
-    },
-    {
-      "checkpoint": "dec1-starting-seated-db-shoulder-press"
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-EASY"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-EASY"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-EASY"
-      }
-    },
-    {
-      "checkpoint": "dec1-logged-seated-db-shoulder-press"
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "Weighted Pull-Up",
-        "inDialog": false
-      }
-    },
-    {
-      "checkpoint": "dec1-starting-weighted-pull-up"
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 4"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "4",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-MAX"
-      }
-    },
-    {
-      "checkpoint": "dec1-logged-weighted-pull-up"
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "Hammer Curl",
-        "inDialog": false
-      }
-    },
-    {
-      "checkpoint": "dec1-starting-hammer-curl"
-    },
-    {
-      "tap": {
-        "tag": "workout-all-sets-main"
-      }
-    },
-    {
-      "checkpoint": "dec1-curl-only"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-0"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "lift-check-main-1"
-      }
-    },
-    {
-      "checkpoint": "dec1-two-curls-no-triceps"
-    },
-    {
-      "back": true
-    },
-    {
-      "advance": "886s"
-    },
-    {
-      "tap": {
-        "tag": "workout-finish"
-      }
-    },
-    {
-      "tap": {
-        "text": "Finish",
-        "inDialog": true
-      }
-    },
-    {
-      "checkpoint": "dec1-receipt-b"
-    },
-    {
-      "scrollTo": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Bench1753x5 paused1count. Belt+305/5/5/4. DB50s3x8 easy; row70s3x12 maxedDB; curls30s2x12 (Hammer label).",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "checkpoint": "dec1-note-b"
-    },
-    {
-      "tap": {
-        "text": "Done",
-        "role": "Button"
-      }
-    },
-    {
-      "expect": {
-        "text": "Today",
-        "role": "Tab"
-      }
-    },
-    {
-      "checkpoint": "dec1-saved-today-b"
-    },
-    {
-      "advance": "84840s"
-    },
-    {
-      "tap": {
-        "text": "Plans",
-        "role": "Tab"
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Strength, 4 days"
-      }
-    },
-    {
-      "scrollTo": {
-        "desc": "Day F"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Day F"
-      }
-    },
-    {
-      "checkpoint": "dec2-offered-road-run"
-    },
-    {
-      "tap": {
-        "text": "Start day F",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "dec2-road-run-ready-for-past-entry"
-    },
-    {
-      "tap": {
-        "text": "Log past session"
-      }
-    },
-    {
-      "checkpoint": "dec2-past-run-form-default-date-time"
-    },
-    {
-      "note": "Dec2 easy run27min,2.8mi,left calf tight. Assumed actual06:00, recording06:30. Leave Date/Start time untouched per harness limit, even if form default differs."
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "27:00",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Distance (mi)",
-        "value": "2.8",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Easy27min,about2.8mi. Left calf tight,nothing serious. Actual start06:00;logging06:30.",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "past-cardio-effort-EASY"
-      }
-    },
-    {
-      "checkpoint": "dec2-past-run-27min-2point8mi"
-    },
-    {
-      "tap": {
-        "text": "Save",
-        "role": "Button",
-        "inDialog": true
-      }
-    },
-    {
-      "checkpoint": "dec2-past-run-save-result"
-    },
-    {
-      "tap": {
-        "text": "Skip",
-        "role": "Button",
-        "inDialog": true
-      },
-      "optional": true
-    },
-    {
-      "checkpoint": "dec2-run-receipt"
-    },
-    {
-      "tap": {
-        "text": "Done",
-        "role": "Button",
-        "inDialog": false
-      }
-    },
-    {
-      "expect": {
-        "text": "Today",
-        "role": "Tab"
-      }
-    },
-    {
-      "checkpoint": "dec2-run-finished-solid-ground"
     }
   ]
 }

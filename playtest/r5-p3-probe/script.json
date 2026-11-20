@@ -28,7 +28,7 @@
     {
       "type": {
         "text": "Name",
-        "value": "Meet block \u2014 Nov 9 to Dec 5"
+        "value": "Meet block — Nov 9 to Dec 5"
       }
     },
     {
@@ -37,15 +37,10 @@
       }
     },
     {
-      "checkpoint": "own-plan-created"
-    },
-    {
       "tap": {
-        "text": "Add day"
+        "text": "Ask",
+        "role": "RadioButton"
       }
-    },
-    {
-      "checkpoint": "first-day-created-or-dialog"
     },
     {
       "tap": {
@@ -54,7 +49,7 @@
     },
     {
       "tap": {
-        "text": "Edit"
+        "text": "Edit day"
       }
     },
     {
@@ -110,6 +105,100 @@
     },
     {
       "checkpoint": "day-editor-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day options"
+      }
+    },
+    {
+      "checkpoint": "plan-day-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Plan options",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "text": "Use only this plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "own-plan-today"
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "checkpoint": "kg-set-editor"
+    },
+    {
+      "tap": {
+        "desc": "Set menu"
+      }
+    },
+    {
+      "checkpoint": "set-menu"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "checkpoint": "lift-options"
     }
   ]
 }

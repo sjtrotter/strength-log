@@ -165,7 +165,7 @@
     },
     {
       "tap": {
-        "text": "Squat",
+        "text": "Squat (bilateral)",
         "role": "RadioButton",
         "inDialog": true
       }

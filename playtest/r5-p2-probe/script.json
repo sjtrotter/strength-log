@@ -21,85 +21,6 @@
     },
     {
       "tap": {
-        "desc": "More options for Barbell Back Squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "Lift options"
-      }
-    },
-    {
-      "checkpoint": "plan-squat-lift-options"
-    },
-    {
-      "tap": {
-        "text": "Increase"
-      }
-    },
-    {
-      "checkpoint": "per-lift-increase-dialog"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Rest"
-      }
-    },
-    {
-      "checkpoint": "per-lift-rest-dialog"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Straight sets"
-      }
-    },
-    {
-      "checkpoint": "straight-sets-selected"
-    },
-    {
-      "scrollTo": {
-        "text": "Add superset"
-      }
-    },
-    {
-      "checkpoint": "lift-options-bottom"
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "after-options-back"
-    },
-    {
-      "tap": {
-        "text": "Barbell Back Squat"
-      }
-    },
-    {
-      "checkpoint": "straight-squat-prescription"
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "after-straight-prescription-save"
-    },
-    {
-      "tap": {
         "desc": "More options for Bulgarian Split Squat"
       }
     },
@@ -115,38 +36,62 @@
       }
     },
     {
-      "checkpoint": "lunge-swap-results"
+      "checkpoint": "lunge-results-correct-route"
     },
     {
       "back": true
     },
     {
-      "checkpoint": "after-lunge-search-back"
-    },
-    {
       "tap": {
-        "desc": "More options for Swiss Ball Leg Curl"
+        "desc": "More options for Barbell Back Squat"
       }
     },
     {
       "tap": {
-        "text": "Swap"
+        "text": "Lift options"
+      }
+    },
+    {
+      "tap": {
+        "text": "Straight sets"
       }
     },
     {
       "type": {
-        "text": "Search exercises",
-        "value": "hanging"
+        "text": "Sets",
+        "value": "3"
       }
     },
     {
-      "checkpoint": "hanging-raise-swap-results"
+      "type": {
+        "text": "Reps",
+        "value": "5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "225"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "straight-sets-saved-route"
     },
     {
       "back": true
     },
     {
-      "checkpoint": "after-hanging-search-back"
+      "checkpoint": "back-after-straight-save"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
     },
     {
       "tap": {
@@ -165,7 +110,18 @@
       }
     },
     {
-      "checkpoint": "rdl-swap-results"
+      "tap": {
+        "text": "Romanian Deadlift"
+      }
+    },
+    {
+      "checkpoint": "rdl-selected-blank-or-form"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "rdl-after-back"
     },
     {
       "tap": {
@@ -173,7 +129,268 @@
       }
     },
     {
-      "checkpoint": "rdl-plan-swap-choice"
+      "checkpoint": "rdl-prescription"
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "185"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "rdl-prescription-saved"
+    },
+    {
+      "tap": {
+        "desc": "More options for Swiss Ball Leg Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "hanging"
+      }
+    },
+    {
+      "tap": {
+        "text": "Hanging Leg Raise"
+      }
+    },
+    {
+      "checkpoint": "hanging-selected-blank-or-form"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "hanging-after-back"
+    },
+    {
+      "tap": {
+        "text": "Hanging Leg Raise"
+      }
+    },
+    {
+      "checkpoint": "hanging-prescription"
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "hanging-saved"
+    },
+    {
+      "tap": {
+        "desc": "More options for Bulgarian Split Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "removed-bulgarian-split-squat"
+    },
+    {
+      "tap": {
+        "desc": "More options for Single-Leg Calf Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "removed-single-leg-calf-raise"
+    },
+    {
+      "tap": {
+        "desc": "More options for Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "removed-plank"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "configured-first-set"
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "squat-first-logged"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "recreated-with-set"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "rest-after-recreate"
+    },
+    {
+      "tap": {
+        "text": "Next set",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "text": "Next set",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "squat-third-logged"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "checkpoint": "after-squat-rest"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "after-next-action"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "lift-note-form"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "finish-left-dialog"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "partial-probe-receipt"
     }
   ]
 }

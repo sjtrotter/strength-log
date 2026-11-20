@@ -3,7 +3,7 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-09",
+    "date": "2026-11-11",
     "time": "17:30",
     "zone": "America/Chicago"
   },
@@ -22,7 +22,7 @@
     },
     {
       "tap": {
-        "desc": "Day A"
+        "desc": "Day B"
       }
     },
     {
@@ -31,58 +31,18 @@
       }
     },
     {
-      "scrollTo": {
-        "desc": "More options for Overhead Press (Barbell)"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Overhead Press (Barbell)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
+      "checkpoint": "wednesday-original-plan"
     },
     {
       "scrollTo": {
-        "desc": "More options for Romanian Deadlift"
+        "role": "Button",
+        "index": 2
       }
     },
     {
       "tap": {
-        "desc": "More options for Romanian Deadlift"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "scrollTo": {
-        "desc": "More options for Cable Lateral Raise"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Cable Lateral Raise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "scrollTo": {
-        "desc": "More options for DB Bench Press"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for DB Bench Press"
+        "role": "Button",
+        "index": 2
       }
     },
     {
@@ -91,18 +51,31 @@
       }
     },
     {
+      "type": {
+        "text": "Search exercises",
+        "value": "conventional",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "swap-choices-0"
+    },
+    {
       "tap": {
-        "text": "Barbell Bench Press"
+        "textContains": "Deadlift",
+        "index": 1
       }
     },
     {
       "scrollTo": {
-        "desc": "More options for Chest-Supported Row"
+        "role": "Button",
+        "index": 3
       }
     },
     {
       "tap": {
-        "desc": "More options for Chest-Supported Row"
+        "role": "Button",
+        "index": 3
       }
     },
     {
@@ -111,122 +84,125 @@
       }
     },
     {
+      "checkpoint": "swap-choices-1"
+    },
+    {
+      "scrollTo": {
+        "text": "Seated Cable Row"
+      }
+    },
+    {
       "tap": {
-        "text": "One-Arm DB Row"
+        "text": "Seated Cable Row"
       }
     },
     {
       "scrollTo": {
-        "textContains": "Barbell Back Squat",
-        "index": 0
+        "role": "Button",
+        "index": 6
       }
     },
     {
       "tap": {
-        "textContains": "Barbell Back Squat",
-        "index": 0
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "185",
-        "ime": "done"
+        "role": "Button",
+        "index": 6
       }
     },
     {
       "tap": {
-        "text": "Save"
+        "text": "Swap"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "curl",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "swap-choices-4"
+    },
+    {
+      "tap": {
+        "textContains": "Curl",
+        "index": 1
       }
     },
     {
       "scrollTo": {
-        "textContains": "Barbell Bench Press",
-        "index": 0
+        "role": "Button",
+        "index": 7
       }
     },
     {
       "tap": {
-        "textContains": "Barbell Bench Press",
-        "index": 0
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "155",
-        "ime": "done"
+        "role": "Button",
+        "index": 7
       }
     },
     {
       "tap": {
-        "text": "Save"
+        "text": "Remove"
       }
     },
     {
       "scrollTo": {
-        "textContains": "One-Arm DB Row",
-        "index": 0
+        "role": "Button",
+        "index": 5
       }
     },
     {
       "tap": {
-        "textContains": "One-Arm DB Row",
-        "index": 0
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "55",
-        "ime": "done"
+        "role": "Button",
+        "index": 5
       }
     },
     {
       "tap": {
-        "text": "Save"
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "role": "Button",
+        "index": 4
+      }
+    },
+    {
+      "tap": {
+        "role": "Button",
+        "index": 4
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Squat (bilateral)"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Leg Press"
       }
     },
     {
@@ -258,23 +234,254 @@
     },
     {
       "tap": {
-        "text": "Vertical pull"
-      }
-    },
-    {
-      "tap": {
-        "text": "Lat Pulldown (wide)"
+        "text": "Vertical push"
       }
     },
     {
       "scrollTo": {
-        "textContains": "Lat Pulldown (wide)",
+        "text": "Overhead Press (Barbell)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Overhead Press (Barbell)"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Overhead Press (Barbell)"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Overhead Press (Barbell)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Move up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Move up"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Overhead Press (Barbell)"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Overhead Press (Barbell)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Move up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Move up"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Overhead Press (Barbell)"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Overhead Press (Barbell)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Move up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Move up"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Overhead Press (Barbell)"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Overhead Press (Barbell)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Move up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Move up"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Leg Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Leg Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Move up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Move up"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Leg Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Leg Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Move up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Move up"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Overhead Press (Barbell)",
         "index": 0
       }
     },
     {
       "tap": {
-        "textContains": "Lat Pulldown (wide)",
+        "textContains": "Overhead Press (Barbell)",
+        "index": 0
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "95",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Deadlift",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Deadlift",
+        "index": 0
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "225",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Leg Press",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Leg Press",
         "index": 0
       }
     },
@@ -295,7 +502,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "120",
+        "value": "270",
         "ime": "done"
       }
     },
@@ -306,63 +513,13 @@
     },
     {
       "scrollTo": {
-        "desc": "More options for Lat Pulldown (wide)"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Lat Pulldown (wide)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Lift options"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Move up"
-      }
-    },
-    {
-      "tap": {
-        "text": "Move up"
-      }
-    },
-    {
-      "scrollTo": {
-        "desc": "More options for Lat Pulldown (wide)"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Lat Pulldown (wide)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Lift options"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Move up"
-      }
-    },
-    {
-      "tap": {
-        "text": "Move up"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Plank",
+        "textContains": "Seated Cable Row",
         "index": 0
       }
     },
     {
       "tap": {
-        "textContains": "Plank",
+        "textContains": "Seated Cable Row",
         "index": 0
       }
     },
@@ -370,6 +527,58 @@
       "type": {
         "text": "Sets",
         "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "110",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Curl",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Curl",
+        "index": 0
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "12",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30",
         "ime": "done"
       }
     },
@@ -396,35 +605,679 @@
     },
     {
       "scrollTo": {
-        "text": "Rower"
+        "text": "Stationary bike"
       }
     },
     {
       "tap": {
-        "text": "Rower"
+        "text": "Stationary bike"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Set ",
+        "index": 0
       }
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
+        "textContains": "Set ",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Work",
+        "role": "RadioButton"
       }
     },
     {
       "type": {
         "text": "Duration",
-        "value": "15:00",
+        "value": "0:30",
         "ime": "done"
       }
     },
     {
       "tap": {
-        "desc": "Aim"
+        "desc": "Hard"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add set"
+      }
+    },
+    {
+      "checkpoint": "bike-added-set-2"
+    },
+    {
+      "scrollTo": {
+        "textContains": "Set ",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Set ",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "text": "Recovery",
+        "role": "RadioButton"
       }
     },
     {
       "type": {
-        "text": "Distance (m)",
-        "value": "3400",
+        "text": "Duration",
+        "value": "1:30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add set"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Set ",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Set ",
+        "index": 2
+      }
+    },
+    {
+      "tap": {
+        "text": "Work",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Hard"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add set"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Set ",
+        "index": 3
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Set ",
+        "index": 3
+      }
+    },
+    {
+      "tap": {
+        "text": "Recovery",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "1:30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add set"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Set ",
+        "index": 4
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Set ",
+        "index": 4
+      }
+    },
+    {
+      "tap": {
+        "text": "Work",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Hard"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add set"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Set ",
+        "index": 5
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Set ",
+        "index": 5
+      }
+    },
+    {
+      "tap": {
+        "text": "Recovery",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "1:30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add set"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Set ",
+        "index": 6
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Set ",
+        "index": 6
+      }
+    },
+    {
+      "tap": {
+        "text": "Work",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Hard"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add set"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Set ",
+        "index": 7
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Set ",
+        "index": 7
+      }
+    },
+    {
+      "tap": {
+        "text": "Recovery",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "1:30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add set"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Set ",
+        "index": 8
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Set ",
+        "index": 8
+      }
+    },
+    {
+      "tap": {
+        "text": "Work",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Hard"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add set"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Set ",
+        "index": 9
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Set ",
+        "index": 9
+      }
+    },
+    {
+      "tap": {
+        "text": "Recovery",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "1:30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add set"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Set ",
+        "index": 10
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Set ",
+        "index": 10
+      }
+    },
+    {
+      "tap": {
+        "text": "Work",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Hard"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add set"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Set ",
+        "index": 11
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Set ",
+        "index": 11
+      }
+    },
+    {
+      "tap": {
+        "text": "Recovery",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "1:30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add set"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Set ",
+        "index": 12
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Set ",
+        "index": 12
+      }
+    },
+    {
+      "tap": {
+        "text": "Work",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Hard"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add set"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Set ",
+        "index": 13
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Set ",
+        "index": 13
+      }
+    },
+    {
+      "tap": {
+        "text": "Recovery",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "1:30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add set"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Set ",
+        "index": 14
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Set ",
+        "index": 14
+      }
+    },
+    {
+      "tap": {
+        "text": "Work",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Hard"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add set"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Set ",
+        "index": 15
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Set ",
+        "index": 15
+      }
+    },
+    {
+      "tap": {
+        "text": "Recovery",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "1:30",
         "ime": "done"
       }
     },
@@ -439,14 +1292,14 @@
       }
     },
     {
-      "checkpoint": "day-a-personalized"
+      "checkpoint": "wednesday-plan-with-eight-bike-rounds"
     },
     {
       "back": true
     },
     {
       "tap": {
-        "text": "Start day A"
+        "text": "Start day B"
       }
     },
     {
@@ -456,7 +1309,7 @@
       }
     },
     {
-      "checkpoint": "monday-first-set"
+      "checkpoint": "wednesday-ohp-first"
     },
     {
       "advance": "35s"
@@ -468,34 +1321,7 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "recreate": true
-    },
-    {
-      "checkpoint": "first-set-survives-recreation"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
+        "tag": "workout-effort-EASY"
       }
     },
     {
@@ -516,31 +1342,7 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "squat-logged"
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
+        "tag": "workout-effort-EASY"
       }
     },
     {
@@ -561,7 +1363,7 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-GOOD"
+        "tag": "workout-effort-EASY"
       }
     },
     {
@@ -573,45 +1375,7 @@
       }
     },
     {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "desc": "One fewer rep"
-      }
-    },
-    {
-      "recreate": true
-    },
-    {
-      "expect": {
-        "text": "Log 155 lb \u00d7 4",
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "missed-rep-survives-music-switch"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-HARD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "bench-logged"
+      "checkpoint": "wednesday-ohp-done"
     },
     {
       "advance": "35s"
@@ -677,7 +1441,7 @@
       }
     },
     {
-      "checkpoint": "pulldown-logged"
+      "checkpoint": "wednesday-deadlift-done"
     },
     {
       "advance": "35s"
@@ -743,7 +1507,7 @@
       }
     },
     {
-      "checkpoint": "row-logged"
+      "checkpoint": "wednesday-leg-press-done"
     },
     {
       "tap": {
@@ -757,15 +1521,221 @@
     },
     {
       "tap": {
-        "text": "Skip for this workout"
+        "text": "Swap exercise"
       }
     },
     {
-      "checkpoint": "plank-skipped"
+      "type": {
+        "text": "Search exercises",
+        "value": "One-Arm",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "One-Arm DB Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "This workout",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "wednesday-dumbbell-substitution"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "55",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "55",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "55",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "wednesday-rows-done"
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "wednesday-curls-done"
     },
     {
       "expect": {
-        "text": "Rower"
+        "text": "Stationary bike"
       }
     },
     {
@@ -774,21 +1744,29 @@
       }
     },
     {
-      "advance": "15m"
+      "advance": "30s"
     },
     {
-      "type": {
-        "tag": "workout-cardio-distance",
-        "value": "3412"
-      }
+      "checkpoint": "bike-first-work-done"
     },
     {
-      "checkpoint": "steady-row-result"
+      "advance": "15m30s"
+    },
+    {
+      "checkpoint": "bike-eight-rounds-elapsed"
     },
     {
       "tap": {
         "tag": "workout-action-tonal"
-      }
+      },
+      "optional": true
+    },
+    {
+      "tap": {
+        "text": "Continue without distance",
+        "role": "Button"
+      },
+      "optional": true
     },
     {
       "tap": {
@@ -800,7 +1778,7 @@
     },
     {
       "tap": {
-        "text": "Finish day A",
+        "text": "Finish day B",
         "tag": "workout-action-filled"
       }
     },
@@ -811,7 +1789,32 @@
       "timeoutMs": 20000
     },
     {
-      "checkpoint": "monday-summary"
+      "checkpoint": "wednesday-summary"
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Bike 8 rounds. Hard: 290-310 W; last two 270 W.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "wednesday-bike-watts-note"
     },
     {
       "tap": {
@@ -826,7 +1829,7 @@
       }
     },
     {
-      "checkpoint": "monday-finished"
+      "checkpoint": "wednesday-finished"
     }
   ]
 }

@@ -1151,44 +1151,23 @@
       "checkpoint": "logged-set-16"
     },
     {
-      "tap": {
-        "text": "Skip",
-        "role": "Button"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "checkpoint": "after-cooldown-dismissed"
-    },
-    {
-      "note": "Finish did not open a receipt on the prior replay. Reopen the app after dismissing cool-down, keeping this same session."
-    },
-    {
-      "recreate": true
-    },
-    {
-      "expect": {
-        "desc": "Day A lifts, 16 of 16 sets"
-      }
-    },
-    {
-      "checkpoint": "reopened-completed-workout"
+      "note": "The prior two runs dismissed the automatic cool-down with Skip, then could not reach a receipt. Use the visible Done control on that sheet this time."
     },
     {
       "tap": {
-        "text": "Finish day A",
-        "role": "Button"
+        "text": "Done",
+        "role": "Button",
+        "inDialog": true
       }
     },
     {
-      "checkpoint": "after-finish-day-tap"
+      "checkpoint": "after-cooldown-done"
     },
     {
       "expect": {
         "text": "Done",
-        "role": "Button"
+        "role": "Button",
+        "inDialog": false
       }
     },
     {

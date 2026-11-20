@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
+import cloud.trotter.log.strength.domain.cardio.CardioPace
 import cloud.trotter.log.strength.domain.cardio.cardioActivityLabel
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
@@ -33,6 +34,7 @@ import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.units.WeightStepper
+import cloud.trotter.log.strength.ui.components.LocalDistanceUnit
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 import cloud.trotter.log.strength.ui.components.SheetCommitButton
 import cloud.trotter.log.strength.ui.components.distanceUnitFor
@@ -148,6 +150,9 @@ internal fun CardioSummary(sets: List<CardioSetResult>, seconds: Int, activity: 
             distance.size == performed.size -> stringResource(R.string.cardio_distance_total, distanceUnitFor(activity).format(distance.sum()))
             else -> stringResource(R.string.cardio_distance_recorded, distanceUnitFor(activity).format(distance.sum()))
         })
+        if (activity != null) CardioPace.ofWork(activity, sets, LocalDistanceUnit.current)?.let {
+            Text(stringResource(R.string.cardio_pace, it.text))
+        }
     }
 }
 

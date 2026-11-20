@@ -111,6 +111,48 @@ class LogScreenInteractionTest {
         if (restoration == null) composeTestRule.setContent(content) else restoration.setContent(content)
     }
 
+    @Test fun `a cardio history row shows pace in the user unit`() {
+        val session = CardioSessionEntity(id = 8, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Road run", startedAt = 1000, completedAt = 1_801_000, seconds = 1800,
+            stepsCompleted = 1, activity = CardioActivity.ROAD_RUN.name)
+        val result = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Time(1800)),
+            CardioSetStatus.FINISHED, 1800, 5000, DistanceSource.MANUAL)
+        val ride = session.copy(id = 9, mode = "LOW_IMPACT", activity = CardioActivity.STATIONARY_BIKE.name)
+        setContent(false, distanceUnit = DistanceUnit.MI, sessions = listOf(
+            LogScreenBuilder.cardioItem(session, listOf(result)), LogScreenBuilder.cardioItem(ride, listOf(result))))
+        composeTestRule.onAllNodesWithText("Pace", substring = true).assertCountEquals(1)
+        composeTestRule.onNodeWithText("Pace 9:39 /mi").assertIsDisplayed()
+    }
+
+    @Test fun `the cardio trend card shows its heading and latest value`() {
+        val (sessions, sets) = cardioTrendHistoryFixture()
+        val cards = JournalBuilder.cardioTrends(sessions, sets, java.time.ZoneOffset.UTC)
+        setContent(false, journal = JournalUiState(cardioTrends = cards))
+        composeTestRule.onNodeWithText("Rower 15:00").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Latest 3,470 m").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Rower 2,000 m").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Latest 7:57").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Rower 2,000 m: Nov 1, 8:12; Nov 3, 7:57.").assertExists()
+    }
+
+    @Test fun `calendar tap scrolls to its session with cardio trend cards`() {
+        val history = auditHistoryFixture()
+        val (cardio, sets) = cardioTrendHistoryFixture()
+        val journal = history.journal.copy(cardioTrends = JournalBuilder.cardioTrends(cardio, sets, java.time.ZoneOffset.UTC))
+        val sessions = history.sessions + List(20) { i ->
+            logSessionFixture(false).copy(sessionId = 100L + i, dateDisplay = "Older session $i")
+        }
+        setContent(false, sessions = sessions, journal = journal)
+        composeTestRule.onNodeWithText("Trends and calendar").performScrollTo().performClick()
+        composeTestRule.onNode(hasScrollAction())
+            .performScrollToNode(hasContentDescription("November 3, today, day A, 1 session"))
+        composeTestRule.onNodeWithContentDescription("November 3, today, day A, 1 session").performClick()
+        composeTestRule.waitForIdle()
+        val session = composeTestRule.onNodeWithText(history.sessions.first().dateDisplay).assertIsDisplayed()
+        val listTop = composeTestRule.onNode(hasScrollAction()).getUnclippedBoundsInRoot().top
+        assertTrue(session.getUnclippedBoundsInRoot().top - listTop < 96.dp)
+    }
+
     @Test
     fun weeklyDistanceShowsMilesMissingSessionsAndRowingMeters() {
         setContent(false, journal = JournalUiState(weeklyDistance = listOf(

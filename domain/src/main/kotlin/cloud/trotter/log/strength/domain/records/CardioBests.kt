@@ -46,6 +46,17 @@ object CardioBests {
         return bests
     }
 
+    /** Per planned end, the best counting result of the most recent session that has one. [sessions] oldest first. */
+    fun latest(activity: CardioActivity, sessions: List<List<CardioSetResult>>): Map<CardioRecordKey, CardioSetResult> {
+        val latest = mutableMapOf<CardioRecordKey, CardioSetResult>()
+        for (session in sessions.asReversed()) {
+            for ((key, best) in bests(activity, session)) {
+                if (key !in latest) latest[key] = best
+            }
+        }
+        return latest
+    }
+
     fun records(
         activity: CardioActivity,
         results: List<CardioSetResult>,

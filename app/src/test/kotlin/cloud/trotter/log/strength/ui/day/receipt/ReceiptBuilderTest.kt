@@ -36,6 +36,34 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ReceiptBuilderTest {
+    @Test fun `last time aligns with cardio rows`() {
+        val activity = CardioActivity.TRACK_RUN
+        val end = Measure.Distance(400)
+        val results = listOf(cardioResult(CardioRole.WARMUP, Measure.Time(300), 300)) +
+            listOf(100, 104, 102).flatMap { seconds -> listOf(cardioResult(CardioRole.WORK, end, seconds),
+                cardioResult(CardioRole.RECOVERY, Measure.Time(90), 90)) } +
+            cardioResult(CardioRole.COOLDOWN, Measure.Time(300), 300)
+        val latest = CardioBests.bests(activity, listOf(cardioResult(CardioRole.WORK, end, 105)))
+        assertEquals(listOf(null, CardioLastTime(105, null, true), null),
+            ReceiptBuilder.cardioLastTimes(activity, results, latest))
+    }
+
+    @Test fun `last time reads the at-end reading and marks improvement`() {
+        val activity = CardioActivity.ROWER
+        val previous = cardioResult(CardioRole.WORK, Measure.Time(900), 904, 3485)
+            .copy(metresAtEnd = 3412, secondsAtEnd = 900)
+        val latest = CardioBests.bests(activity, listOf(previous))
+        val current = previous.copy(metresAtEnd = 3470)
+        assertEquals(listOf(CardioLastTime(null, 3412, true)),
+            ReceiptBuilder.cardioLastTimes(activity, listOf(current), latest))
+        for (metres in listOf(3400, 3412)) {
+            assertEquals(listOf(CardioLastTime(null, 3412, false)),
+                ReceiptBuilder.cardioLastTimes(activity, listOf(current.copy(metresAtEnd = metres)), latest))
+        }
+        assertEquals(listOf<CardioLastTime?>(null), ReceiptBuilder.cardioLastTimes(activity,
+            listOf(current.copy(status = CardioSetStatus.SHORTENED)), latest))
+    }
+
     @Test fun `recovered tracks keep the live receipt groups including skipped main and dropped partner`() {
         val planned = List(3) { LoggedSet(185.0, 5, SetKind.WORK) }
         val live = listOf(

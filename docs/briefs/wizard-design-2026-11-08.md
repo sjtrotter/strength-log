@@ -2228,8 +2228,7 @@ the working-tree moves await caller staging, so git ls-files still lists the old
 
 §8 row 8 is complete: `:domain` has no `generator/` package.
 
-
-## 66. Revision 57 (ladder gate for short events, 2026-11-2x)
+## 66. Revision 57 (ladder gate for short events, 2026-11-20)
 
 The [ladder-date brief](ladder-date-2026-11-19/design.md), including its council check and the owner's decision,
 amends revision 49 §1.1's one gate for every goal. On Fitness test and Middle distance, a runner who is not New
@@ -2278,5 +2277,3 @@ the dated ladder plan's Why sheet, each at 1x and 2x. Existing s43 and s44 defin
 
 P8 derives 123 s per 400 m rep (`779 × 400 / 2414 × 0.95`, rounded) and a 1,440 s D end
 (`RunCap.limit(1320, 60)`). Neither differs from the build spec. The invariant and progression grids stay unchanged.
-No network, Gradle, compilation, builds, tests or subagents were used. CI unit tests, build, pilots and generated
-render artifacts remain pending.

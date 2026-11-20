@@ -175,6 +175,24 @@ object ReceiptBuilder {
         return rows
     }
 
+    fun cardioLastTimes(
+        activity: CardioActivity,
+        results: List<CardioSetResult>,
+        latest: Map<CardioRecordKey, CardioSetResult>,
+    ): List<CardioLastTime?> = cardioGroups(results).map { group ->
+        val first = group.sets.first()
+        if (first.spec.role != CardioRole.WORK) return@map null
+        val key = CardioRecordKey(activity, first.spec.end)
+        val current = CardioBests.bests(activity, group.sets)[key] ?: return@map null
+        val previous = latest[key] ?: return@map null
+        val reading = FinishedRule.reading(previous) ?: return@map null
+        CardioLastTime(
+            previousSeconds = reading.takeIf { key.end is Measure.Distance },
+            previousMetres = reading.takeIf { key.end is Measure.Time },
+            improved = CardioBests.compare(current, previous) > 0,
+        )
+    }
+
     internal data class CardioResultGroup(val sets: List<CardioSetResult>, val recoverySeconds: List<Int> = emptyList())
 
     internal fun cardioGroups(results: List<CardioSetResult>): List<CardioResultGroup> {

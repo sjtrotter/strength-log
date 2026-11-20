@@ -24,6 +24,24 @@ class CardioBestsTest {
     ) = CardioSetResult(CardioSetSpec(role, end, aim), status, seconds,
         metres, metres?.let { DistanceSource.MANUAL })
 
+    @Test fun `latest takes the most recent session per planned end`() {
+        val activity = CardioActivity.ROWER
+        val timed = Measure.Time(900)
+        val distance = Measure.Distance(2000)
+        val first = result(timed, 900, 3400)
+        val middle = result(distance, 492, 2000)
+        val last = result(timed, 900, 3412)
+        val sessions = listOf(listOf(first), listOf(middle, middle.copy(elapsedSeconds = 500)), listOf(last,
+            result(distance, 470, 1900, status = CardioSetStatus.SHORTENED)))
+        val latest = CardioBests.latest(activity, sessions)
+        assertEquals(last, latest[CardioRecordKey(activity, timed)])
+        assertEquals(middle, latest[CardioRecordKey(activity, distance)])
+        assertEquals(2, latest.size)
+        val worse = last.copy(metres = 3405)
+        val refreshed = CardioBests.latest(activity, sessions + listOf(listOf(worse)))
+        assertEquals(worse, refreshed[CardioRecordKey(activity, timed)])
+    }
+
     @Test
     fun `six track intervals produce one fastest record against the standing best`() {
         val activity = CardioActivity.TRACK_RUN

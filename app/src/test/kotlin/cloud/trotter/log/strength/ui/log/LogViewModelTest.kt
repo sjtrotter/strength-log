@@ -1093,6 +1093,26 @@ class LogViewModelTest {
         collect.cancel()
     }
 
+    @Test fun `History builds cardio trends from the database`() = runVmTest {
+        val (sessions, sets) = cardioTrendHistoryFixture()
+        for (session in sessions) {
+            val id = db.cardioSessionDao().insert(session)
+            db.cardioSetResultDao().insertAll(sets.getValue(session.id).mapIndexed { position, result ->
+                result.toEntity(id, position)
+            })
+        }
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val cards = vm.uiState.value.journal.cardioTrends
+        assertEquals(listOf(3412f, 3470f), cards[0].points.map { it.value })
+        assertEquals(listOf(true, true), cards[0].points.map { it.newHigh })
+        assertEquals(listOf(492f, 485f, 477f), cards[1].points.map { it.value })
+        assertEquals(listOf(true, true, true), cards[1].points.map { it.newHigh })
+        assertEquals(2, cards.size)
+        collect.cancel()
+    }
+
     @Test
     fun journalIsEmptyOnAFreshInstall() = runVmTest {
         insertProgram()

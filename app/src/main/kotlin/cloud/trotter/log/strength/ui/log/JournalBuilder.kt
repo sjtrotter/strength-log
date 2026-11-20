@@ -20,6 +20,9 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.records.CardioBests
+import cloud.trotter.log.strength.domain.records.CardioRecordKey
+import cloud.trotter.log.strength.domain.progression.FinishedRule
 import cloud.trotter.log.strength.domain.records.PersonalBests
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -44,6 +47,7 @@ object JournalBuilder {
 
     /** Weeks of tonnage the volume section shows, including the current one. */
     const val VOLUME_WEEKS = 12
+    const val CARDIO_TRENDS = 4
 
     private val MONTH_TITLE = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US)
     private val CELL_DATE = DateTimeFormatter.ofPattern("MMMM d", Locale.US)
@@ -208,9 +212,7 @@ object JournalBuilder {
         for (session in sessions) {
             val date = Instant.ofEpochMilli(session.completedAt).atZone(zone).toLocalDate()
             if (date < start || date >= end) continue
-            val activity = CardioActivity.entries.find { it.name == session.activity }
-                ?: CardioBlocks.activityOf(session.decodedCardioMode() ?: CardioMode.NONE)
-                ?: continue
+            val activity = activityOf(session) ?: continue
             val family = CardioFamily.of(activity)
             val results = sets[session.id].orEmpty()
             val performed = results.filter { it.status != CardioSetStatus.SKIPPED }
@@ -223,6 +225,44 @@ object JournalBuilder {
             )
         }
         return CardioFamily.entries.mapNotNull { totals[it] }
+    }
+
+    private fun activityOf(session: CardioSessionEntity): CardioActivity? =
+        CardioActivity.entries.find { it.name == session.activity }
+            ?: CardioBlocks.activityOf(session.decodedCardioMode() ?: CardioMode.NONE)
+
+    fun cardioTrends(
+        sessions: List<CardioSessionEntity>,
+        sets: Map<Long, List<CardioSetResult>>,
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): List<CardioTrendCard> {
+        val points = mutableMapOf<CardioRecordKey, MutableList<TrajectoryPoint>>()
+        val standing = mutableMapOf<CardioRecordKey, CardioSetResult>()
+        val latest = mutableMapOf<CardioRecordKey, CardioSessionEntity>()
+        for (session in sessions.sortedWith(compareBy({ it.completedAt }, { it.id }))) {
+            val activity = activityOf(session) ?: continue
+            for ((key, best) in CardioBests.bests(activity, sets[session.id].orEmpty())) {
+                val previous = standing[key]
+                val newHigh = previous == null || CardioBests.compare(best, previous) > 0
+                if (newHigh) standing[key] = best
+                points.getOrPut(key) { mutableListOf() }.add(TrajectoryPoint(
+                    requireNotNull(FinishedRule.reading(best)).toFloat(), newHigh,
+                    Instant.ofEpochMilli(session.completedAt).atZone(zone).toLocalDate(),
+                ))
+                latest[key] = session
+            }
+        }
+        return points.entries.filter { it.value.size >= 2 }
+            .sortedWith(compareByDescending<Map.Entry<CardioRecordKey, MutableList<TrajectoryPoint>>> {
+                latest.getValue(it.key).completedAt
+            }.thenByDescending { latest.getValue(it.key).id })
+            .take(CARDIO_TRENDS).map { (key, series) ->
+                val values = series.map { it.value }
+                CardioTrendCard(key.activity, key.end,
+                    latest.getValue(key).dayId?.let { Program.accentIndex(it) } ?: 0, series.toList(),
+                    series.first().value.toInt(), series.last().value.toInt(),
+                    axisBound(values, null, low = true), axisBound(values, null, low = false))
+            }
     }
 
     /**

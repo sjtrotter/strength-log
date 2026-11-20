@@ -56,6 +56,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Density
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioActivity
@@ -114,6 +116,63 @@ class ReceiptScreenTest {
 
     private fun setAnimatorScale(scale: Float) {
         ValueAnimator::class.java.getDeclaredMethod("setDurationScale", Float::class.javaPrimitiveType).invoke(null, scale)
+    }
+
+    @Test fun `a steady row shows pace and last time`() {
+        rule.setContent { AppTheme {
+            SessionReceiptScreen(rowerPaceReceiptFixture(), {}, {},
+                progress = ReceiptProgressState(cardioLastTimes = listOf(CardioLastTime(null, 3412, true))))
+        } }
+        rule.onNodeWithText("Pace 2:10 /500 m", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("Up from 3,412 m last time", useUnmergedTree = true).assertExists()
+    }
+
+    @Test fun `a record row shows pace and keeps its mark without last time`() {
+        rule.setContent { AppTheme {
+            SessionReceiptScreen(rowerPaceReceiptFixture(record = true), {}, {},
+                progress = ReceiptProgressState(cardioLastTimes = listOf(CardioLastTime(null, 3412, true))))
+        } }
+        rule.onNodeWithText("Farther PR", useUnmergedTree = true).assertExists()
+        val layouts = mutableListOf<TextLayoutResult>()
+        rule.onNodeWithText("3,412 m", useUnmergedTree = true)
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        assertEquals(TextDecoration.LineThrough, layouts.single().layoutInput.style.textDecoration)
+        rule.onNodeWithText("Pace 2:10 /500 m", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("Up from 3,412 m last time", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithContentDescription("15 minutes 4 seconds. Distance, 3,485 meters. Farther record, up from 3,412 meters. Pace 2 minutes 10 seconds per 500 meters.").assertExists()
+    }
+
+    @Test fun `a distance row says faster than last time`() {
+        val row = CardioReceiptRow(CardioRole.WORK, 1, null, 2000,
+            listOf(CardioInterval(CardioSetStatus.FINISHED, 477, 2000)), emptyList(), null)
+        rule.setContent { AppTheme {
+            SessionReceiptScreen(rowerPaceReceiptFixture().copy(cardioRows = listOf(row)), {}, {},
+                progress = ReceiptProgressState(cardioLastTimes = listOf(CardioLastTime(492, null, true))))
+        } }
+        rule.onNodeWithText("Faster than 8:12 last time", useUnmergedTree = true).assertExists()
+        rule.onNodeWithContentDescription("2,000 meters. Time, 7 minutes 57 seconds. Pace 1 minute 59 seconds per 500 meters. Faster than 8 minutes 12 seconds last time.").assertExists()
+    }
+
+    @Test fun `rides show no pace`() {
+        setReceipt(rowerPaceReceiptFixture().copy(activity = CardioActivity.STATIONARY_BIKE))
+        rule.onAllNodesWithText("Pace", substring = true, useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test fun `the spoken row includes pace and last time`() {
+        rule.setContent { AppTheme {
+            SessionReceiptScreen(rowerPaceReceiptFixture(), {}, {},
+                progress = ReceiptProgressState(cardioLastTimes = listOf(CardioLastTime(null, 3412, true))))
+        } }
+        rule.onNodeWithContentDescription("15 minutes 4 seconds. Distance, 3,485 meters. Pace 2 minutes 10 seconds per 500 meters. Up from 3,412 meters last time.").assertExists()
+    }
+
+    @Test fun `equal or worse rows label last time`() {
+        rule.setContent { AppTheme {
+            SessionReceiptScreen(rowerPaceReceiptFixture(), {}, {},
+                progress = ReceiptProgressState(cardioLastTimes = listOf(CardioLastTime(null, 3500, false))))
+        } }
+        rule.onNodeWithText("Last time 3,500 m", useUnmergedTree = true).assertExists()
+        rule.onNodeWithContentDescription("15 minutes 4 seconds. Distance, 3,485 meters. Pace 2 minutes 10 seconds per 500 meters. Last time 3,500 meters.").assertExists()
     }
 
     @Test fun `a forty yard sprint receipt uses the event label`() {
@@ -587,7 +646,8 @@ class ReceiptScreenTest {
         listOf("30:00", "Distance", "3.24 mi", "3.09 mi", "Farther PR").forEach {
             rule.onNodeWithText(it, useUnmergedTree = true).assertExists()
         }
-        rule.onNodeWithContentDescription("30 minutes. Distance, 3.24 miles. Farther record, up from 3.09 miles.").assertHasNoClickAction()
+        // #531: the row now speaks its derived pace.
+        rule.onNodeWithContentDescription("30 minutes. Distance, 3.24 miles. Farther record, up from 3.09 miles. Pace 9 minutes 16 seconds per mile.").assertHasNoClickAction()
     }
 
     @Test fun roadReceiptReadsAndSpeaksKilometers() {
@@ -595,7 +655,8 @@ class ReceiptScreenTest {
         val row = base.cardioRows.single().copy(intervals = listOf(CardioInterval(CardioSetStatus.FINISHED, 1800, 5000)), record = null)
         setReceipt(base.copy(cardioRows = listOf(row)), distanceUnit = DistanceUnit.KM)
         rule.onNodeWithText("5 km", useUnmergedTree = true).assertExists()
-        rule.onNodeWithContentDescription("30 minutes. Distance, 5 kilometers.").assertHasNoClickAction()
+        // #531: the row now speaks its derived pace.
+        rule.onNodeWithContentDescription("30 minutes. Distance, 5 kilometers. Pace 6 minutes per kilometer.").assertHasNoClickAction()
     }
 
     @Test fun rowerReceiptKeepsMetresUnderKilometers() {
@@ -603,7 +664,8 @@ class ReceiptScreenTest {
         val row = base.cardioRows.single().copy(intervals = listOf(CardioInterval(CardioSetStatus.FINISHED, 1800, 2000)), record = null)
         setReceipt(base.copy(activity = CardioActivity.ROWER, cardioRows = listOf(row)), distanceUnit = DistanceUnit.KM)
         rule.onNodeWithText("2,000 m", useUnmergedTree = true).assertExists()
-        rule.onNodeWithContentDescription("30 minutes. Distance, 2,000 meters.").assertHasNoClickAction()
+        // #531: the row now speaks its derived pace.
+        rule.onNodeWithContentDescription("30 minutes. Distance, 2,000 meters. Pace 7 minutes 30 seconds per 500 meters.").assertHasNoClickAction()
     }
 
     @Test
@@ -615,7 +677,8 @@ class ReceiptScreenTest {
         ))))
         rule.onNodeWithText("28:10", useUnmergedTree = true).assertExists()
         rule.onNodeWithText("30:00", useUnmergedTree = true).assertDoesNotExist()
-        rule.onNodeWithContentDescription("28 minutes 10 seconds. Distance, 3.24 miles. Farther record, up from 3.09 miles.")
+        // #531: the row now speaks its derived pace.
+        rule.onNodeWithContentDescription("28 minutes 10 seconds. Distance, 3.24 miles. Farther record, up from 3.09 miles. Pace 8 minutes 42 seconds per mile.")
             .assertHasNoClickAction()
     }
 
@@ -1125,7 +1188,8 @@ class ReceiptScreenTest {
     private companion object {
         const val SQUAT = "Barbell Back Squat. Top set, 245 pounds for 5 reps. Weight record, up from 240 pounds for 5 reps."
         const val CURL = "Dumbbell Curl. 35 pounds: 10 and 10 reps. 30 pounds: 8 reps. Rep record on set 1, up from 35 pounds for 9 reps."
-        const val CARDIO = "6 by 400 meters. Fastest, 1 minute 38 seconds. Faster record, up from 1 minute 42 seconds."
+        // #531: track pace uses the MI setting while its distance stays in meters.
+        const val CARDIO = "6 by 400 meters. Fastest, 1 minute 38 seconds. Faster record, up from 1 minute 42 seconds. Pace 6 minutes 47 seconds per mile."
     }
     @Test fun `a lower next time reads with a minus sign`() {
         val bench = ReceiptRow("Bench", TrackingType.WEIGHTED, ReceiptRow.Shape.STRAIGHT,

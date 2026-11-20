@@ -137,82 +137,39 @@
       "advance": "90s"
     },
     {
-      "tap": {
-        "text": "Start",
-        "tag": "workout-action-filled"
+      "expect": {
+        "text": "Work, set 3 of 20"
+      }
+    },
+    {
+      "expect": {
+        "text": "1:00",
+        "tag": "workout-hero"
       }
     },
     {
       "advance": "150s"
     },
     {
-      "tap": {
-        "text": "Start",
-        "tag": "workout-action-filled"
-      }
+      "advance": "150s"
     },
     {
       "advance": "150s"
     },
     {
-      "tap": {
-        "text": "Start",
-        "tag": "workout-action-filled"
-      }
+      "advance": "150s"
     },
     {
       "advance": "150s"
     },
     {
-      "tap": {
-        "text": "Start",
-        "tag": "workout-action-filled"
-      }
+      "advance": "150s"
     },
     {
       "advance": "150s"
     },
     {
-      "tap": {
-        "text": "Start",
-        "tag": "workout-action-filled"
-      }
-    },
-    {
       "advance": "150s"
-    },
-    {
-      "tap": {
-        "text": "Start",
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "150s"
-    },
-    {
-      "tap": {
-        "text": "Start",
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "150s"
-    },
-    {
-      "tap": {
-        "text": "Start",
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "150s"
-    },
-    {
-      "tap": {
-        "text": "Start",
-        "tag": "workout-action-filled"
-      }
     },
     {
       "advance": "150s"

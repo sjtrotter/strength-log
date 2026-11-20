@@ -1,6 +1,5 @@
 {
   "seat": "r5-p5-probe",
-  "probe": true,
   "capture": "compact",
   "start": {
     "date": "2026-11-08",
@@ -31,7 +30,10 @@
       }
     },
     {
-      "checkpoint": "running-priority-branch"
+      "tap": {
+        "text": "General fitness",
+        "role": "RadioButton"
+      }
     },
     {
       "tap": {
@@ -39,7 +41,10 @@
       }
     },
     {
-      "checkpoint": "setup-page-1"
+      "tap": {
+        "text": "Just cardio fitness",
+        "role": "RadioButton"
+      }
     },
     {
       "tap": {
@@ -47,7 +52,19 @@
       }
     },
     {
-      "checkpoint": "setup-page-2"
+      "tap": {
+        "text": "5",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "tap": {
+        "text": "45",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "checkpoint": "five-days-closest-duration"
     },
     {
       "tap": {
@@ -55,7 +72,13 @@
       }
     },
     {
-      "checkpoint": "setup-page-3"
+      "expect": {
+        "text": "lb",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "checkpoint": "gym-and-lifting-units"
     },
     {
       "tap": {
@@ -63,7 +86,19 @@
       }
     },
     {
-      "checkpoint": "setup-page-4"
+      "tap": {
+        "text": "Under a year",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "tap": {
+        "text": "Some",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "checkpoint": "actual-experience"
     },
     {
       "tap": {
@@ -71,7 +106,19 @@
       }
     },
     {
-      "checkpoint": "setup-page-5"
+      "expect": {
+        "text": "Longest run in the past 30 days"
+      }
+    },
+    {
+      "type": {
+        "text": "Minutes",
+        "value": "74.5",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "longest-run-74-and-half-minutes"
     },
     {
       "tap": {
@@ -79,7 +126,10 @@
       }
     },
     {
-      "checkpoint": "setup-page-6"
+      "tap": {
+        "text": "Separate days",
+        "role": "RadioButton"
+      }
     },
     {
       "tap": {
@@ -87,23 +137,47 @@
       }
     },
     {
-      "checkpoint": "setup-page-7"
+      "checkpoint": "review-running-priority-plan"
     },
     {
       "tap": {
-        "text": "Next"
+        "text": "Why this plan"
       }
     },
     {
-      "checkpoint": "setup-page-8"
+      "checkpoint": "plan-explanation"
+    },
+    {
+      "back": true
     },
     {
       "tap": {
-        "text": "Next"
+        "text": "Start",
+        "role": "Button"
       }
     },
     {
-      "checkpoint": "setup-page-9"
+      "expect": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "setup-saved"
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "tap": {
+        "text": "Distance"
+      }
+    },
+    {
+      "checkpoint": "distance-unit-choices"
     }
-  ]
+  ],
+  "probe": true
 }

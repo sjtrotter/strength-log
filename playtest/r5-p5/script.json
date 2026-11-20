@@ -542,12 +542,14 @@
     },
     {
       "scrollTo": {
-        "text": "Standing DB Calf Raise"
+        "text": "Standing DB Calf Raise",
+        "index": 1
       }
     },
     {
       "tap": {
-        "text": "Standing DB Calf Raise"
+        "text": "Standing DB Calf Raise",
+        "index": 1
       }
     },
     {

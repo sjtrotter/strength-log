@@ -33,32 +33,16 @@
     },
     {
       "tap": {
-        "textContains": "Barbell Back Squat"
-      }
-    },
-    {
-      "checkpoint": "squat-prescription"
-    },
-    {
-      "scrollTo": {
-        "text": "Cancel"
-      }
-    },
-    {
-      "checkpoint": "squat-prescription-bottom"
-    },
-    {
-      "tap": {
-        "text": "Cancel"
-      }
-    },
-    {
-      "tap": {
         "desc": "More options for Barbell Back Squat"
       }
     },
     {
-      "checkpoint": "plan-lift-menu"
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "checkpoint": "lift-options"
     },
     {
       "back": true
@@ -74,7 +58,67 @@
       }
     },
     {
-      "checkpoint": "movement-picker"
+      "tap": {
+        "text": "Horizontal push"
+      }
+    },
+    {
+      "checkpoint": "horizontal-push-choices"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Chest-Supported Row"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Chest-Supported Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "row-swap-choices"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "row"
+      }
+    },
+    {
+      "checkpoint": "row-search"
+    },
+    {
+      "back": true
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Horizontal push",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "movement-categories-below"
     },
     {
       "back": true
@@ -96,10 +140,17 @@
       }
     },
     {
-      "checkpoint": "cardio-activity-options"
+      "scrollTo": {
+        "text": "Rower"
+      }
     },
     {
-      "back": true
+      "tap": {
+        "text": "Rower"
+      }
+    },
+    {
+      "checkpoint": "rower-editor"
     },
     {
       "tap": {
@@ -107,7 +158,109 @@
       }
     },
     {
-      "checkpoint": "cardio-work-prescription"
+      "type": {
+        "text": "Duration",
+        "value": "15:00"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Aim"
+      }
+    },
+    {
+      "checkpoint": "rower-aim"
+    },
+    {
+      "tap": {
+        "desc": "Aim"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "day-with-rower"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "mixed-workout-start"
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 14 sets"
+      }
+    },
+    {
+      "checkpoint": "mixed-session-exercise-list"
+    },
+    {
+      "scrollTo": {
+        "text": "Rower"
+      }
+    },
+    {
+      "tap": {
+        "text": "Rower",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "rower-in-workout"
+    },
+    {
+      "tap": {
+        "text": "Log past session"
+      }
+    },
+    {
+      "checkpoint": "rower-result-form"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "15m"
+    },
+    {
+      "checkpoint": "rower-timer-finished"
     }
   ]
 }

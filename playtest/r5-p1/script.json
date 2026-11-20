@@ -3,13 +3,13 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-30",
+    "date": "2026-12-02",
     "time": "18:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "note": "Nov30 diary: no Nov27 workout. Bad sleep; leg80 10/8/8, chest20 10/10/10, row35 10/9/8, curl25 10/8; two-minute rests and five-minute finishing walk. Mark this a rough day and note tired, slept badly."
+      "note": "Dec2 diary: easier leg press70 10/10/10; chest25 10/10/8; row35 10/10/10; curl25 10/10. Walk5min before and10min after. Total53min."
     },
     {
       "tap": {
@@ -28,7 +28,7 @@
       }
     },
     {
-      "checkpoint": "nov30-offered-day"
+      "checkpoint": "dec2-offered-day"
     },
     {
       "tap": {
@@ -50,10 +50,10 @@
       }
     },
     {
-      "checkpoint": "nov30-after-warmup"
+      "checkpoint": "dec2-after-warmup"
     },
     {
-      "advance": "10m"
+      "advance": "12m"
     },
     {
       "expect": {
@@ -61,7 +61,7 @@
       }
     },
     {
-      "checkpoint": "nov30-leg-offered"
+      "checkpoint": "dec2-leg-offered"
     },
     {
       "advance": "1m"
@@ -74,7 +74,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "80",
+        "value": "70",
         "ime": "done"
       }
     },
@@ -97,14 +97,14 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-HARD"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "nov30-leg-set-1-logged"
+      "checkpoint": "dec2-leg-set-1-logged"
     },
     {
-      "advance": "2m"
+      "advance": "90s"
     },
     {
       "tap": {
@@ -122,14 +122,14 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "80",
+        "value": "70",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "8",
+        "value": "10",
         "ime": "done"
       }
     },
@@ -145,14 +145,14 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-MAX"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "nov30-leg-set-2-logged"
+      "checkpoint": "dec2-leg-set-2-logged"
     },
     {
-      "advance": "2m"
+      "advance": "90s"
     },
     {
       "tap": {
@@ -170,14 +170,14 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "80",
+        "value": "70",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "8",
+        "value": "10",
         "ime": "done"
       }
     },
@@ -193,14 +193,14 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-MAX"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "nov30-leg-set-3-logged"
+      "checkpoint": "dec2-leg-set-3-logged"
     },
     {
-      "advance": "2m"
+      "advance": "90s"
     },
     {
       "tap": {
@@ -213,7 +213,7 @@
       }
     },
     {
-      "checkpoint": "nov30-chest-offered"
+      "checkpoint": "dec2-chest-offered"
     },
     {
       "advance": "1m"
@@ -226,7 +226,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "20",
+        "value": "25",
         "ime": "done"
       }
     },
@@ -249,14 +249,14 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-HARD"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "nov30-chest-set-1-logged"
+      "checkpoint": "dec2-chest-set-1-logged"
     },
     {
-      "advance": "2m"
+      "advance": "90s"
     },
     {
       "tap": {
@@ -274,7 +274,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "20",
+        "value": "25",
         "ime": "done"
       }
     },
@@ -301,10 +301,10 @@
       }
     },
     {
-      "checkpoint": "nov30-chest-set-2-logged"
+      "checkpoint": "dec2-chest-set-2-logged"
     },
     {
-      "advance": "2m"
+      "advance": "90s"
     },
     {
       "tap": {
@@ -322,14 +322,14 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "20",
+        "value": "25",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "10",
+        "value": "8",
         "ime": "done"
       }
     },
@@ -345,14 +345,14 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-HARD"
+        "tag": "workout-effort-MAX"
       }
     },
     {
-      "checkpoint": "nov30-chest-set-3-logged"
+      "checkpoint": "dec2-chest-set-3-logged"
     },
     {
-      "advance": "2m"
+      "advance": "90s"
     },
     {
       "tap": {
@@ -365,7 +365,7 @@
       }
     },
     {
-      "checkpoint": "nov30-row-offered"
+      "checkpoint": "dec2-row-offered"
     },
     {
       "advance": "1m"
@@ -401,14 +401,14 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-HARD"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "nov30-row-set-1-logged"
+      "checkpoint": "dec2-row-set-1-logged"
     },
     {
-      "advance": "2m"
+      "advance": "90s"
     },
     {
       "tap": {
@@ -433,7 +433,7 @@
     {
       "type": {
         "text": "Reps",
-        "value": "9",
+        "value": "10",
         "ime": "done"
       }
     },
@@ -449,14 +449,14 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-MAX"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "nov30-row-set-2-logged"
+      "checkpoint": "dec2-row-set-2-logged"
     },
     {
-      "advance": "2m"
+      "advance": "90s"
     },
     {
       "tap": {
@@ -481,7 +481,7 @@
     {
       "type": {
         "text": "Reps",
-        "value": "8",
+        "value": "10",
         "ime": "done"
       }
     },
@@ -497,14 +497,14 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-MAX"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "nov30-row-set-3-logged"
+      "checkpoint": "dec2-row-set-3-logged"
     },
     {
-      "advance": "2m"
+      "advance": "90s"
     },
     {
       "tap": {
@@ -517,7 +517,7 @@
       }
     },
     {
-      "checkpoint": "nov30-curl-offered"
+      "checkpoint": "dec2-curl-offered"
     },
     {
       "advance": "1m"
@@ -553,14 +553,14 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-HARD"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "nov30-curl-set-1-logged"
+      "checkpoint": "dec2-curl-set-1-logged"
     },
     {
-      "advance": "2m"
+      "advance": "90s"
     },
     {
       "tap": {
@@ -585,7 +585,7 @@
     {
       "type": {
         "text": "Reps",
-        "value": "8",
+        "value": "10",
         "ime": "done"
       }
     },
@@ -601,11 +601,11 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-MAX"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "nov30-curl-set-2-logged"
+      "checkpoint": "dec2-curl-set-2-logged"
     },
     {
       "tap": {
@@ -613,10 +613,10 @@
       }
     },
     {
-      "checkpoint": "nov30-walk-before"
+      "checkpoint": "dec2-walk-before"
     },
     {
-      "advance": "5m"
+      "advance": "10m"
     },
     {
       "tap": {
@@ -624,17 +624,17 @@
       }
     },
     {
-      "checkpoint": "nov30-manual-walk-form"
+      "checkpoint": "dec2-manual-walk-form"
     },
     {
       "type": {
         "text": "Duration",
-        "value": "5:00",
+        "value": "10:00",
         "ime": "done"
       }
     },
     {
-      "checkpoint": "nov30-manual-walk-ready"
+      "checkpoint": "dec2-manual-walk-ready"
     },
     {
       "tap": {
@@ -664,7 +664,7 @@
       }
     },
     {
-      "checkpoint": "nov30-receipt"
+      "checkpoint": "dec2-receipt"
     },
     {
       "scrollTo": {
@@ -677,38 +677,7 @@
       }
     },
     {
-      "checkpoint": "nov30-why-next"
-    },
-    {
-      "back": true
-    },
-    {
-      "scrollTo": {
-        "text": "Rough day",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "tap": {
-        "text": "Rough day",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "checkpoint": "nov30-rough-day-selected"
-    },
-    {
-      "scrollTo": {
-        "text": "Why"
-      }
-    },
-    {
-      "tap": {
-        "text": "Why"
-      }
-    },
-    {
-      "checkpoint": "nov30-why-after-rough-day"
+      "checkpoint": "dec2-why-next"
     },
     {
       "back": true
@@ -726,7 +695,7 @@
     {
       "type": {
         "textContains": "Note",
-        "value": "tired, slept badly. Walked 5 min before, 5 min after. Missed Nov27: away after Thanksgiving. Longer rests today.",
+        "value": "Walked 5 min before, 10 min after. Lowered leg press to 70; much better. Chest 25 for 10/10/8, more reps than my first try at 25.",
         "ime": "done"
       }
     },
@@ -736,7 +705,7 @@
       }
     },
     {
-      "checkpoint": "nov30-note-saved"
+      "checkpoint": "dec2-note-saved"
     },
     {
       "tap": {
@@ -751,7 +720,7 @@
       }
     },
     {
-      "checkpoint": "nov30-saved-back-on-today"
+      "checkpoint": "dec2-saved-back-on-today"
     }
   ]
 }

@@ -27,18 +27,6 @@
       }
     },
     {
-      "tap": {
-        "text": "Start time",
-        "inDialog": true
-      }
-    },
-    {
-      "checkpoint": "past-run-start-time-picker"
-    },
-    {
-      "back": true
-    },
-    {
       "type": {
         "text": "Duration",
         "value": "42:10",

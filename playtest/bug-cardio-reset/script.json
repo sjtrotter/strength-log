@@ -1,0 +1,30 @@
+{
+  "seat": "bug-cardio-reset",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "probe": true,
+  "capture": "compact",
+  "start": {"date": "2026-11-09", "time": "17:30", "zone": "America/Chicago"},
+  "steps": [
+    {"tap": {"text": "Run"}}, {"tap": {"text": "Next"}}, {"tap": {"text": "First 5K"}},
+    {"tap": {"text": "Next"}}, {"tap": {"text": "Next"}}, {"tap": {"text": "Next"}},
+    {"tap": {"text": "Next"}}, {"tap": {"text": "Next"}}, {"tap": {"text": "Next"}},
+    {"scrollTo": {"text": "0", "role": "RadioButton"}}, {"tap": {"text": "0", "role": "RadioButton"}},
+    {"tap": {"text": "Start"}},
+    {"tap": {"text": "Start day A"}},
+    {"expect": {"text": "Work, set 1 of 20"}},
+    {"tap": {"text": "All sets"}},
+    {"tap": {"desc": "More"}},
+    {"tap": {"text": "Add set"}},
+    {"checkpoint": "after-add"},
+    {"tap": {"desc": "Close sheet"}},
+    {"expect": {"textContains": "of 22"}},
+    {"tap": {"desc": "Back"}},
+    {"checkpoint": "today-after-back"},
+    {"tap": {"text": "History", "role": "Tab"}},
+    {"tap": {"text": "Today", "role": "Tab"}},
+    {"checkpoint": "today-again"},
+    {"tap": {"textContains": "day A"}},
+    {"checkpoint": "reentered"},
+    {"expect": {"textContains": "of 22"}}
+  ]
+}

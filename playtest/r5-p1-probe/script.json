@@ -4,13 +4,13 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-16",
+    "date": "2026-11-18",
     "time": "18:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "note": "nov16 diary visit; use treadmill display, save actual lifting and a walk note."
+      "note": "Nov18 diary: normal leg and chest; row machine busy, temporary one-arm dumbbell row."
     },
     {
       "tap": {
@@ -29,7 +29,7 @@
       }
     },
     {
-      "checkpoint": "nov16-offered-day"
+      "checkpoint": "nov18-offered-day"
     },
     {
       "tap": {
@@ -51,13 +51,13 @@
       }
     },
     {
-      "checkpoint": "nov16-after-warmup"
+      "checkpoint": "nov18-after-warmup"
     },
     {
-      "advance": "14m30s"
+      "advance": "10m"
     },
     {
-      "checkpoint": "nov16-leg-offered"
+      "checkpoint": "nov18-leg-offered"
     },
     {
       "tap": {
@@ -78,7 +78,7 @@
       "back": true
     },
     {
-      "checkpoint": "nov16-leg-third-set-added"
+      "checkpoint": "nov18-leg-third-set-added"
     },
     {
       "advance": "1m"
@@ -118,7 +118,7 @@
       }
     },
     {
-      "checkpoint": "nov16-leg-set-1-logged"
+      "checkpoint": "nov18-leg-set-1-logged"
     },
     {
       "advance": "90s"
@@ -166,7 +166,7 @@
       }
     },
     {
-      "checkpoint": "nov16-leg-set-2-logged"
+      "checkpoint": "nov18-leg-set-2-logged"
     },
     {
       "advance": "90s"
@@ -214,7 +214,7 @@
       }
     },
     {
-      "checkpoint": "nov16-leg-set-3-logged"
+      "checkpoint": "nov18-leg-set-3-logged"
     },
     {
       "advance": "90s"
@@ -225,7 +225,7 @@
       }
     },
     {
-      "checkpoint": "nov16-chest-offered"
+      "checkpoint": "nov18-chest-offered"
     },
     {
       "tap": {
@@ -246,7 +246,7 @@
       "back": true
     },
     {
-      "checkpoint": "nov16-chest-third-set-added"
+      "checkpoint": "nov18-chest-third-set-added"
     },
     {
       "advance": "1m"
@@ -259,7 +259,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "25",
+        "value": "20",
         "ime": "done"
       }
     },
@@ -282,11 +282,11 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-HARD"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "nov16-chest-set-1-logged"
+      "checkpoint": "nov18-chest-set-1-logged"
     },
     {
       "advance": "90s"
@@ -307,14 +307,14 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "25",
+        "value": "20",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "8",
+        "value": "10",
         "ime": "done"
       }
     },
@@ -330,14 +330,14 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-MAX"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "nov16-chest-set-2-logged"
+      "checkpoint": "nov18-chest-set-2-logged"
     },
     {
-      "advance": "2m"
+      "advance": "90s"
     },
     {
       "tap": {
@@ -355,14 +355,14 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "25",
+        "value": "20",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "7",
+        "value": "10",
         "ime": "done"
       }
     },
@@ -378,11 +378,11 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-MAX"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "nov16-chest-set-3-logged"
+      "checkpoint": "nov18-chest-set-3-logged"
     },
     {
       "advance": "90s"
@@ -393,28 +393,10 @@
       }
     },
     {
-      "checkpoint": "nov16-row-offered"
+      "checkpoint": "nov18-row-offered"
     },
     {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "nov16-row-third-set-added"
+      "advance": "8m"
     },
     {
       "tap": {
@@ -425,9 +407,6 @@
       "tap": {
         "desc": "More"
       }
-    },
-    {
-      "checkpoint": "row-more-menu"
     },
     {
       "tap": {
@@ -442,310 +421,50 @@
       }
     },
     {
-      "checkpoint": "row-search-results"
+      "tap": {
+        "text": "One-Arm DB Row"
+      }
+    },
+    {
+      "checkpoint": "nov18-temporary-swap-choice"
+    },
+    {
+      "expect": {
+        "text": "This workout"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "nov18-dumbbell-row-offered"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "checkpoint": "nov18-dumbbell-weight-and-reps-meaning"
     },
     {
       "back": true
     },
     {
-      "checkpoint": "row-after-cancel-search"
+      "tap": {
+        "tag": "workout-finish"
+      }
     },
     {
-      "advance": "1m"
+      "checkpoint": "probe-early-finish-confirmation"
     },
     {
       "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "35",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "nov16-row-set-1-logged"
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1m"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "35",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "nov16-row-set-2-logged"
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1m"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 3"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "35",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-HARD"
-      }
-    },
-    {
-      "checkpoint": "nov16-row-set-3-logged"
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "nov16-curl-offered"
-    },
-    {
-      "advance": "1m"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "25",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "nov16-curl-set-1-logged"
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1m"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "25",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "nov16-curl-set-2-logged"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "nov16-walk-before"
-    },
-    {
-      "advance": "10m"
-    },
-    {
-      "checkpoint": "nov16-walk-after"
-    },
-    {
-      "tap": {
-        "text": "Log past session"
-      }
-    },
-    {
-      "checkpoint": "nov16-manual-walk-form"
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "10:00",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "past-cardio-effort-GOOD"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save",
-        "role": "Button",
+        "text": "Finish",
         "inDialog": true
       }
-    },
-    {
-      "checkpoint": "nov16-manual-walk-saved"
-    },
-    {
-      "tap": {
-        "text": "Skip",
-        "role": "Button",
-        "inDialog": true
-      }
-    },
-    {
-      "checkpoint": "nov16-after-cooldown-skip"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "nov16-after-finish-day"
     },
     {
       "expect": {
@@ -753,7 +472,22 @@
       }
     },
     {
-      "checkpoint": "nov16-manual-walk-receipt"
+      "checkpoint": "probe-partial-receipt"
+    },
+    {
+      "tap": {
+        "text": "Done",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "probe-early-save-return"
     }
   ]
 }

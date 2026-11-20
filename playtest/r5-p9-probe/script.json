@@ -1,190 +1,14 @@
 {
   "seat": "r5-p9-probe",
-  "capture": "compact",
   "probe": true,
+  "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-09",
-    "time": "09:00",
+    "date": "2026-11-10",
+    "time": "09:30",
     "zone": "America/Phoenix"
   },
   "steps": [
-    {
-      "tap": {
-        "text": "Plans",
-        "role": "Tab"
-      }
-    },
-    {
-      "tap": {
-        "textContains": "General fitness, 2 days"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Day B"
-      }
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More options for Farmer's Carry"
-      }
-    },
-    {
-      "tap": {
-        "text": "Remove"
-      }
-    },
-    {
-      "checkpoint": "remove-carry-for-counter-only-session"
-    },
-    {
-      "tap": {
-        "textContains": "Single-Leg Stance"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3"
-      }
-    },
-    {
-      "type": {
-        "text": "Duration",
-        "value": "0:10"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Each side",
-        "role": "Switch"
-      }
-    },
-    {
-      "checkpoint": "three-ten-second-holds-each-side"
-    },
-    {
-      "tap": {
-        "text": "Save",
-        "role": "Button"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "customized-home-day"
-    },
-    {
-      "tap": {
-        "text": "Start day B",
-        "role": "Button"
-      }
-    },
-    {
-      "tap": {
-        "text": "Skip",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "home-balance-start"
-    },
-    {
-      "note": "Counter support: hold left 10 seconds, then right 10 seconds; log pair 1. App only supplies one Each side record."
-    },
-    {
-      "advance": "20s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "pair-1-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "note": "Counter support: hold left 10 seconds, then right 10 seconds; log pair 2. App only supplies one Each side record."
-    },
-    {
-      "advance": "20s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "pair-2-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "note": "Counter support: hold left 10 seconds, then right 10 seconds; log pair 3. App only supplies one Each side record."
-    },
-    {
-      "advance": "20s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "pair-3-logged"
-    },
-    {
-      "advance": "5m"
-    },
-    {
-      "tap": {
-        "text": "Skip",
-        "role": "Button"
-      }
-    },
-    {
-      "tap": {
-        "text": "Finish day B",
-        "role": "Button"
-      }
-    },
-    {
-      "expect": {
-        "text": "Balance, done."
-      }
-    },
-    {
-      "checkpoint": "home-balance-saved"
-    },
-    {
-      "tap": {
-        "text": "Done",
-        "role": "Button"
-      }
-    },
-    {
-      "expect": {
-        "text": "Today",
-        "role": "Tab"
-      }
-    },
-    {
-      "checkpoint": "monday-home-session-finished"
-    },
-    {
-      "advance": "1d20m"
-    },
     {
       "tap": {
         "text": "Plans",
@@ -539,7 +363,7 @@
     },
     {
       "scrollTo": {
-        "textContains": "Add exercise"
+        "text": "Add exercise"
       }
     },
     {
@@ -548,20 +372,39 @@
       }
     },
     {
+      "scrollTo": {
+        "text": "Horizontal push"
+      }
+    },
+    {
       "swipe": {
-        "text": "Squat (bilateral)",
+        "text": "Horizontal push",
         "direction": "up"
       }
     },
     {
-      "checkpoint": "movement-groups-after-swipe"
+      "checkpoint": "movement-groups-below-push"
+    },
+    {
+      "scrollTo": {
+        "text": "Vertical push"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Vertical push",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "movement-groups-further-down"
     },
     {
       "back": true
     },
     {
       "scrollTo": {
-        "textContains": "Add cardio"
+        "text": "Add cardio"
       }
     },
     {
@@ -576,115 +419,20 @@
       }
     },
     {
-      "checkpoint": "cardio-activity-choices"
+      "tap": {
+        "text": "Stationary bike"
+      }
     },
     {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "ready-to-start-custom-day-a"
+      "checkpoint": "stationary-bike-prescription"
     },
     {
       "tap": {
-        "text": "Start day A"
+        "text": "Set 1 \u00b7 Work"
       }
     },
     {
-      "tap": {
-        "text": "Skip"
-      }
-    },
-    {
-      "checkpoint": "gym-first-set"
-    },
-    {
-      "advance": "20s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "gym-balance-pair-1"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "advance": "20s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "gym-balance-pair-2"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "advance": "20s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "gym-balance-pair-3"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "checkpoint": "leg-press-before-lowering"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "100"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "checkpoint": "leg-press-100-this-set"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "leg-press-100-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "checkpoint": "leg-press-after-unhurried-rest"
+      "checkpoint": "bike-work-set-editor"
     }
   ]
 }

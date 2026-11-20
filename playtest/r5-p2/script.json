@@ -699,11 +699,6 @@
       "advance": "105s"
     },
     {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
       "advance": "1s"
     },
     {
@@ -736,11 +731,6 @@
     },
     {
       "advance": "105s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
     },
     {
       "advance": "1s"

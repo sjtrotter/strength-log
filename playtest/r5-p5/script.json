@@ -42,8 +42,7 @@
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 2
+        "desc": "More options for Trap-Bar Deadlift"
       }
     },
     {
@@ -53,8 +52,7 @@
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 2
+        "desc": "More options for Overhead Press (Barbell)"
       }
     },
     {
@@ -64,8 +62,7 @@
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 2
+        "desc": "More options for Bulgarian Split Squat"
       }
     },
     {
@@ -75,8 +72,7 @@
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 2
+        "desc": "More options for DB Bench Press"
       }
     },
     {
@@ -86,8 +82,7 @@
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 2
+        "desc": "More options for Pull-Up / Chin-Up"
       }
     },
     {
@@ -97,8 +92,7 @@
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 2
+        "desc": "More options for EZ-Bar Curl"
       }
     },
     {
@@ -108,8 +102,7 @@
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 2
+        "desc": "More options for Pallof Press"
       }
     },
     {

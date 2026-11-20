@@ -3,8 +3,8 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-27",
-    "time": "09:00",
+    "date": "2026-12-01",
+    "time": "09:30",
     "zone": "America/Phoenix"
   },
   "steps": [
@@ -21,66 +21,19 @@
     },
     {
       "tap": {
-        "desc": "Day B"
+        "desc": "Day A"
       }
     },
     {
-      "checkpoint": "holiday-home-balance-plan"
+      "checkpoint": "dec1-half-session-plan-and-last-session"
     },
     {
       "tap": {
-        "text": "Start day B",
-        "role": "Button"
+        "text": "Start day A"
       }
     },
     {
-      "tap": {
-        "text": "Skip",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "holiday-balance-start"
-    },
-    {
-      "note": "Friday Nov27: the Y is closed. Home balance at the kitchen counter only. I time left10s then right10s myself, pair1."
-    },
-    {
-      "advance": "20s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "holiday-pair-1-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "note": "Counter support: left10s, right10s, pair2."
-    },
-    {
-      "advance": "20s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "holiday-pair-2-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "note": "Light week gives two records. I still do pair3 left10s/right10s manually, then rest at the counter. No gym work today."
-    },
-    {
-      "advance": "20s"
+      "note": "Tuesday Dec1: poor sleep, tired and low. Five minutes bike, then about half the sets and leave. Stop at twenty minutes; no extra third balance pair or pulldown/calves today."
     },
     {
       "advance": "5m"
@@ -92,18 +45,217 @@
       }
     },
     {
+      "checkpoint": "dec1-half-session-balance-start"
+    },
+    {
+      "note": "Rail-supported left 10 seconds, right 10 seconds, pair 1. I time the holds myself."
+    },
+    {
+      "advance": "20s"
+    },
+    {
       "tap": {
-        "text": "Finish day B",
-        "role": "Button"
+        "tag": "workout-action-filled"
       }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "note": "Rail-supported left 10 seconds, right 10 seconds, pair 2. I time the holds myself."
+    },
+    {
+      "advance": "20s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m"
     },
     {
       "expect": {
-        "text": "Balance, done."
+        "text": "Leg Press"
       }
     },
     {
-      "checkpoint": "holiday-balance-summary"
+      "checkpoint": "dec1-half-session-leg-press-offer-after-light-week-notice"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "110"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "40s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "dec1-half-session-leg-press-set-1-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "110"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "40s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "dec1-half-session-leg-press-set-2-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "dec1-half-session-chest-press-offered"
+    },
+    {
+      "expect": {
+        "text": "seat on 5"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "40"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "40s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "dec1-half-session-chest-press-set-1-logged"
+    },
+    {
+      "advance": "4m20s"
+    },
+    {
+      "note": "Two balance records, two leg press sets and one chest set: five of ten in the current light session. I am tired and going home; no second chest set, rows or shoulder press."
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "dec1-half-sets-finish-confirmation"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "dec1-short-session-before-rough-day"
+    },
+    {
+      "scrollTo": {
+        "text": "Rough day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Rough day"
+      }
+    },
+    {
+      "checkpoint": "dec1-rough-day-selected"
     },
     {
       "scrollTo": {
@@ -118,7 +270,7 @@
     {
       "type": {
         "textContains": "Note",
-        "value": "Y closed. Home counter balance: 3 pairs, left/right 10s each. Light week offered 2 records; third pair done manually."
+        "value": "Poor sleep, tired and low. Bike 5m, 2 balance pairs, leg 110 2x10, chest 40 1x10. Half sets then home. Rough day."
       }
     },
     {
@@ -139,7 +291,7 @@
       }
     },
     {
-      "checkpoint": "holiday-home-balance-saved"
+      "checkpoint": "dec1-half-session-saved"
     }
   ]
 }

@@ -620,29 +620,6 @@
     },
     {
       "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "End cardio"
-      }
-    },
-    {
-      "checkpoint": "nov28-end-cardio-confirmation"
-    },
-    {
-      "tap": {
-        "text": "End and log"
-      }
-    },
-    {
-      "tap": {
         "text": "Skip",
         "role": "Button",
         "inDialog": true

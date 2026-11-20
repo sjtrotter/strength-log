@@ -410,11 +410,63 @@
       "checkpoint": "custom-movement-picker-scrolled"
     },
     {
-      "scrollTo": {
-        "text": "Calf: gastrocnemius",
+      "swipe": {
+        "text": "Vertical push",
         "role": "RadioButton",
-        "inDialog": true
+        "inDialog": true,
+        "direction": "up"
       }
+    },
+    {
+      "swipe": {
+        "text": "Vertical push",
+        "role": "RadioButton",
+        "inDialog": true,
+        "direction": "up"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Vertical push",
+        "role": "RadioButton",
+        "inDialog": true,
+        "direction": "up"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Vertical push",
+        "role": "RadioButton",
+        "inDialog": true,
+        "direction": "up"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Vertical pull",
+        "role": "RadioButton",
+        "inDialog": true,
+        "direction": "up"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Vertical pull",
+        "role": "RadioButton",
+        "inDialog": true,
+        "direction": "up"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Rear deltoid",
+        "role": "RadioButton",
+        "inDialog": true,
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "custom-movement-calf-visible"
     },
     {
       "tap": {
@@ -439,6 +491,18 @@
         "text": "Starting weight (lb)",
         "value": "20",
         "ime": "done"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Dumbbell",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "tap": {
+        "text": "Dumbbell",
+        "role": "Checkbox"
       }
     },
     {

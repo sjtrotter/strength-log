@@ -17,13 +17,16 @@ import kotlinx.serialization.Serializable
 @Serializable internal data class ProgressionUndoDto(val logs: List<UndoLogDto> = emptyList(), val rules: List<UndoRuleDto> = emptyList(),
                                                         val plan: UndoPlanDto? = null, val roughLight: UndoPlanDto? = null)
 
-/** Null [afterSetsJson] represents a deletion; null [before] represents an inserted row. */
+/** Null [afterSetsJson] represents a deletion; null [before] represents an inserted row. [dayId] is null for the
+ *  session's own day; [sharedFrom] names the performed slot a shared copy came from (#629). */
 @Serializable internal data class UndoLogDto(val programExerciseId: Long, val slot: String, val before: UndoRowDto? = null,
-                                             val afterSetsJson: String? = null)
+                                             val afterSetsJson: String? = null, val dayId: String? = null,
+                                             val sharedFrom: Long? = null)
 @Serializable internal data class UndoRowDto(val setsJson: String, val updatedAt: Long)
-/** [slot] names the column: `ruleJson` for main, `partnerRuleJson` for ss. A record from before this field reads as main. */
+/** [slot] names the column: `ruleJson` for main, `partnerRuleJson` for ss. A record from before this field reads as main.
+ *  [sharedFrom] as on [UndoLogDto]. */
 @Serializable internal data class UndoRuleDto(val programExerciseId: Long, val beforeJson: String, val afterJson: String,
-                                              val slot: String = Slot.MAIN)
+                                              val slot: String = Slot.MAIN, val sharedFrom: Long? = null)
 
 /** The plan's light counters before and after the Finish. */
 @Serializable data class UndoPlanDto(val beforeRemaining: Int, val beforeCycles: Int, val afterRemaining: Int, val afterCycles: Int,

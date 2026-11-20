@@ -55,6 +55,23 @@ class PartnerRuleTest : OpeningFixture() {
         return assertNotNull(repo.finishRun(run))
     }
 
+    @Test fun `a superset main shares progression and its partner does not`() = runTest {
+        val plan = converted(day("bb_bench"), day("bb_bench", "cable_row", id = "B"))
+        val a = id(plan, "bb_bench")
+        val b = id(plan, "bb_bench", "B")
+        val row = id(plan, "cable_row", "B")
+        lifter(plan, a)
+        repo.setSupersetPartner("A", a, "cable_row")
+        partner(plan, a)
+        lifter(plan, b, day = "B")
+        lifter(plan, row, work(w = 120.0, r = 10), rule(SlotRole.ACCESSORY, 10), "B")
+        finishBoth(plan, a)
+        assertEquals(rows(plan, a), rows(plan, b, "B"))
+        assertEquals(rule(a).state, rule(b).state)
+        assertEquals(work(w = 120.0, r = 10), rows(plan, row, "B"))
+        assertEquals(1, rule(row).state.successStreak)
+    }
+
     @Test fun `a partner rule follows add, swap and remove of the partner and survives a main swap and Plan mode`() = runTest {
         val plan = authored()
         val b = add(plan, "bb_bench")

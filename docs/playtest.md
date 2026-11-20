@@ -53,6 +53,34 @@ screen after that step, using zero-based step numbers. JSON includes text, tags,
 roles, disabled state, and bounds in dp. The default device matches the audit:
 SDK 35, 360 by 720 dp, xxhdpi, night mode, with 1080 px wide PNGs.
 A zero-step script still captures launch.
+
+Every full capture also writes `NNN-<slug>.screen.txt`: launch, checkpoints,
+failures, skipped steps, the final step in compact mode, and each captured step
+in regular mode. The emergency launch-failure shot stays PNG and JSON only.
+The header names the checkpoint or step and any failure class. An `after:` line
+lists the actions since the previous listing, excluding the step in the header;
+it includes actions replayed before the capture cutoff. Layers appear topmost
+first: `[popup]`, `[dialog]` (including sheets), then `[screen]`. Lines identify
+`field`, `button`, `checkbox`, `switch`, `radio`, `tab`, `dropdown`, `image`,
+`row`, `heading`, `text`, or `area` nodes in reading order. The ` / ` parts are
+separate texts; a `text` selector matches any one. Fields show their label and
+editable value. `desc` gives an accessibility description when it differs from
+the text, and `tag` gives a test tag. Flags show `disabled`, `selected`,
+`checked`, `unchecked`, `indeterminate`, or `offscreen`. Only nodes inside the
+window or in scroll containers appear; invisible scroll content is marked
+`offscreen`. Scroll containers with room to move have lines such as
+`scroll area (more above, more below)`. Quotes and backslashes are escaped;
+text parts longer than 160 characters are shortened. For example, from the
+wizard-to-today pilot's final screen:
+
+```text
+## Today
+after: tap "Start"
+[screen]
+  text "Today"
+  button "Start day A"
+```
+
 Set top-level `"capture": "checkpoints"` for PNGs only at launch, checkpoints,
 and failures. JSON still captures each new non-note step.
 Use this mode for long scripts to reduce screenshot work. PNG encoding streams
@@ -69,6 +97,16 @@ screen's order; additions use the new screen's order). Dialog text has a
 count. Earlier steps still update the comparison when `.last-ok` suppresses
 their captures. Checkpoints and the final step capture even before that cutoff.
 Notes get text diffs in this mode; a final note gets a full capture.
+
+For a probe run, set top-level `"probe": true`. Selection failures (`not-found`,
+`ambiguous`, `disabled`, `not-clickable`, `not-editable`, `not-scrollable`, and
+`not-visible`) skip and appear in `optional_skipped`. `timeout`, `app-crash`,
+`crash`, and `script` still fail the run. Every non-note step writes JSON and a
+listing; checkpoints, skips, failures, and the final step also write PNGs. A
+final note gets a full capture. `capture` and the `.last-ok` capture cutoff are
+ignored, and no compact text diffs are written. `summary.json` includes `probe`,
+true for probes and false for ordinary runs. The rules for `optional` and
+`expectError` stay the same; probes still export backups.
 
 ## Actions
 
@@ -190,6 +228,7 @@ reports `disabled` immediately.
 
 | Error class | Usual cause | What to try |
 | --- | --- | --- |
+| Probe skipped a step you needed | A selection failed and the probe continued. | Read the step’s `SKIPPED` listing and the next listing’s `after:` line; correct the selector or path. |
 | Optional step skipped unexpectedly | A `not-found` selection was allowed to skip. | Read `optional_skipped` in the summary and log, then the SKIPPED capture; narrow the selector or remove `optional`. |
 | `not-found` | Text, tag, or index does not match the current tree. | Read the failure capture and nearby candidates; correct the selector or use `scrollTo` for a lazy item. |
 | `ambiguous` | Several nodes match, or an absent expectation still finds a node. | Narrow with a tag, role, or `inDialog`; use `index` for intentional repeats. Check whether `absent` is intended. |
@@ -202,6 +241,16 @@ reports `disabled` immediately.
 | `crash` | An unexpected exception escaped the replay or artifact writer. | Read `stack` and suppressed exceptions; reduce the script to the failing operation. |
 | `timeout` | Lookup, an interaction, storage, or capture exhausted a real-time budget. | Check the failing operation and log; reduce capture work or set a larger step `timeoutMs` for a slow operation. |
 | `script` | Invalid JSON, an unsupported action or option, an unreadable restore, or an unsafe advance. | Correct the reported input; use a readable backup with an explicit start date and time, and finish before advances over one hour. |
+
+## Screen catalog
+
+The operator gives testers `catalog.md` for the round's pinned build. Its second
+line is `build: <sha>`. It combines the walks' checkpoint listings, ordered by
+seat and then checkpoint file name, with a contents list and a heading per walk.
+Each checkpoint keeps the listing format above, including its `after:` path.
+The walks' names, numbers, and dates are their own. A “Walk problems” section
+means screens after that point are missing from the walk; it does not mean the
+app lacks those screens.
 
 ## Restores and CI
 

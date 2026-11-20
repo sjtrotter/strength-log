@@ -1,0 +1,256 @@
+{
+  "seat": "catalog-09-run-day-full",
+  "capture": "compact",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "First 5K"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "0",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "0",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "role": "Button",
+        "inDialog": true
+      }
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "150s"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "expect": {
+        "text": "Recovery, set 20 of 20"
+      }
+    },
+    {
+      "checkpoint": "Workout · Road run, last interval"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "expect": {
+        "text": "Cool-down"
+      }
+    },
+    {
+      "checkpoint": "Receipt · Cool-down, full run"
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Easy",
+        "tag": "receipt-cardio-effort-EASY"
+      }
+    },
+    {
+      "expect": {
+        "text": "Easy",
+        "tag": "receipt-cardio-effort-EASY"
+      }
+    },
+    {
+      "checkpoint": "Receipt · Run/walk, complete"
+    },
+    {
+      "tap": {
+        "text": "Easy",
+        "tag": "receipt-cardio-effort-EASY"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Next time, level 1 of 12."
+      }
+    },
+    {
+      "tap": {
+        "text": "Done",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "Today · Today, run finished"
+    }
+  ]
+}

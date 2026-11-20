@@ -1,0 +1,313 @@
+{
+  "seat": "catalog-08-run-day-early",
+  "capture": "compact",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "First 5K"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "0",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "0",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Warm-up"
+      }
+    },
+    {
+      "checkpoint": "Workout · Warm-up, early run"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "role": "Button",
+        "inDialog": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Work, set 1 of 20"
+      }
+    },
+    {
+      "checkpoint": "Workout · Road run, work interval 1"
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "expect": {
+        "text": "Recovery, set 2 of 20"
+      }
+    },
+    {
+      "checkpoint": "Workout · Road run, recovery"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "expect": {
+        "text": "Work, set 3 of 20"
+      }
+    },
+    {
+      "checkpoint": "Workout · Road run, waiting for Start"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "text": "Stop",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Set stopped"
+      }
+    },
+    {
+      "checkpoint": "Workout · Set stopped"
+    },
+    {
+      "tap": {
+        "text": "Continue without distance",
+        "role": "Button"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "expect": {
+        "text": "Now",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "Workout · Road run, All sets"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "expect": {
+        "text": "End cardio"
+      }
+    },
+    {
+      "checkpoint": "Workout · Road run, More menu"
+    },
+    {
+      "tap": {
+        "text": "End cardio"
+      }
+    },
+    {
+      "expect": {
+        "text": "End cardio?"
+      }
+    },
+    {
+      "checkpoint": "Workout · End cardio?"
+    },
+    {
+      "tap": {
+        "text": "End and log"
+      }
+    },
+    {
+      "expect": {
+        "text": "Cool-down"
+      }
+    },
+    {
+      "checkpoint": "Receipt · Cool-down, early run"
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Easy",
+        "tag": "receipt-cardio-effort-EASY"
+      }
+    },
+    {
+      "expect": {
+        "text": "Easy",
+        "tag": "receipt-cardio-effort-EASY"
+      }
+    },
+    {
+      "checkpoint": "Receipt · Run/walk, early finish"
+    },
+    {
+      "scrollTo": {
+        "desc": "10 by 1 minute. Distance not entered."
+      }
+    },
+    {
+      "tap": {
+        "desc": "10 by 1 minute. Distance not entered."
+      }
+    },
+    {
+      "expect": {
+        "desc": "Interval 1, Distance not entered"
+      }
+    },
+    {
+      "checkpoint": "Receipt · Road run, interval details"
+    },
+    {
+      "tap": {
+        "text": "Done",
+        "role": "Button"
+      }
+    },
+    {
+      "advance": "2d"
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "First 5K"
+      }
+    },
+    {
+      "tap": {
+        "text": "Day A"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Start day",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log past session"
+      }
+    },
+    {
+      "expect": {
+        "text": "Log past session",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "Workout · Log past session"
+    }
+  ]
+}

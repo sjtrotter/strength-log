@@ -1,0 +1,300 @@
+{
+  "seat": "catalog-07-lift-day",
+  "capture": "compact",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "checkpoint": "Today · Today, lift day"
+    },
+    {
+      "tap": {
+        "textContains": "· Day A"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "checkpoint": "Today · Day A, detail"
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "expect": {
+        "text": "Warm-up"
+      }
+    },
+    {
+      "checkpoint": "Workout · Warm-up, lift day"
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "expect": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "Workout · Set 1, edit"
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "expect": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "Workout · Goblet Squat, after Save set"
+    },
+    {
+      "tap": {
+        "textContains": "Log ",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-rest"
+      }
+    },
+    {
+      "checkpoint": "Workout · Goblet Squat, rest timer"
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Next set",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "checkpoint": "Workout · Goblet Squat, next set"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "expect": {
+        "text": "Goblet Squat",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "Workout · Goblet Squat, All sets"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "expect": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "checkpoint": "Workout · Goblet Squat, More menu"
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "expect": {
+        "text": "Swap Goblet Squat"
+      }
+    },
+    {
+      "checkpoint": "Workout · Swap Goblet Squat"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "Front Squat"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Front Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Front Squat"
+      }
+    },
+    {
+      "expect": {
+        "text": "This workout"
+      }
+    },
+    {
+      "checkpoint": "Workout · Front Squat, swap choice"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "expect": {
+        "text": "Goblet Squat",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "Workout · Goblet Squat, added set"
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "expect": {
+        "textContains": "Finish with",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "Workout · Finish with sets left, lift day"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Full Body, saved."
+      }
+    },
+    {
+      "checkpoint": "Receipt · Full Body, saved."
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "expect": {
+        "text": "Note",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "Receipt · Note"
+    }
+  ]
+}

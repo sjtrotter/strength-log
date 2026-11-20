@@ -1,0 +1,309 @@
+{
+  "seat": "catalog-11-history-plans-settings",
+  "capture": "compact",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Full Body, saved."
+      }
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "expect": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "text": "History",
+        "role": "Tab"
+      }
+    },
+    {
+      "expect": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "History · History"
+    },
+    {
+      "scrollTo": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "November 9, today, day A, 1 session"
+      }
+    },
+    {
+      "tap": {
+        "desc": "November 9, today, day A, 1 session"
+      }
+    },
+    {
+      "tap": {
+        "text": "Full Body",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "checkpoint": "History · Full Body"
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "expect": {
+        "textContains": "General fitness"
+      }
+    },
+    {
+      "checkpoint": "Plans · Plans"
+    },
+    {
+      "tap": {
+        "textContains": "General fitness"
+      }
+    },
+    {
+      "expect": {
+        "text": "Day A"
+      }
+    },
+    {
+      "checkpoint": "Plans · General fitness, 3 days"
+    },
+    {
+      "tap": {
+        "text": "Day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit day A"
+      }
+    },
+    {
+      "checkpoint": "Plans · Edit day A"
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "expect": {
+        "text": "Pick a movement"
+      }
+    },
+    {
+      "checkpoint": "Plans · Pick a movement"
+    },
+    {
+      "tap": {
+        "text": "Horizontal push"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Push-Up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Push-Up"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Push-Up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Push-Up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Tracking",
+        "role": "DropdownList"
+      }
+    },
+    {
+      "tap": {
+        "text": "Reps in time"
+      }
+    },
+    {
+      "expect": {
+        "text": "Reps in time"
+      }
+    },
+    {
+      "checkpoint": "Plans · Push-Up, Reps in time"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      }
+    },
+    {
+      "expect": {
+        "text": "Settings"
+      }
+    },
+    {
+      "checkpoint": "Settings · Settings"
+    },
+    {
+      "scrollTo": {
+        "text": "GPS distance"
+      }
+    },
+    {
+      "tap": {
+        "text": "GPS distance"
+      }
+    },
+    {
+      "expect": {
+        "text": "GPS distance"
+      }
+    },
+    {
+      "checkpoint": "Settings · Settings, GPS distance off"
+    }
+  ]
+}

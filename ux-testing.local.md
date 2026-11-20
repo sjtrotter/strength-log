@@ -4,9 +4,10 @@ Read by the `ux-testing` skill. Generic method lives in the skill; this file nam
 
 - **Platform:** android-compose
 - **Users and moments:** a lifter between sets, phone on a bench about 1 m away, glancing for 1 to 2 seconds with sweaty hands (workout screens); someone on a couch planning or looking back, with time to read (everything else); a wrist turn mid-set on the watch. Key-fact floor on workout screens: about 28 dp (read at 1 m from a bench).
-- **Harness:** `docs/playtest.md` is the tester guide (the only repo file testers may read). `scripts/playtest.sh <seat> [script.json]` is the driver (the script defaults to `playtest/<seat>/script.json`); `PLAYTEST_BASE=<sha>` pins the build; results land in `playtest-runs/<seat>/<run>/` with `build.txt`. Pilots are in `playtest/pilot/`.
+- **Harness:** `docs/playtest.md` is the tester guide (the only repo file testers may read). `scripts/playtest.sh <seat> [script.json]` is the driver (the script defaults to `playtest/<seat>/script.json`); `PLAYTEST_BASE=<sha>` pins the build; results land in `playtest-runs/<seat>/<run>/` with `build.txt`. Pilots are in `playtest/pilot/`. Probes run as seat `<seat>-probe` with top-level `"probe": true`.
 - **Workflows and artifacts:**
   - `playtest.yml` replays one script on demand, the six core pilots (wizard-to-today, rest-timer-advance, history-day-start, dialog-text-field, ladder-day, sprint-beep-timer) on app PRs, and every pilot except the on-demand `screenshot-stress.json` on harness PRs. Each job uploads `playtest-<run id>-<job index>`; the driver downloads `-0`.
+  - `catalog.yml` runs on demand with `ref`, and on walk, harness, catalog-script, or catalog-workflow PRs. It uploads the merged `catalog` artifact.
   - `ci.yml` uploads `store-screenshots` and `set-screen-preview` only when the build and the checks before them pass. On failure, each upload fires only if the failing step came before it: `unit-test-results` (Build failed), `room-schemas` (Build or the committed-schema check failed; commit `data/schemas/.../<n>.json` from it with a migration), `listing-images` (any step).
   - `ui-audit.yml` runs on demand and on PRs that change the audit tests or the workflow; it renders the audit set to the `ui-audit` artifact: a PNG plus semantics JSON per shot.
 - **Render device:** SDK 35, 360 × 720 dp, xxhdpi; dark theme by default, with light and double-font-scale shots in the audit set.
@@ -56,6 +57,20 @@ The second-pass harness regressions have these checks:
 
 GPS location is not available in the harness. Pilots can switch GPS distance off
 in Settings or type distances where the app asks.
+
+## Screen catalog
+
+The eleven walks cover lift, experienced lift, First 5K, fitness test, sprint,
+and Both setup; a lift day; early and full runs; a sprint day; and History,
+Plans, and Settings. Before a round, the operator runs:
+
+```bash
+gh workflow run catalog.yml -f ref=<BASE>
+gh run download <id> -n catalog -D ~/Projects/strength-log-playtest-kit/r5/catalog/<BASE>/
+```
+
+Read the catalog and check its `build:` line against the pin. Fix any walk
+problems before the round starts.
 
 ## Personas
 

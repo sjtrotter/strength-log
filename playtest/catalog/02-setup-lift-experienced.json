@@ -1,0 +1,123 @@
+{
+  "seat": "catalog-02-setup-lift-experienced",
+  "capture": "compact",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Lift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "2"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "A year or more"
+      }
+    },
+    {
+      "tap": {
+        "text": "65 or older"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Recent numbers"
+      }
+    },
+    {
+      "checkpoint": "Setup · Recent numbers"
+    },
+    {
+      "tap": {
+        "text": "Why we ask"
+      }
+    },
+    {
+      "expect": {
+        "text": "Why we ask",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "Setup · Why we ask, recent numbers"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "setup-balance-offer"
+      }
+    },
+    {
+      "expect": {
+        "text": "Each lifting day opens with a short balance warm-up. More balance work on other days helps: WHO advises it on 3 or more days a week from 65."
+      }
+    },
+    {
+      "checkpoint": "Setup · Your plan, balance offer"
+    },
+    {
+      "tap": {
+        "text": "Add",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Remove"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "checkpoint": "Today · Today, experienced lift setup"
+    }
+  ]
+}

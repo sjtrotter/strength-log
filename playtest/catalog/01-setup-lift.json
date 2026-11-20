@@ -1,0 +1,133 @@
+{
+  "seat": "catalog-01-setup-lift",
+  "capture": "compact",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "expect": {
+        "text": "What are you training for?"
+      }
+    },
+    {
+      "checkpoint": "Setup · What are you training for?"
+    },
+    {
+      "tap": {
+        "text": "Lift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "What kind of lifting?"
+      }
+    },
+    {
+      "checkpoint": "Setup · What kind of lifting?"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your week"
+      }
+    },
+    {
+      "checkpoint": "Setup · Your week, lift"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Equipment"
+      }
+    },
+    {
+      "checkpoint": "Setup · Equipment, lift"
+    },
+    {
+      "tap": {
+        "text": "Choose exactly"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "checkpoint": "Setup · Equipment, exact choices"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "About your training"
+      }
+    },
+    {
+      "checkpoint": "Setup · About your training, lift"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "checkpoint": "Setup · Your plan, lift"
+    },
+    {
+      "tap": {
+        "text": "Why this plan"
+      }
+    },
+    {
+      "expect": {
+        "text": "Why this plan",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "Setup · Why this plan"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "checkpoint": "Today · Today, lift setup"
+    }
+  ]
+}

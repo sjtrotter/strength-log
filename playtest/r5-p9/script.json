@@ -3,8 +3,8 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-21",
-    "time": "10:00",
+    "date": "2026-11-24",
+    "time": "09:30",
     "zone": "America/Phoenix"
   },
   "steps": [
@@ -25,7 +25,7 @@
       }
     },
     {
-      "checkpoint": "saturday-plan-and-last-session"
+      "checkpoint": "tuesday-plan-and-last-session"
     },
     {
       "tap": {
@@ -33,7 +33,7 @@
       }
     },
     {
-      "note": "Grandchildren visited Friday Nov20, so no gym. Saturday Nov21 10am: usual workout; knee feels fine, leg press 110. Bike five minutes before machines."
+      "note": "Tuesday Nov24 normal gym session. Trainer card loads, bike5min. On the first row set I accidentally tap Max, then change it back to Good before leaving the set."
     },
     {
       "advance": "5m"
@@ -45,7 +45,7 @@
       }
     },
     {
-      "checkpoint": "saturday-balance-start"
+      "checkpoint": "tuesday-balance-start"
     },
     {
       "note": "Rail-supported left 10 seconds, right 10 seconds, pair 1. I time the holds myself."
@@ -95,7 +95,7 @@
       }
     },
     {
-      "checkpoint": "saturday-leg-press-offer-after-session-only-curl"
+      "checkpoint": "tuesday-leg-press-offer-after-light-week-notice"
     },
     {
       "tap": {
@@ -133,7 +133,7 @@
       }
     },
     {
-      "checkpoint": "saturday-leg-press-set-1-logged"
+      "checkpoint": "tuesday-leg-press-set-1-logged"
     },
     {
       "advance": "2m"
@@ -179,7 +179,7 @@
       }
     },
     {
-      "checkpoint": "saturday-leg-press-set-2-logged"
+      "checkpoint": "tuesday-leg-press-set-2-logged"
     },
     {
       "advance": "2m"
@@ -190,7 +190,7 @@
       }
     },
     {
-      "checkpoint": "saturday-chest-press-offered"
+      "checkpoint": "tuesday-chest-press-offered"
     },
     {
       "expect": {
@@ -233,7 +233,7 @@
       }
     },
     {
-      "checkpoint": "saturday-chest-press-set-1-logged"
+      "checkpoint": "tuesday-chest-press-set-1-logged"
     },
     {
       "advance": "2m"
@@ -279,7 +279,7 @@
       }
     },
     {
-      "checkpoint": "saturday-chest-press-set-2-logged"
+      "checkpoint": "tuesday-chest-press-set-2-logged"
     },
     {
       "advance": "2m"
@@ -290,7 +290,7 @@
       }
     },
     {
-      "checkpoint": "saturday-row-offered"
+      "checkpoint": "tuesday-row-offered"
     },
     {
       "tap": {
@@ -324,11 +324,28 @@
     },
     {
       "tap": {
+        "tag": "workout-effort-MAX"
+      }
+    },
+    {
+      "checkpoint": "row-wrong-max-rating"
+    },
+    {
+      "tap": {
         "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "saturday-row-set-1-logged"
+      "expect": {
+        "text": "Good",
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "row-corrected-to-good"
+    },
+    {
+      "checkpoint": "tuesday-row-set-1-logged"
     },
     {
       "advance": "2m"
@@ -374,7 +391,7 @@
       }
     },
     {
-      "checkpoint": "saturday-row-set-2-logged"
+      "checkpoint": "tuesday-row-set-2-logged"
     },
     {
       "advance": "2m"
@@ -385,7 +402,7 @@
       }
     },
     {
-      "checkpoint": "saturday-shoulder-press-offered"
+      "checkpoint": "tuesday-shoulder-press-offered"
     },
     {
       "tap": {
@@ -423,7 +440,7 @@
       }
     },
     {
-      "checkpoint": "saturday-shoulder-press-set-1-logged"
+      "checkpoint": "tuesday-shoulder-press-set-1-logged"
     },
     {
       "advance": "2m"
@@ -466,11 +483,10 @@
     {
       "tap": {
         "tag": "workout-effort-GOOD"
-      },
-      "optional": true
+      }
     },
     {
-      "checkpoint": "saturday-shoulder-press-set-2-logged"
+      "checkpoint": "tuesday-shoulder-press-set-2-logged"
     },
     {
       "advance": "2m"
@@ -485,8 +501,7 @@
       "tap": {
         "text": "Skip",
         "role": "Button"
-      },
-      "optional": true
+      }
     },
     {
       "tap": {
@@ -494,7 +509,7 @@
       }
     },
     {
-      "checkpoint": "saturday-full-body-summary"
+      "checkpoint": "tuesday-full-body-summary"
     },
     {
       "scrollTo": {
@@ -509,7 +524,7 @@
     {
       "type": {
         "textContains": "Note",
-        "value": "Friday missed: grandchildren. Saturday make-up. Bike 5m, pulldown 50 lb 2x10, rail calf raises. Leg press 110 fine."
+        "value": "Bike 5m; pulldown 50 lb 2x10; rail calf raises. Row first-set Max was a wrong tap, corrected to Good."
       }
     },
     {
@@ -530,7 +545,7 @@
       }
     },
     {
-      "checkpoint": "saturday-gym-saved"
+      "checkpoint": "tuesday-gym-saved"
     }
   ]
 }

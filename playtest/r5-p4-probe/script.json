@@ -70,7 +70,9 @@
       "back": true
     },
     {
-      "back": true
+      "expect": {
+        "text": "Edit day A"
+      }
     },
     {
       "scrollTo": {

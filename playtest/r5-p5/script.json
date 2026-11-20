@@ -515,6 +515,33 @@
     },
     {
       "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Calf: gastrocnemius"
+      }
+    },
+    {
+      "tap": {
+        "text": "Calf: gastrocnemius"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "Standing DB Calf Raise",
+        "ime": "done"
+      }
+    },
+    {
+      "scrollTo": {
         "text": "Standing DB Calf Raise"
       }
     },

@@ -3,13 +3,13 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-12-03",
+    "date": "2026-12-04",
     "time": "06:00",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "note": "Dec3 LowerB at06:00,60min. Dec1/2 are unplayed coverage gaps, not diary misses. DL290x5 slow4/5, back rounded5; skip both260 backoffs. Front1706/6/5; split40s2x8; plank45/45/45. Slept about5h. Keep actuals despite active light week; warmups off-app."
+      "note": "Dec4 UpperB06:00,53min. Third120press attempt5/5/5,finally125next. Incline65s8/8/7;chins11/9/8;rear15s3x15. Lateral20s3x12 physically performed, recorded in final note: addition flow not fully captured and no probes remain. Off light-week schedule is already saved but active reductions persist; add each missing third set and edit every actual. Warmups barx10,65x5,95x3 off-app. Dec5packwalk is an unplayed coverage gap, not a diary miss."
     },
     {
       "tap": {
@@ -24,173 +24,20 @@
     },
     {
       "scrollTo": {
-        "desc": "Day C"
+        "desc": "Day E"
       }
     },
     {
       "tap": {
-        "desc": "Day C"
+        "desc": "Day E"
       }
     },
     {
-      "checkpoint": "dec3-offered-c"
+      "checkpoint": "dec4-offered-upper-b"
     },
     {
       "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Conventional Deadlift"
-      }
-    },
-    {
-      "tap": {
-        "text": "Conventional Deadlift"
-      }
-    },
-    {
-      "checkpoint": "dec3-prescription-before-conventional-deadlift"
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "290",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "dec3-saved-conventional-deadlift"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Front Squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "Front Squat"
-      }
-    },
-    {
-      "checkpoint": "dec3-prescription-before-front-squat"
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "6",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "170",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "dec3-saved-front-squat"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Bulgarian Split Squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "Bulgarian Split Squat"
-      }
-    },
-    {
-      "checkpoint": "dec3-prescription-before-bulgarian-split-squat"
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "2",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "8",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "40",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "dec3-saved-bulgarian-split-squat"
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "dec3-configured-c"
-    },
-    {
-      "tap": {
-        "text": "Start day C"
+        "text": "Start day E"
       }
     },
     {
@@ -200,10 +47,19 @@
       }
     },
     {
-      "checkpoint": "dec3-first-set-c"
+      "checkpoint": "dec4-first-press-before-actual-overrides"
     },
     {
       "advance": "480s"
+    },
+    {
+      "expect": {
+        "text": "Overhead Press (Barbell)",
+        "inDialog": false
+      }
+    },
+    {
+      "checkpoint": "dec4-starting-press"
     },
     {
       "tap": {
@@ -221,7 +77,7 @@
       }
     },
     {
-      "checkpoint": "dec3-added-third-deadlift-for-two-unperformed-backoffs"
+      "checkpoint": "dec4-added-third-press"
     },
     {
       "back": true
@@ -234,7 +90,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "290",
+        "value": "120",
         "ime": "done"
       }
     },
@@ -255,7 +111,7 @@
     },
     {
       "expect": {
-        "text": "290 lb \u00d7 5",
+        "text": "120 lb \u00d7 5",
         "desc": "Edit set 1"
       }
     },
@@ -274,14 +130,11 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-HARD"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "dec3-deadlift-top290-slow-back-rounded"
-    },
-    {
-      "advance": "240s"
+      "advance": "180s"
     },
     {
       "tap": {
@@ -293,33 +146,139 @@
     },
     {
       "tap": {
-        "text": "All sets"
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "120",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
       }
     },
     {
       "tap": {
-        "desc": "More"
+        "text": "Save set"
       }
     },
     {
-      "checkpoint": "dec3-backoff-skip-menu"
-    },
-    {
-      "tap": {
-        "text": "Skip for this workout"
-      }
-    },
-    {
-      "checkpoint": "dec3-deadlift-skip-result"
+      "advance": "1s"
     },
     {
       "expect": {
-        "text": "Front Squat",
+        "text": "120 lb \u00d7 5",
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "180s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "120",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "expect": {
+        "text": "120 lb \u00d7 5",
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "dec4-logged-press120-5-5-5"
+    },
+    {
+      "advance": "180s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "expect": {
+        "text": "Incline DB Press",
         "inDialog": false
       }
     },
     {
-      "checkpoint": "dec3-front-start"
+      "checkpoint": "dec4-starting-incline"
     },
     {
       "tap": {
@@ -337,7 +296,7 @@
       }
     },
     {
-      "checkpoint": "dec3-added-third-front-squat"
+      "checkpoint": "dec4-added-third-incline"
     },
     {
       "back": true
@@ -350,14 +309,14 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "170",
+        "value": "65",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "6",
+        "value": "8",
         "ime": "done"
       }
     },
@@ -368,6 +327,12 @@
     },
     {
       "advance": "1s"
+    },
+    {
+      "expect": {
+        "text": "65 lb \u00d7 8",
+        "desc": "Edit set 1"
+      }
     },
     {
       "advance": "1s"
@@ -406,14 +371,14 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "170",
+        "value": "65",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "6",
+        "value": "8",
         "ime": "done"
       }
     },
@@ -424,6 +389,12 @@
     },
     {
       "advance": "1s"
+    },
+    {
+      "expect": {
+        "text": "65 lb \u00d7 8",
+        "desc": "Edit set 2"
+      }
     },
     {
       "advance": "1s"
@@ -462,14 +433,14 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "170",
+        "value": "65",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "5",
+        "value": "7",
         "ime": "done"
       }
     },
@@ -480,6 +451,12 @@
     },
     {
       "advance": "1s"
+    },
+    {
+      "expect": {
+        "text": "65 lb \u00d7 7",
+        "desc": "Edit set 3"
+      }
     },
     {
       "advance": "1s"
@@ -500,7 +477,7 @@
       }
     },
     {
-      "checkpoint": "dec3-front170-6-6-5"
+      "checkpoint": "dec4-logged-incline65-8-8-7"
     },
     {
       "advance": "120s"
@@ -515,136 +492,12 @@
     },
     {
       "expect": {
-        "text": "Bulgarian Split Squat",
+        "text": "Pull-Up / Chin-Up",
         "inDialog": false
       }
     },
     {
-      "checkpoint": "dec3-split-start"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "40",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "8",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "40",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "8",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "dec3-split40-8-8"
-    },
-    {
-      "advance": "120s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "expect": {
-        "text": "Plank",
-        "inDialog": false
-      }
-    },
-    {
-      "checkpoint": "dec3-plank-start"
+      "checkpoint": "dec4-starting-chins"
     },
     {
       "tap": {
@@ -662,7 +515,7 @@
       }
     },
     {
-      "checkpoint": "dec3-added-third-plank"
+      "checkpoint": "dec4-added-third-chins"
     },
     {
       "back": true
@@ -674,8 +527,8 @@
     },
     {
       "type": {
-        "text": "Duration",
-        "value": "0:45",
+        "text": "Reps",
+        "value": "11",
         "ime": "done"
       }
     },
@@ -696,7 +549,22 @@
       }
     },
     {
-      "advance": "105s"
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
     },
     {
       "advance": "1s"
@@ -708,8 +576,8 @@
     },
     {
       "type": {
-        "text": "Duration",
-        "value": "0:45",
+        "text": "Reps",
+        "value": "9",
         "ime": "done"
       }
     },
@@ -730,7 +598,22 @@
       }
     },
     {
-      "advance": "105s"
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
     },
     {
       "advance": "1s"
@@ -742,8 +625,8 @@
     },
     {
       "type": {
-        "text": "Duration",
-        "value": "0:45",
+        "text": "Reps",
+        "value": "8",
         "ime": "done"
       }
     },
@@ -764,10 +647,239 @@
       }
     },
     {
-      "checkpoint": "dec3-plank45-45-45"
+      "expect": {
+        "tag": "workout-set-done"
+      }
     },
     {
-      "advance": "2044s"
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "dec4-logged-chins11-9-8"
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "expect": {
+        "text": "Bent-Over DB Reverse Fly",
+        "inDialog": false
+      }
+    },
+    {
+      "checkpoint": "dec4-starting-rear"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "checkpoint": "dec4-added-third-rear"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "15",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "15",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "expect": {
+        "text": "15 lb \u00d7 15",
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "15",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "15",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "expect": {
+        "text": "15 lb \u00d7 15",
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "15",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "15",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "expect": {
+        "text": "15 lb \u00d7 15",
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "dec4-logged-rear15-15-15"
+    },
+    {
+      "advance": "1165s"
     },
     {
       "tap": {
@@ -783,7 +895,7 @@
       }
     },
     {
-      "checkpoint": "dec3-receipt"
+      "checkpoint": "dec4-receipt"
     },
     {
       "scrollTo": {
@@ -798,7 +910,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "DL290x5:slow4/5,back rounded5. Skipped260 backoffs; distrust back. Slept5h. Stop weekly+5. Front1706/6/5.",
+        "value": "Press120 third try3x5:finally;125 next. Incline65s8/8/7 shock. Chins11/9/8. Lateral20s3x12 note only. Rear15s3x15.",
         "ime": "done"
       }
     },
@@ -808,7 +920,7 @@
       }
     },
     {
-      "checkpoint": "dec3-back-sleep-note"
+      "checkpoint": "dec4-final-note"
     },
     {
       "tap": {
@@ -823,7 +935,7 @@
       }
     },
     {
-      "checkpoint": "dec3-saved-solid-ground"
+      "checkpoint": "dec4-saved-solid-ground"
     }
   ]
 }

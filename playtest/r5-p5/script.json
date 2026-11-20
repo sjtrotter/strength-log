@@ -3,14 +3,38 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-10",
+    "date": "2026-11-12",
     "time": "18:15",
     "zone": "America/Chicago"
   },
   "steps": [
     {
       "tap": {
-        "text": "Start day A",
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lifting and Just cardio fitness, 5 days"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "Day C"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day C"
+      }
+    },
+    {
+      "checkpoint": "nov-12-quicker-offered"
+    },
+    {
+      "tap": {
+        "textContains": "Start day",
         "role": "Button"
       }
     },
@@ -29,7 +53,7 @@
     {
       "type": {
         "text": "Duration",
-        "value": "42:10",
+        "value": "41:35",
         "ime": "done"
       }
     },
@@ -43,17 +67,17 @@
     {
       "type": {
         "text": "Note",
-        "value": "Started 17:30. Effort 3/10. Quads noticeable for the first kilometer, then fine.",
+        "value": "Quicker: 2 km warm-up; 3 x 5 min hard / 2 min jog. Last effort 8/10, too fast. Don't chase watch pace uphill.",
         "ime": "done"
       }
     },
     {
       "tap": {
-        "tag": "past-cardio-effort-EASY"
+        "tag": "past-cardio-effort-HARD"
       }
     },
     {
-      "checkpoint": "nov-10-run-ready-to-save"
+      "checkpoint": "nov-12-quicker-ready"
     },
     {
       "tap": {
@@ -71,7 +95,7 @@
       "timeoutMs": 20000
     },
     {
-      "checkpoint": "nov-10-run-saved"
+      "checkpoint": "nov-12-quicker-saved"
     },
     {
       "tap": {
@@ -87,7 +111,115 @@
       }
     },
     {
-      "checkpoint": "nov-10-run-finished"
+      "checkpoint": "nov-12-quicker-finished"
+    },
+    {
+      "advance": "2d16h"
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lifting and Just cardio fitness, 5 days"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "Day E"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day E"
+      }
+    },
+    {
+      "checkpoint": "nov-15-long-offered"
+    },
+    {
+      "tap": {
+        "textContains": "Start day",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Log past session",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log past session",
+        "role": "Button"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "69:20",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Distance (km)",
+        "value": "11.00",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Long easy run. Effort 4/10. Calves stiff early. Stopped briefly at a crossing and left the timer running.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "past-cardio-effort-EASY"
+      }
+    },
+    {
+      "checkpoint": "nov-15-long-ready"
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button",
+        "inDialog": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Done",
+        "role": "Button",
+        "inDialog": false
+      },
+      "timeoutMs": 20000
+    },
+    {
+      "checkpoint": "nov-15-long-saved"
+    },
+    {
+      "tap": {
+        "text": "Done",
+        "role": "Button",
+        "inDialog": false
+      }
+    },
+    {
+      "expect": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "nov-15-long-finished"
     }
   ]
 }

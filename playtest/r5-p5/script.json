@@ -1,0 +1,169 @@
+{
+  "seat": "r5-p5",
+  "capture": "compact",
+  "start": {
+    "date": "2026-11-08",
+    "time": "20:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Both",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Running",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "General fitness",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Just cardio fitness",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "5",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "tap": {
+        "text": "45",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "checkpoint": "five-days-closest-duration"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "lb",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "checkpoint": "gym-and-lifting-units"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Under a year",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "tap": {
+        "text": "Some",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "checkpoint": "actual-experience"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Longest run in the past 30 days"
+      }
+    },
+    {
+      "type": {
+        "text": "Minutes",
+        "value": "74.5",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "longest-run-74-and-half-minutes"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Separate days",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "review-running-priority-plan"
+    },
+    {
+      "tap": {
+        "text": "Why this plan"
+      }
+    },
+    {
+      "checkpoint": "plan-explanation"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "setup-saved"
+    }
+  ]
+}

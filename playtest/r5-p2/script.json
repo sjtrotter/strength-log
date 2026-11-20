@@ -23,11 +23,28 @@
     },
     {
       "tap": {
-        "text": "Conventional Deadlift"
+        "desc": "More options for Conventional Deadlift"
       }
     },
     {
-      "checkpoint": "deadlift-ramp-top-prescription"
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "tap": {
+        "text": "Straight sets"
+      }
+    },
+    {
+      "checkpoint": "deadlift-straight-workaround-prescription"
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
     },
     {
       "type": {
@@ -49,7 +66,7 @@
       }
     },
     {
-      "checkpoint": "deadlift-top-275"
+      "checkpoint": "deadlift-three-sets-275-before-backoff-edits"
     },
     {
       "back": true
@@ -461,65 +478,13 @@
       }
     },
     {
-      "checkpoint": "deadlift-first-ramp-set"
+      "checkpoint": "deadlift-first-work-set"
     },
     {
-      "note": "Keep native ramp/top/two back-offs. The inspected options cannot express fixed minus30lb: change only back-off sets to245. Suggested ramp warm-ups are additional to the three diary work sets; inspect their kinds in backup."
+      "note": "Saving the native top prescription changed the generated ramp to four ramp sets and one back-off. Fixed minus30 and two back-offs are not exposed in inspected options. Use three straight work sets and edit sets2/3 individually to245; warm up off-app."
     },
     {
       "advance": "8m"
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "240s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "240s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
     },
     {
       "advance": "1s"
@@ -555,7 +520,7 @@
     },
     {
       "tap": {
-        "desc": "Edit set 4"
+        "desc": "Edit set 2"
       }
     },
     {
@@ -608,7 +573,7 @@
     },
     {
       "tap": {
-        "desc": "Edit set 5"
+        "desc": "Edit set 3"
       }
     },
     {
@@ -872,7 +837,7 @@
       "back": true
     },
     {
-      "advance": "1223s"
+      "advance": "1705s"
     },
     {
       "tap": {

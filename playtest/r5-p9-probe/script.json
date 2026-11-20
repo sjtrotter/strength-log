@@ -148,15 +148,15 @@
     },
     {
       "tap": {
-        "tag": "workout-finish"
+        "text": "Skip",
+        "role": "Button"
       }
     },
     {
       "tap": {
-        "text": "Skip",
+        "text": "Finish day B",
         "role": "Button"
-      },
-      "optional": true
+      }
     },
     {
       "expect": {

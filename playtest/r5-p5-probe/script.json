@@ -59,78 +59,6 @@
       }
     },
     {
-      "checkpoint": "strength-editor-before-changes"
-    },
-    {
-      "tap": {
-        "text": "Barbell Back Squat"
-      }
-    },
-    {
-      "checkpoint": "existing-squat-prescription"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "More options for Barbell Back Squat"
-      }
-    },
-    {
-      "checkpoint": "strength-row-options"
-    },
-    {
-      "back": true
-    },
-    {
-      "scrollTo": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Squat (bilateral)"
-      }
-    },
-    {
-      "checkpoint": "squat-exercise-choices"
-    },
-    {
-      "scrollTo": {
-        "text": "Goblet Squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "Goblet Squat"
-      }
-    },
-    {
-      "checkpoint": "goblet-selected"
-    },
-    {
-      "scrollTo": {
-        "text": "Goblet Squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "Goblet Squat"
-      }
-    },
-    {
-      "checkpoint": "goblet-prescription-fields"
-    },
-    {
-      "back": true
-    },
-    {
       "scrollTo": {
         "text": "Add exercise"
       }
@@ -146,10 +74,24 @@
       }
     },
     {
-      "checkpoint": "hinge-exercise-choices"
+      "type": {
+        "text": "Search exercises",
+        "value": "romanian",
+        "ime": "done"
+      }
     },
     {
-      "back": true
+      "checkpoint": "romanian-choices"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "bridge",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "bridge-choices"
     },
     {
       "back": true
@@ -170,10 +112,58 @@
       }
     },
     {
-      "checkpoint": "single-leg-exercise-choices"
+      "checkpoint": "single-leg-top"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "lunge",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "lunge-choices"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "step",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "step-up-choices"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "single-leg-unfiltered"
     },
     {
       "back": true
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Knee flexion (leg curl)"
+      }
+    },
+    {
+      "checkpoint": "leg-curl-choices"
     },
     {
       "back": true
@@ -200,7 +190,7 @@
       }
     },
     {
-      "checkpoint": "remaining-movement-categories"
+      "checkpoint": "movement-list-lower"
     },
     {
       "back": true
@@ -227,7 +217,106 @@
       }
     },
     {
-      "checkpoint": "easy-run-cardio-prescription"
+      "tap": {
+        "text": "Set 1 \u00b7 Work"
+      }
+    },
+    {
+      "checkpoint": "cardio-set-prescription-fields"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day B"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plank"
+      }
+    },
+    {
+      "checkpoint": "plank-prescription"
+    },
+    {
+      "tap": {
+        "text": "Tracking",
+        "role": "DropdownList"
+      }
+    },
+    {
+      "checkpoint": "tracking-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Each side",
+        "role": "Switch"
+      }
+    },
+    {
+      "checkpoint": "plank-each-side-fields"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Start day B"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "strength-start-current"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "checkpoint": "lift-note-fields"
     }
   ]
 }

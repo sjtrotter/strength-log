@@ -3,11 +3,14 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-16",
+    "date": "2026-11-19",
     "time": "17:30",
     "zone": "America/Chicago"
   },
   "steps": [
+    {
+      "note": "Nov17 stayed missed: late work trip, home after22:00. No paused pulls, accessories or bike; Thursday remains Nov19."
+    },
     {
       "tap": {
         "text": "Plans",
@@ -16,7 +19,24 @@
     },
     {
       "tap": {
-        "text": "Meet block — Nov 9 to Dec 5"
+        "text": "New plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start empty"
+      }
+    },
+    {
+      "type": {
+        "text": "Name",
+        "value": "Thursday bench — meet block",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Create"
       }
     },
     {
@@ -32,38 +52,164 @@
     },
     {
       "tap": {
-        "text": "Edit",
+        "text": "Edit day"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Horizontal push"
+      }
+    },
+    {
+      "tap": {
+        "text": "Horizontal push"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "Competition bench (paused)",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Competition bench (paused)",
+        "index": 1
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Competition bench (paused)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Competition bench (paused)"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "110",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Squat (bilateral)"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "Two-second paused squat",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Create exercise"
+      }
+    },
+    {
+      "type": {
+        "text": "Name",
+        "value": "Two-second paused squat",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Movement pattern"
+      }
+    },
+    {
+      "tap": {
+        "text": "Squat",
+        "role": "RadioButton",
+        "inDialog": true
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
         "role": "Button"
       }
     },
     {
+      "tap": {
+        "text": "Two-second paused squat",
+        "index": 1
+      }
+    },
+    {
       "scrollTo": {
-        "text": "Barbell Back Squat"
+        "text": "Two-second paused squat"
       }
     },
     {
       "tap": {
-        "text": "Barbell Back Squat"
+        "text": "Two-second paused squat"
       }
     },
     {
       "type": {
         "text": "Sets",
-        "value": "5",
+        "value": "4",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "5",
+        "value": "4",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "170",
+        "value": "150",
         "ime": "done"
       }
     },
@@ -73,43 +219,7 @@
       }
     },
     {
-      "scrollTo": {
-        "text": "Competition bench (paused)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Competition bench (paused)"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "102.5",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "week2-monday-prescription-170-and-102-point-5"
+      "checkpoint": "thursday-prescription-110x4x5-and-paused-squat150x4x4"
     },
     {
       "back": true
@@ -123,7 +233,7 @@
     {
       "tap": {
         "desc": "Plan options",
-        "index": 1
+        "index": 3
       }
     },
     {
@@ -159,7 +269,7 @@
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "195",
+        "value": "127.5",
         "ime": "done"
       }
     },
@@ -176,7 +286,7 @@
       }
     },
     {
-      "checkpoint": "planned-backoffs-170-before-bad-sleep-single"
+      "checkpoint": "bench-single127-point-5-target7-point-5"
     },
     {
       "advance": "45s"
@@ -197,41 +307,14 @@
       }
     },
     {
-      "checkpoint": "squat-single-195-rpe8-point-5-in-note"
+      "checkpoint": "bench-single127-point-5-completed-actual8"
     },
     {
-      "note": "Five hours sleep. Single target RPE7.5 was actually8.5. Reduce only today's four backoffs from170 to165; keep next week separate."
-    },
-    {
-      "advance": "5m"
+      "advance": "4m"
     },
     {
       "tap": {
         "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "165",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
       }
     },
     {
@@ -253,35 +336,11 @@
       }
     },
     {
-      "advance": "5m"
+      "advance": "4m"
     },
     {
       "tap": {
         "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 3"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "165",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
       }
     },
     {
@@ -303,35 +362,11 @@
       }
     },
     {
-      "advance": "5m"
+      "advance": "4m"
     },
     {
       "tap": {
         "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 4"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "165",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
       }
     },
     {
@@ -353,7 +388,7 @@
       }
     },
     {
-      "advance": "5m"
+      "advance": "4m"
     },
     {
       "tap": {
@@ -362,27 +397,11 @@
     },
     {
       "tap": {
-        "desc": "Edit set 5"
+        "desc": "One fewer rep"
       }
     },
     {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "165",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
+      "checkpoint": "last-bench-backoff-three-completed-before-log"
     },
     {
       "advance": "45s"
@@ -399,91 +418,14 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-GOOD"
+        "tag": "workout-effort-MAX"
       }
     },
     {
-      "checkpoint": "four-backoffs-reduced-to-165-today"
+      "checkpoint": "last-bench-backoff-three-completed-not-assisted-four"
     },
     {
-      "advance": "5m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "note": "Typing mistake: entered102 rather than102.5. Correct it before logging the set."
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "102",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "102.5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "checkpoint": "fractional-bench-entry-corrected"
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
+      "note": "Fourth attempt stalled halfway; spotter took it. Three completed reps. No failed-attempt field seen; preserve the attempt and upper-back detail in receipt note."
     },
     {
       "advance": "3m"
@@ -586,173 +528,17 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-HARD"
-      }
-    },
-    {
-      "checkpoint": "five-bench-sets-102-point-5"
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
         "tag": "workout-effort-GOOD"
       }
     },
     {
-      "advance": "90s"
+      "checkpoint": "thursday-nine-real-main-work-sets-complete"
     },
     {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
+      "note": "Accessories actually done: rope pressdown cable C30kg3x12@8; Pallof cable C15kg3x10 each side@7. Record in note as with Tuesday accessories. Invented machine settings apply only to cable station C."
     },
     {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "all16-real-sets-logged"
-    },
-    {
-      "note": "All 16 actual sets are complete, but Done then Finish day A did not save. Add one unperformed placeholder set so the separate Finish control can record the 16 real sets; explain the extra blank set in the receipt note."
+      "advance": "25m15s"
     },
     {
       "tap": {
@@ -762,16 +548,10 @@
       }
     },
     {
-      "checkpoint": "week2-after-cooldown-done"
-    },
-    {
       "tap": {
         "text": "All sets",
         "role": "Button"
       }
-    },
-    {
-      "checkpoint": "week2-final-ab-wheel-all-sets"
     },
     {
       "tap": {
@@ -782,15 +562,12 @@
       "back": true
     },
     {
-      "checkpoint": "week2-extra-unperformed-set-to-recover-finish"
+      "checkpoint": "blank-tenth-set-for-known-finish-recovery"
     },
     {
       "tap": {
         "tag": "workout-finish"
       }
-    },
-    {
-      "checkpoint": "week2-finish-real-work-with-placeholder-left"
     },
     {
       "tap": {
@@ -807,21 +584,7 @@
       }
     },
     {
-      "checkpoint": "week2-monday-saved-review"
-    },
-    {
-      "scrollTo": {
-        "text": "Rough day"
-      }
-    },
-    {
-      "tap": {
-        "text": "Rough day",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "checkpoint": "rough-day-next-time-stays"
+      "checkpoint": "thursday-saved-review"
     },
     {
       "scrollTo": {
@@ -837,7 +600,7 @@
       "type": {
         "editable": true,
         "index": 0,
-        "value": "Sleep5h; Sq195x1 target7.5 actual8.5;170->165x5x4 today. Bench102.5x5x5 last8. Curl A45. Blank17=save fix.",
+        "value": "Nov17 missed:worktrip.B127.5x1@8;110x4,4,4,3+failed4th:lost upperback.PD C30x12x3@8;Pallof C15x10x3/side@7.Blank10=fix",
         "ime": "done"
       }
     },
@@ -847,7 +610,7 @@
       }
     },
     {
-      "checkpoint": "week2-monday-note-saved"
+      "checkpoint": "thursday-note-failed-fourth-and-accessories"
     },
     {
       "tap": {
@@ -861,7 +624,7 @@
       }
     },
     {
-      "checkpoint": "week2-monday-finished-today"
+      "checkpoint": "thursday-finished-tuesday-still-missed"
     }
   ]
 }

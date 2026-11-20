@@ -22,62 +22,225 @@
     },
     {
       "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "day-editor-more"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
         "desc": "More options for Hack Squat"
       }
     },
     {
-      "checkpoint": "plan-exercise-menu"
-    },
-    {
-      "back": true
-    },
-    {
       "tap": {
-        "text": "Hack Squat"
+        "text": "Swap"
       }
     },
     {
-      "checkpoint": "hack-squat-prescription"
+      "checkpoint": "plan-swap-picker"
     },
     {
-      "back": true
+      "tap": {
+        "text": "Leg Press"
+      }
+    },
+    {
+      "checkpoint": "leg-press-swap-choice"
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "after-plan-swap"
     },
     {
       "scrollTo": {
-        "text": "Add cardio"
+        "text": "Leg Press"
       }
     },
     {
       "tap": {
-        "text": "Add cardio"
+        "text": "Leg Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "60",
+        "ime": "done"
       }
     },
     {
       "tap": {
-        "text": "Road run",
-        "role": "DropdownList"
+        "text": "Save",
+        "role": "Button"
       }
     },
     {
-      "checkpoint": "cardio-activities"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Set 1 \u00b7 Work"
+      "scrollTo": {
+        "desc": "More options for Seated DB Shoulder Press"
       }
     },
     {
-      "checkpoint": "cardio-set-editor"
-    },
-    {
-      "back": true
+      "tap": {
+        "desc": "More options for Seated DB Shoulder Press"
+      }
     },
     {
       "tap": {
-        "text": "Cancel"
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "removed-seated-db-shoulder-press"
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Back Extension"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Back Extension"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "removed-back-extension"
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Cable Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Cable Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "removed-cable-lateral-raise"
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Plank"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "removed-plank"
+    },
+    {
+      "scrollTo": {
+        "text": "Machine Chest Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Machine Chest Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Seated Cable Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated Cable Row"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
       }
     },
     {
@@ -96,7 +259,153 @@
       }
     },
     {
-      "checkpoint": "leg-curl-choices"
+      "tap": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "checkpoint": "curl-added"
+    },
+    {
+      "scrollTo": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated Leg Curl"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "20",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Road run",
+        "role": "DropdownList"
+      }
+    },
+    {
+      "tap": {
+        "text": "Treadmill walk"
+      }
+    },
+    {
+      "tap": {
+        "text": "Set 1 \u00b7 Work"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "5:00",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "walk-added-5-00"
+    },
+    {
+      "scrollTo": {
+        "text": "Add cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Road run",
+        "role": "DropdownList"
+      }
+    },
+    {
+      "tap": {
+        "text": "Treadmill walk"
+      }
+    },
+    {
+      "tap": {
+        "text": "Set 1 \u00b7 Work"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "10:00",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "walk-added-10-00"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "custom-day-more"
     },
     {
       "back": true
@@ -105,7 +414,7 @@
       "back": true
     },
     {
-      "back": true
+      "checkpoint": "custom-day-detail"
     },
     {
       "tap": {
@@ -119,25 +428,50 @@
       }
     },
     {
-      "checkpoint": "first-lift-starting-advice"
+      "checkpoint": "custom-workout-start"
     },
     {
       "tap": {
-        "text": "All sets"
+        "role": "Button",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "workout-day-navigator"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
       }
     },
     {
       "tap": {
-        "desc": "More"
+        "tag": "workout-effort-GOOD"
       }
+    },
+    {
+      "advance": "90s"
     },
     {
       "tap": {
-        "text": "Note"
+        "text": "Next set",
+        "role": "Button"
       }
     },
     {
-      "checkpoint": "exercise-note-editor"
+      "checkpoint": "next-set-after-first-leg-set"
+    },
+    {
+      "tap": {
+        "role": "Button",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "navigator-after-logged-set"
     }
   ]
 }

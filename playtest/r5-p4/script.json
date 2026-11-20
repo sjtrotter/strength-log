@@ -466,7 +466,8 @@
       "type": {
         "text": "Reps",
         "value": "6",
-        "ime": "done"
+        "ime": "done",
+        "index": 1
       }
     },
     {
@@ -901,7 +902,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "Incline: right arm gave out first. Face pulls 30 lb x 15/15/15 (recorded here). 2k row 8:11, slower than my 8:05 best. Legs cooked after squat sets.",
+        "value": "Incline: right arm gave out. Face pulls 30 lb x 15/15/15. 2k 8:11 vs best 8:05. Legs cooked after squats.",
         "ime": "done"
       }
     },

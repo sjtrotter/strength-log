@@ -502,6 +502,11 @@
       "back": true
     },
     {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
       "scrollTo": {
         "desc": "More options for Seated DB Shoulder Press"
       }
@@ -542,6 +547,11 @@
     },
     {
       "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
     },
     {
       "scrollTo": {
@@ -586,6 +596,11 @@
       "back": true
     },
     {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
       "scrollTo": {
         "desc": "More options for Hammer Curl"
       }
@@ -599,6 +614,9 @@
       "tap": {
         "text": "Lift options"
       }
+    },
+    {
+      "checkpoint": "hammer-curl-options-with-superset"
     },
     {
       "tap": {
@@ -629,9 +647,6 @@
     },
     {
       "checkpoint": "upper-a-configured"
-    },
-    {
-      "back": true
     },
     {
       "checkpoint": "my-upper-a"
@@ -1098,21 +1113,19 @@
       "checkpoint": "starting-hammer-curl"
     },
     {
-      "advance": "1s"
+      "note": "The generated triceps superset survived the curl swap. I did curls only. Mark the two main curl sets in All sets, leave the triceps sets unlogged, and finish with those sets left. This avoids inventing triceps work; removal controls are still untested."
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
+        "text": "All sets"
       }
     },
     {
-      "expect": {
-        "tag": "workout-set-done"
-      }
+      "checkpoint": "curl-superset-all-sets"
     },
     {
       "tap": {
-        "tag": "workout-effort-GOOD"
+        "tag": "lift-check-main-0"
       }
     },
     {
@@ -1120,47 +1133,27 @@
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
+        "tag": "lift-check-main-1"
       }
     },
     {
-      "advance": "1s"
+      "checkpoint": "two-curl-sets-no-triceps"
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "1005s"
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
+        "tag": "workout-finish"
       }
     },
     {
       "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "logged-hammer-curl"
-    },
-    {
-      "advance": "1003s"
-    },
-    {
-      "tap": {
-        "text": "Skip",
-        "role": "Button",
+        "text": "Finish",
         "inDialog": true
-      }
-    },
-    {
-      "checkpoint": "cooldown-skipped"
-    },
-    {
-      "tap": {
-        "text": "Finish day B",
-        "tag": "workout-action-filled"
       }
     },
     {

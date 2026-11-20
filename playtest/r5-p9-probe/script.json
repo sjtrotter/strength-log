@@ -1,6 +1,7 @@
 {
   "seat": "r5-p9-probe",
   "capture": "compact",
+  "probe": true,
   "start": {
     "restore": "start-backup.json",
     "date": "2026-11-09",
@@ -160,7 +161,7 @@
     },
     {
       "expect": {
-        "text": "Balance, saved."
+        "text": "Balance, done."
       }
     },
     {
@@ -180,6 +181,9 @@
     },
     {
       "checkpoint": "monday-home-session-finished"
+    },
+    {
+      "advance": "1d20m"
     },
     {
       "tap": {
@@ -336,10 +340,45 @@
       }
     },
     {
-      "checkpoint": "chest-machine-choices"
+      "tap": {
+        "text": "Machine Chest Press"
+      }
     },
     {
-      "back": true
+      "scrollTo": {
+        "textContains": "Machine Chest Press"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Machine Chest Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "40"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "customized-chest"
     },
     {
       "scrollTo": {
@@ -363,10 +402,45 @@
       }
     },
     {
-      "checkpoint": "seated-row-choices"
+      "tap": {
+        "text": "Machine Row"
+      }
     },
     {
-      "back": true
+      "scrollTo": {
+        "textContains": "Machine Row"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Machine Row"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "50"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "customized-row"
     },
     {
       "scrollTo": {
@@ -390,14 +464,82 @@
       }
     },
     {
-      "checkpoint": "dumbbell-shoulder-choices"
-    },
-    {
-      "back": true
+      "tap": {
+        "text": "Seated DB Shoulder Press"
+      }
     },
     {
       "scrollTo": {
-        "text": "Add exercise"
+        "textContains": "Seated DB Shoulder Press"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Seated DB Shoulder Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "customized-shoulder"
+    },
+    {
+      "scrollTo": {
+        "textContains": "Single-Leg Stance"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Single-Leg Stance"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:10"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Each side",
+        "role": "Switch"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Add exercise"
       }
     },
     {
@@ -406,22 +548,20 @@
       }
     },
     {
-      "checkpoint": "all-movement-groups-top"
-    },
-    {
-      "scrollTo": {
-        "text": "Knee extension (leg extension)"
+      "swipe": {
+        "text": "Squat (bilateral)",
+        "direction": "up"
       }
     },
     {
-      "checkpoint": "movement-groups-middle"
+      "checkpoint": "movement-groups-after-swipe"
     },
     {
       "back": true
     },
     {
       "scrollTo": {
-        "text": "Add cardio"
+        "textContains": "Add cardio"
       }
     },
     {
@@ -430,8 +570,121 @@
       }
     },
     {
-      "checkpoint": "bike-or-walking-options"
+      "tap": {
+        "text": "Road run",
+        "role": "DropdownList"
+      }
+    },
+    {
+      "checkpoint": "cardio-activity-choices"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "ready-to-start-custom-day-a"
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip"
+      }
+    },
+    {
+      "checkpoint": "gym-first-set"
+    },
+    {
+      "advance": "20s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "gym-balance-pair-1"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "advance": "20s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "gym-balance-pair-2"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "advance": "20s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "gym-balance-pair-3"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "leg-press-before-lowering"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "100"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "leg-press-100-this-set"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "leg-press-100-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "leg-press-after-unhurried-rest"
     }
-  ],
-  "probe": true
+  ]
 }

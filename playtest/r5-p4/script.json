@@ -4,7 +4,7 @@
   "start": {
     "restore": "start-backup.json",
     "date": "2026-12-04",
-    "time": "18:15",
+    "time": "18:16",
     "zone": "America/Chicago"
   },
   "steps": [
@@ -15,12 +15,55 @@
       }
     },
     {
-      "checkpoint": "month-history-overview"
+      "scrollTo": {
+        "desc": "Conventional Deadlift top sets: Nov 11, 225 lb; Dec 2, 245 lb."
+      }
+    },
+    {
+      "checkpoint": "deadlift-and-following-trends"
+    },
+    {
+      "swipe": {
+        "desc": "Conventional Deadlift top sets: Nov 11, 225 lb; Dec 2, 245 lb.",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "trends-middle-1"
+    },
+    {
+      "swipe": {
+        "desc": "Conventional Deadlift top sets: Nov 11, 225 lb; Dec 2, 245 lb.",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "trends-middle-2"
+    },
+    {
+      "swipe": {
+        "desc": "Conventional Deadlift top sets: Nov 11, 225 lb; Dec 2, 245 lb.",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "trends-middle-3"
+    },
+    {
+      "scrollTo": {
+        "text": "Rower 15:00"
+      }
+    },
+    {
+      "checkpoint": "rower-trend-and-neighbors"
     },
     {
       "scrollTo": {
         "text": "Trends and calendar"
       }
+    },
+    {
+      "checkpoint": "end-of-trends"
     },
     {
       "tap": {
@@ -28,7 +71,44 @@
       }
     },
     {
-      "checkpoint": "month-trends-top"
+      "scrollTo": {
+        "text": "Calendar"
+      }
+    },
+    {
+      "checkpoint": "december-before-selection"
+    },
+    {
+      "tap": {
+        "desc": "December 2, day B, 2 sessions"
+      }
+    },
+    {
+      "checkpoint": "dec2-whole-visit-history"
+    },
+    {
+      "scrollTo": {
+        "desc": "Day B",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day B",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "dec2-lifting-history-expanded"
+    },
+    {
+      "scrollTo": {
+        "text": "Share",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "dec2-expanded-history-bottom"
     },
     {
       "scrollTo": {
@@ -36,16 +116,17 @@
       }
     },
     {
-      "checkpoint": "month-calendar"
-    },
-    {
-      "expect": {
-        "text": "History",
-        "role": "Tab"
+      "tap": {
+        "desc": "Previous month"
       }
     },
     {
-      "checkpoint": "month-review-solid-ground"
+      "expect": {
+        "text": "November 2026"
+      }
+    },
+    {
+      "checkpoint": "november-calendar-review"
     }
   ]
 }

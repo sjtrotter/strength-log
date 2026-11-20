@@ -11,39 +11,6 @@
   "steps": [
     {
       "tap": {
-        "desc": "Settings"
-      }
-    },
-    {
-      "tap": {
-        "text": "Effort scale"
-      }
-    },
-    {
-      "checkpoint": "effort-scale-choices"
-    },
-    {
-      "back": true
-    },
-    {
-      "scrollTo": {
-        "text": "Suggested cool-down"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Suggested cool-down",
-        "direction": "up"
-      }
-    },
-    {
-      "checkpoint": "settings-lower-controls"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
         "text": "Plans",
         "role": "Tab"
       }
@@ -59,7 +26,18 @@
       }
     },
     {
-      "checkpoint": "start-empty-result"
+      "type": {
+        "text": "Name",
+        "value": "Meet block \u2014 Nov 9 to Dec 5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Create"
+      }
+    },
+    {
+      "checkpoint": "own-plan-created"
     },
     {
       "tap": {
@@ -67,7 +45,7 @@
       }
     },
     {
-      "checkpoint": "empty-plan-add-day"
+      "checkpoint": "first-day-created-or-dialog"
     },
     {
       "tap": {
@@ -75,12 +53,12 @@
       }
     },
     {
-      "checkpoint": "empty-day-detail"
-    },
-    {
       "tap": {
         "text": "Edit"
       }
+    },
+    {
+      "checkpoint": "empty-day-editor"
     },
     {
       "tap": {
@@ -93,7 +71,7 @@
       }
     },
     {
-      "checkpoint": "squat-exercise-choices"
+      "checkpoint": "squat-choices"
     },
     {
       "tap": {
@@ -101,7 +79,7 @@
       }
     },
     {
-      "checkpoint": "squat-added-or-prescription"
+      "checkpoint": "squat-added"
     },
     {
       "tap": {
@@ -112,12 +90,26 @@
       "checkpoint": "squat-prescription"
     },
     {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "exercise-options"
+    },
+    {
+      "back": true
+    },
+    {
       "tap": {
         "desc": "More"
       }
     },
     {
-      "checkpoint": "prescription-or-editor-more"
+      "checkpoint": "day-editor-options"
     }
   ]
 }

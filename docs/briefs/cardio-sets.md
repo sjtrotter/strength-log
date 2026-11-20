@@ -46,3 +46,13 @@ Running work                 Distance awaiting tap
 
 **Owner choices:** approve automatic recovery/cool-down, removing silent overrun, and removing the 60-second discard.
 
+
+## Amendment (2026-11-20, #536)
+
+Time-ended work after a recovery starts on its own at the recovery's exact deadline. Distance work waits for Start at the runner's start line, including sprint reps; warm-up followed by work still waits. Tapping to end a recovery leaves the next work ready.
+
+The recovery-end buzz is the cue. There is no countdown: delaying the work anchor would change the planned work and recovery seconds, and another alarm would add a buzz contrary to the one-buzz rule and §2's “No countdown flashes or extra buzzes.”
+
+Catch-up starts timed work after recovery only while it could still be running. Before its planned end, it starts at the recovery's deadline; at or after its planned end, it stays ready at that work position and nothing after it is replayed. Expired recovery and cool-down retain their existing behavior.
+
+This supersedes §2's sentence `Recovery and cool-down auto-start after normal completion; warm-up and work wait for “Start”.` and §7's sentence `Restore automatic boundaries silently; never invent a work-set Start or distance completion.` for timed work after recovery that could still be running. The restriction on inventing work that would already be over, other work starts, and distance completion remains.

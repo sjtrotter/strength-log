@@ -27,10 +27,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import java.util.Locale
+import cloud.trotter.log.strength.ui.day.cardioActivityName
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.ui.components.DayIndex
 import cloud.trotter.log.strength.ui.components.DayIndexSize
@@ -183,7 +186,15 @@ private fun TodayDayItem(day: TodayDay, onClick: () -> Unit, start: (() -> Unit)
         modifier = Modifier.clickable(onClick = onClick),
         leadingContent = { DayIndex(day.dayIndex, day.dayId, DayIndexSize.Small) },
         headlineContent = { Text(stringResource(R.string.today_plan_day, day.planName, day.dayId)) },
-        supportingContent = { Text(day.title) },
+        supportingContent = {
+            val activity = day.cardioActivity
+            val text = if (activity == null) day.title else {
+                val name = cardioActivityName(activity).lowercase(Locale.US)
+                if (day.liftCount == 0) stringResource(R.string.today_cardio_day, day.title, name)
+                else pluralStringResource(R.plurals.today_cardio_day_lifts, day.liftCount, day.title, name, day.liftCount)
+            }
+            Text(text)
+        },
         trailingContent = start?.let { onStart -> {
             FilledTonalButton(onClick = onStart) { Text(stringResource(R.string.workout_start)) }
         } },

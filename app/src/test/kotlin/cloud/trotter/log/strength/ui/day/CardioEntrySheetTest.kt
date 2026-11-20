@@ -4,6 +4,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -18,6 +19,13 @@ import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.components.LocalDistanceUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
+import org.junit.Before
+import org.junit.After
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -28,6 +36,42 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class CardioEntrySheetTest {
     @get:Rule val rule = createComposeRule()
+    private var originalWindowSize: String? = null
+
+    @Before fun useRequestedWindowSize() {
+        originalWindowSize = System.getProperty("robolectric.windowManager.useRequestedSize")
+        System.setProperty("robolectric.windowManager.useRequestedSize", "true")
+    }
+
+    @After fun restoreWindowSize() {
+        val previous = originalWindowSize
+        if (previous == null) System.clearProperty("robolectric.windowManager.useRequestedSize")
+        else System.setProperty("robolectric.windowManager.useRequestedSize", previous)
+    }
+
+    private fun endError(end: Long): String = "Ends at " + Instant.ofEpochMilli(end).atZone(ZoneId.systemDefault())
+        .format(DateTimeFormatter.ofPattern("HH:mm", Locale.US)) + ", after now"
+
+    @Test @Config(qualifiers = "w360dp-h720dp")
+    fun `ends after now shows under the start time without scrolling`() {
+        val noon = LocalDate.of(2026, 11, 9).atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        var draft by mutableStateOf(CardioEntryDraft(CardioActivity.ROAD_RUN, noon - 25 * 60_000L, 2872))
+        rule.setContent { AppTheme {
+            CardioEntrySheet(draft, "Log past session", { noon }, { draft = it }, {}, {})
+        } }
+        rule.runOnIdle { draft = draft.copy(note = "A".repeat(69)) }
+        rule.onNodeWithText("Ends at 12:22, after now").assertIsDisplayed()
+        rule.onNodeWithText("Save").assertIsNotEnabled()
+    }
+
+    @Test fun `save failure shows in the footer`() {
+        val draft = CardioEntryDraft(CardioActivity.ROAD_RUN, now - 2_472_000, 2412, note = "A".repeat(69))
+        rule.setContent { AppTheme {
+            CardioEntrySheet(draft, "Log past session", { now }, {}, {}, {}, saveFailed = true)
+        } }
+        rule.onNodeWithText("Couldn't save the session.").assertIsDisplayed()
+    }
+
     private val now = 1_800_000_000_000L
 
     @Test fun `log past session is offered before the run starts`() {
@@ -90,7 +134,8 @@ class CardioEntrySheetTest {
         rule.onNodeWithText("Duration").performTextReplacement("40:12")
         rule.runOnIdle { draft = draft.copy(startedAt = now) }
         rule.onNodeWithText("Save").assertIsNotEnabled()
-        rule.onNodeWithText("Ends after now").performScrollTo().assertExists()
+        // #536: the end-time reason is supporting text beside Start time, visible without scrolling.
+        rule.onNodeWithText(endError(now + 2_412_000)).assertIsDisplayed()
         rule.runOnIdle { draft = draft.copy(startedAt = now - 2_472_000) }
         rule.onNodeWithText("Save").assertIsEnabled().performClick()
         rule.runOnIdle { assertEquals(1, saved); assertEquals(2412, draft.seconds) }
@@ -174,7 +219,8 @@ class CardioEntrySheetTest {
         } }
         rule.onNodeWithText("Duration").assertDoesNotExist()
         rule.onNodeWithText("Distance (mi)").assertDoesNotExist()
-        rule.onNodeWithText("Couldn't save the session.").performScrollTo().assertExists()
+        // #536: save failures moved to the pinned footer and need no scroll.
+        rule.onNodeWithText("Couldn't save the session.").assertIsDisplayed()
     }
 
     @Test fun `locked measures use elapsed completion for Save and Ends after now`() {
@@ -186,10 +232,12 @@ class CardioEntrySheetTest {
         } }
         rule.onNodeWithText("Duration").assertDoesNotExist()
         rule.onNodeWithText("Save").assertIsNotEnabled()
-        rule.onNodeWithText("Ends after now").performScrollTo().assertExists()
+        // #536: locked History starts show the formatted elapsed end beside Start time.
+        rule.onNodeWithText(endError(now + 1_800_000)).assertIsDisplayed()
         rule.runOnIdle { wallClock += 1_800_000 }
         rule.onNodeWithText("Save").assertIsEnabled()
-        rule.onNodeWithText("Ends after now").assertDoesNotExist()
+        // #536: the formatted end-time reason clears when completion is no longer in the future.
+        rule.onNodeWithText(endError(now + 1_800_000)).assertDoesNotExist()
     }
 
     @Test fun `a start time collision keeps the entry editable`() {
@@ -198,7 +246,8 @@ class CardioEntrySheetTest {
             DayScreen(workoutSetCardioFixture(), workoutActions(), DayEditUiState(), workoutEditActions(),
                 pastCardio = draft, pastCardioSaveFailed = true, pastCardioCollision = true, nowMillis = { now })
         } }
-        rule.onNodeWithText("Start time collision").performScrollTo().assertExists()
+        // #536: collisions moved to the pinned footer and need no scroll.
+        rule.onNodeWithText("Start time collision").assertIsDisplayed()
         rule.onNodeWithText("Couldn't save the session.").assertDoesNotExist()
         rule.onNodeWithText("Start time").performScrollTo().assertIsEnabled()
         rule.onNodeWithText("Save").assertIsEnabled()
@@ -222,7 +271,8 @@ class CardioEntrySheetTest {
         rule.onNodeWithText("Cancel").assertDoesNotExist()
         rule.runOnIdle { saving = false }
         rule.onNodeWithText("Note").performScrollTo().assertIsEnabled()
-        rule.onNodeWithText("Couldn't save the session.").performScrollTo().assertExists()
+        // #536: save failures moved to the pinned footer and need no scroll.
+        rule.onNodeWithText("Couldn't save the session.").assertIsDisplayed()
         rule.onNodeWithText("Save").assertIsEnabled()
     }
 }

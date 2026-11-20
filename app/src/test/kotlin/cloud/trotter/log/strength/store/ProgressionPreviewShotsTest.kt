@@ -9,6 +9,15 @@ import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.progression.SprintDose
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.data.serialization.CardioBlockJson
+import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.ui.day.CardioEntryDraft
+import cloud.trotter.log.strength.ui.day.CardioEntrySheet
+import cloud.trotter.log.strength.ui.day.ExercisePickerScreen
+import cloud.trotter.log.strength.ui.day.HeaderTarget
+import cloud.trotter.log.strength.ui.day.SavedCardioResult
+import cloud.trotter.log.strength.ui.day.workoutSetCardioRunningFixture
 import cloud.trotter.log.strength.ui.day.DayPlanEditor
 import cloud.trotter.log.strength.ui.day.sprintEditorFixture
 import cloud.trotter.log.strength.ui.day.sprintFortyYardReceiptFixture
@@ -86,6 +95,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
@@ -501,6 +511,96 @@ class ProgressionPreviewShotsTest {
     fun receiptFortyYards() = fortyYardReceipt("p64-receipt-40yd.png", 1f)
     @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
     fun receiptFortyYardsLargeFont() = fortyYardReceipt("p65-receipt-40yd-2x.png", 2f)
+
+    private fun pastCardioEndsAfterNow(name: String, scale: Float) {
+        val noon = java.time.Instant.parse("2026-11-09T12:00:00Z").toEpochMilli()
+        val draft = CardioEntryDraft(CardioActivity.ROAD_RUN, noon - 25 * 60_000L, 2872, "4989",
+            "Easy loop after work. Kept my first mile slow and walked up the hill.")
+        render(scale) { CompositionLocalProvider(LocalDistanceUnit provides DistanceUnit.MI) {
+            CardioEntrySheet(draft, "Log past session", { noon }, {}, {}, {})
+        } }
+        rule.onNodeWithText("Ends at 12:22, after now").assertIsDisplayed()
+        capture(name, sheet = true)
+    }
+
+    @Test fun pastCardioEndsAfterNow() = pastCardioEndsAfterNow("p66-past-cardio-ends-after-now.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun pastCardioEndsAfterNowLargeFont() = pastCardioEndsAfterNow("p67-past-cardio-ends-after-now-2x.png", 2f)
+
+    private fun cardioRecoveryNextStarts(name: String, scale: Float) {
+        val base = workoutSetCardioRunningFixture()
+        val cardio = requireNotNull(base.cardio)
+        val original = requireNotNull(cardio.run)
+        val block = RunWalkLadder.block(1, CardioActivity.ROAD_RUN)
+        val run = original.copy(blockJson = CardioBlockJson.encode(block), sourceBlockJson = CardioBlockJson.encode(block),
+            results = listOf(SavedCardioResult(CardioSetStatus.FINISHED.name, 60)),
+            startedAt = 1_000L, wallStart = 61_000L, elapsedStart = 61_000L)
+        val state = base.copy(cardio = cardio.copy(block = block, run = run, stepSecondsLeft = 50, elapsedSeconds = 40))
+        render(scale) { WorkoutSetHost(state, nowMillis = { 101_000L }) }
+        rule.onNodeWithText("The next interval starts on its own.").assertIsDisplayed()
+        capture(name)
+    }
+
+    @Test fun cardioRecoveryNextStarts() = cardioRecoveryNextStarts("p68-cardio-recovery-next-starts.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun cardioRecoveryNextStartsLargeFont() = cardioRecoveryNextStarts("p69-cardio-recovery-next-starts-2x.png", 2f)
+
+    private fun cardioDayOpensOnRun(name: String, scale: Float) {
+        val base = workoutSetCardioFixture()
+        val lift = workoutSetSingleFixture().exercises.single()
+        val state = base.copy(cardioLeads = true, dayTitle = "Easy", exercises = listOf(lift,
+            lift.copy(programExerciseId = 2, position = 1, title = "Barbell Row", exerciseId = "bb_row")))
+        render(scale) { WorkoutSetHost(state) }
+        rule.onNodeWithText("Road run").assertIsDisplayed()
+        rule.onNodeWithText("Start").assertIsDisplayed()
+        rule.onNodeWithText("Log past session").assertIsDisplayed()
+        capture(name)
+    }
+
+    @Test fun cardioDayOpensOnRun() = cardioDayOpensOnRun("p70-cardio-day-opens-on-run.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun cardioDayOpensOnRunLargeFont() = cardioDayOpensOnRun("p71-cardio-day-opens-on-run-2x.png", 2f)
+
+    private fun todayRunDayActivity(name: String, scale: Float) {
+        render(scale) { TodayScreen(TodayUiState(hasProgram = true, upNext = listOf(
+            TodayDay(1, "Running", "A", 0, "Easy", cardioOnly = true, cardioActivity = CardioActivity.ROAD_RUN, liftCount = 2))),
+            TodayActions({}, {}, {})) }
+        rule.onNodeWithText("Easy, road run and 2 lifts").assertIsDisplayed()
+        capture(name)
+    }
+
+    @Test fun todayRunDayActivity() = todayRunDayActivity("p72-today-run-day-activity.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun todayRunDayActivityLargeFont() = todayRunDayActivity("p73-today-run-day-activity-2x.png", 2f)
+
+    private fun allSetsPlannedTarget(name: String, scale: Float) {
+        val base = workoutSetSingleFixture()
+        val card = base.exercises.single().copy(title = "DB Bench Press", exerciseId = "db_bench",
+            headerTarget = HeaderTarget.Prescribed("35 lb × 8"), workingHeading = "3 × 8 · 35 lb",
+            rows = List(3) { index -> SetRowState(index, "${index + 1}", false,
+                if (index == 2) 30.0 else 35.0, if (index == 1) 6 else 8, true) })
+        render(scale) { WorkoutSetHost(base.copy(exercises = listOf(card),
+            openSheet = OpenSheet("A", OpenSheet.Kind.LIFT, card.programExerciseId, 0))) }
+        capture(name, sheet = true)
+    }
+
+    @Test fun allSetsPlannedTarget() = allSetsPlannedTarget("p74-all-sets-planned-target.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun allSetsPlannedTargetLargeFont() = allSetsPlannedTarget("p75-all-sets-planned-target-2x.png", 2f)
+
+    private fun swapOtherExercises(name: String, scale: Float) {
+        val catalog = ExerciseCatalog.CODE_ONLY
+        render(scale) { Surface { ExercisePickerScreen("bench", "Swap Bench Press", MovementPattern.H_PUSH,
+            catalog.substitutionsFor("bb_bench"), Equipment.entries.toSet(), MaterialTheme.colorScheme.primary,
+            {}, {}, {}, allCandidates = catalog.entries) } }
+        rule.onNodeWithText("Search exercises").performTextReplacement("overhead")
+        rule.onNodeWithText("Other exercises").assertIsDisplayed()
+        capture(name)
+    }
+
+    @Test fun swapOtherExercises() = swapOtherExercises("p76-swap-other-exercises.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun swapOtherExercisesLargeFont() = swapOtherExercises("p77-swap-other-exercises-2x.png", 2f)
 
     private fun twoLegsSet() = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Time(1500)),
         CardioSetStatus.FINISHED, 1690, 5600, DistanceSource.MANUAL, metresAtEnd = 5000,

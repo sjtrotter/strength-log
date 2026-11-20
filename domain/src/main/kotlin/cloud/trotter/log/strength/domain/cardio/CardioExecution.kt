@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
+import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.GpsSet
@@ -102,13 +103,16 @@ data class CardioExecution(
             completedAt = if (nextResults.size == block.sets.size) now.wallMillis else null,
             measured = if (gps != null) measured + (position to gps) else measured,
         )
-        return if (autoStart && !next.complete &&
-            block.sets[next.position].role in listOf(CardioRole.RECOVERY, CardioRole.COOLDOWN)
+        return if (autoStart && !next.complete && startsOnItsOwn(spec, block.sets[next.position])
         ) next.copy(anchor = BootAnchor(now.wallMillis, now.elapsedMillis, now.bootCount)) else next
     }
 
-    /** Expired automatic sets keep their exact deadlines; work and distance never finish by inference. */
+    /** Expired automatic sets keep their exact deadlines. A time-ended work set after a recovery
+     *  is automatic too (#536), but only while it could still be running: work that would already be over is never
+     *  invented. GPS reconciliation allows its fix-settle wait before that cutoff.
+     *  Distance never finishes by inference, and work that waits for Start never starts by inference. */
     fun reconcile(now: Clocks, meter: SetMeter? = null, waitForFix: Boolean = true): CardioExecution {
+        val settleAllowance = if (meter != null && waitForFix) DistanceTrack.FRESH_MILLIS else 0L
         var run = this
         while (run.running && !run.complete) {
             if (run.allowOpenEnded && run.block.openEnded) break
@@ -120,6 +124,12 @@ data class CardioExecution(
             if (meter != null && waitForFix && !meter.settled(boundary.elapsedMillis, now.elapsedMillis)) break
             run = run.finishStep(CardioSetStatus.FINISHED, seconds, boundary, autoStart = true,
                 gps = meter?.measure(run.block.sets[run.position], requireNotNull(active.elapsedMillis), boundary.elapsedMillis))
+            val next = run.block.sets.getOrNull(run.position)
+            val nextEnd = next?.end
+            if (run.running && next?.role == CardioRole.WORK && nextEnd is Measure.Time &&
+                run.elapsedMillis(now) >= nextEnd.seconds * 1_000L + settleAllowance) {
+                return run.copy(anchor = null)
+            }
         }
         return run
     }
@@ -148,3 +158,9 @@ data class CardioExecution(
         stepsCompleted = results.count { it.status == CardioSetStatus.FINISHED },
     )
 }
+
+/** Recovery and cool-down start on their own, as does timed work after recovery. Distance work waits for
+ *  the runner's start line, including sprint reps. */
+fun startsOnItsOwn(finished: CardioSetSpec, next: CardioSetSpec): Boolean =
+    next.role == CardioRole.RECOVERY || next.role == CardioRole.COOLDOWN ||
+        (next.role == CardioRole.WORK && next.end is Measure.Time && finished.role == CardioRole.RECOVERY)

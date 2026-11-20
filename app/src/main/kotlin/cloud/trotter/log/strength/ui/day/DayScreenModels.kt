@@ -85,6 +85,7 @@ data class DayUiState(
     val skippedLifts: List<SkippedLift> = emptyList(),
     val skippedPartners: Map<Long, SkippedLift> = emptyMap(),
     val cardio: CardioCardState? = null,
+    val cardioLeads: Boolean = false,
     val timedRep: TimedRepState? = null,
     val executionBusy: Boolean = false,
     val executionBlockedReason: WorkoutBlockedReason? = null,
@@ -132,12 +133,15 @@ data class DayUiState(
         card.rows.size + card.rows.count { it.partner != null }
     }
 
-    val pages: List<WorkoutPage> = exercises.map { card ->
+    private val exercisePages: List<WorkoutPage> = exercises.map { card ->
         WorkoutPage(card.programExerciseId, card.title, card.rows.count { it.done }, card.rows.size, card.allDone)
-    } + listOfNotNull(cardio?.let {
+    }
+    private val cardioPages: List<WorkoutPage> = listOfNotNull(cardio?.let {
         WorkoutPage(null, it.label, if (it.loggedSeconds != null) 1 else 0, 1, it.loggedSeconds != null)
     })
-    val currentPage: Int = DayScreenBuilder.currentPage(pages.map { it.key }, selectedPageKey, exercises)
+    val pages: List<WorkoutPage> = if (cardioLeads) cardioPages + exercisePages else exercisePages + cardioPages
+    val currentPage: Int = DayScreenBuilder.currentPage(pages.map { it.key }, selectedPageKey, exercises,
+        cardioLeads, cardio?.loggedSeconds != null)
 
     val workoutCard: ExerciseCardState? get() = exercises.firstOrNull {
         "exercise:${it.programExerciseId}" == (workout?.shown as? WorkoutSelection.Shown.Group)?.key

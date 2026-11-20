@@ -68,6 +68,7 @@ import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetLabel
 import cloud.trotter.log.strength.domain.model.SetLabels
@@ -493,19 +494,27 @@ class DayViewModel @Inject constructor(
 
     private fun cardioBestsKey(run: CardioRun) = "day_cardio_standing_bests:${run.runId}"
 
-    private suspend fun standingBestsFor(run: CardioRun): List<SavedCardioBest> {
-        savedState.get<ArrayList<SavedCardioBest>>(cardioBestsKey(run))?.let { return it }
+    private fun cardioStandingKey(run: CardioRun) = "day_cardio_standing_readings:${run.runId}"
+
+    private suspend fun standingBestsFor(run: CardioRun): List<SavedCardioStanding> {
+        savedState.get<ArrayList<SavedCardioStanding>>(cardioStandingKey(run))?.let { return it }
+        savedState.get<ArrayList<SavedCardioBest>>(cardioBestsKey(run))?.let { old ->
+            val standing = old.map { SavedCardioStanding.from(it.toDomain()) }
+            savedState[cardioStandingKey(run)] = ArrayList(standing)
+            return standing
+        }
         // A stale snapshot may have neither sessionId nor a baseline even though
         // the transaction committed. Exclude the same identity used to deduplicate.
         val standing = historyRepository.cardioBestsFor(
             run.block.activity, excludedDayId = run.dayId, excludedStartedAt = run.startedAt,
-        ).values.map(SavedCardioBest::from)
-        savedState[cardioBestsKey(run)] = ArrayList(standing)
+        ).values.map(SavedCardioStanding::from)
+        savedState[cardioStandingKey(run)] = ArrayList(standing)
         return standing
     }
 
     private fun clearCardioRecordState(run: CardioRun) {
         savedState.remove<ArrayList<SavedCardioBest>>(cardioBestsKey(run))
+        savedState.remove<ArrayList<SavedCardioStanding>>(cardioStandingKey(run))
     }
 
     /**
@@ -626,7 +635,10 @@ class DayViewModel @Inject constructor(
         )
 
         viewModelScope.launch {
-            dayState.collect { state ->
+            combine(dayState, historyRepository.cardioSessionsFlow) { state, history ->
+                val logged = history.loggedToday(state.planId, state.viewDayId, cardioClock.wallMillis())
+                state.copy(cardio = state.cardio?.copy(loggedSeconds = logged?.seconds))
+            }.collect { state ->
                 if (!state.loading && state.viewDayId == currentDay() &&
                     state.viewDayId != pinHeldFor &&
                     selectedPage.value == null &&
@@ -1304,7 +1316,8 @@ class DayViewModel @Inject constructor(
         val seconds = if (block.sets.all { it.end is Measure.Time }) {
             block.sets.sumOf { (it.end as Measure.Time).seconds }
         } else 1800
-        val startedAt = Math.floorDiv(cardioClock.wallMillis() - seconds * 1_000L, 60_000L) * 60_000L
+        val startedAt = defaultPastCardioStart(seconds)
+        savedState[KEY_PAST_CARDIO_START_SET] = null
         savedState[KEY_PAST_CARDIO_DAY] = DaySelection(planId, dayId)
         savedState[KEY_PAST_CARDIO_EFFORT] = null
         savedState[KEY_PAST_CARDIO] = CardioEntryDraft(block.activity, startedAt, seconds)
@@ -1317,14 +1330,28 @@ class DayViewModel @Inject constructor(
     }
 
     fun changePastCardio(draft: CardioEntryDraft) {
-        if (pastCardio.value == null || _pastCardioSaving.value) return
-        savedState[KEY_PAST_CARDIO] = draft.copy(note = draft.note.take(NOTE_MAX_LENGTH))
+        val old = pastCardio.value ?: return
+        if (_pastCardioSaving.value) return
+        val updated = when {
+            draft.startedAt != old.startedAt -> {
+                savedState[KEY_PAST_CARDIO_START_SET] = true
+                draft
+            }
+            savedState.get<Boolean>(KEY_PAST_CARDIO_START_SET) != true && draft.seconds != old.seconds &&
+                draft.seconds in 1..ManualCardio.MAX_SECONDS -> draft.copy(startedAt = defaultPastCardioStart(draft.seconds))
+            else -> draft
+        }
+        savedState[KEY_PAST_CARDIO] = updated.copy(note = updated.note.take(NOTE_MAX_LENGTH))
         _pastCardioSaveFailed.value = false
         _pastCardioCollision.value = false
     }
 
+    private fun defaultPastCardioStart(seconds: Int): Long =
+        Math.floorDiv(cardioClock.wallMillis() - seconds * 1_000L, 60_000L) * 60_000L
+
     fun dismissPastCardio() {
         if (_pastCardioSaving.value) return
+        savedState[KEY_PAST_CARDIO_START_SET] = null
         savedState[KEY_PAST_CARDIO] = null
         savedState[KEY_PAST_CARDIO_DAY] = null
         savedState[KEY_PAST_CARDIO_EFFORT] = null
@@ -1368,6 +1395,7 @@ class DayViewModel @Inject constructor(
                     if (repo.openRunFlow.first()?.let { it.planId == planId && it.dayId == dayId && !it.draft } != true) {
                         savedState[KEY_PAST_CARDIO_RECEIPT_ID] = id
                     }
+                    savedState[KEY_PAST_CARDIO_START_SET] = null
                     savedState[KEY_PAST_CARDIO] = null
                     savedState[KEY_PAST_CARDIO_DAY] = null
                     savedState[KEY_PAST_CARDIO_EFFORT] = null
@@ -1556,13 +1584,13 @@ class DayViewModel @Inject constructor(
         }
         val session = historyRepository.cardioSession(sessionId)
         if (executionActive) return
-        finisher.showCardio(run, standing?.let { CardioBests.bests(run.block.activity, it.map(SavedCardioBest::toDomain)) }, session)
+        finisher.showCardio(run, standing?.let { CardioBests.bests(run.block.activity, it.map(SavedCardioStanding::toDomain)) }, session)
         if (executionActive) return
         if (run.finishesDay && routinePrefs.value?.coolDown == true) {
             savedState[KEY_COOL_DOWN] = RoutineProgress(RoutineProgress.cardioOwner(run.runId),
                 coolDownMoves.map { it.name }, emptyList(), null)
         }
-        savedState.remove<ArrayList<SavedCardioBest>>(cardioBestsKey(run))
+        clearCardioRecordState(run)
         savedState[KEY_DEFERRED_CARDIO_RECEIPT] = null
         if (currentDay() == run.dayId) {
             savedState[KEY_VIEW_SELECTION] = null
@@ -2433,9 +2461,7 @@ class DayViewModel @Inject constructor(
     private fun currentDay(): String? = effectiveDayId.value
 
     private fun workoutGroups(state: DayUiState): List<WorkoutSelection.Group> =
-        state.exercises.map { card ->
-            WorkoutSelection.Group("exercise:${card.programExerciseId}", card.rows.all { it.complete })
-        } + listOfNotNull(state.cardio?.let { WorkoutSelection.Group("cardio", it.loggedSeconds != null) })
+        state.pages.map { WorkoutSelection.Group(it.key, it.allDone || it.total == 0) }
 
     private fun workoutFocus(state: DayUiState, shown: WorkoutSelection.Shown): WorkoutFocus? {
         val group = shown as? WorkoutSelection.Shown.Group ?: return null
@@ -2613,6 +2639,7 @@ class DayViewModel @Inject constructor(
             unit = ctx.unit,
             nextDayId = Rotation.upNextAfter(program, ctx.suggested, dayId),
             exercises = cards,
+            cardioLeads = day.kind == ProgramDayKind.CARDIO,
             warmUpMoves = Routines.warmUp(credited, day.cardioToRun, performedDay.equipment),
             coolDownMoves = Routines.coolDown(credited, day.cardioToRun, performedDay.equipment),
             cardio = day.cardioToRun?.let {
@@ -2970,9 +2997,9 @@ class DayViewModel @Inject constructor(
             partnerMarker = slot.partner?.let { LiftMarker.of(pe.superset?.rule.takeIf { !pe.keepToPlan && partner?.exerciseId == pe.superset?.exerciseId },
                 it.openingInfo, plan?.lightCycleRemaining ?: 0) },
             workingHeading = if (performed.prescription?.target is PrescribedTarget.RepsInTime) headerTarget.display
-                else DayScreenBuilder.workingHeading(main, tracking, unit),
+                else DayScreenBuilder.workingHeading(slot.main.planned ?: main, tracking, unit),
             partnerWorkingHeading = if (partner?.prescription?.target is PrescribedTarget.RepsInTime) partnerHeaderTarget?.display
-                else partnerSets?.let { DayScreenBuilder.workingHeading(it, partnerTracking ?: TrackingType.WEIGHTED, unit) },
+                else (slot.partner?.planned ?: partnerSets)?.let { DayScreenBuilder.workingHeading(it, partnerTracking ?: TrackingType.WEIGHTED, unit) },
             nextTime = DayScreenBuilder.nextTime(slot.main.baseRows.orEmpty(), history.slotSessions[id to Slot.MAIN]?.takeIf { performed.exerciseId == pe.exerciseId }, pe.keepToPlan, unit,
                 offersOn = NextTimeGate.strength(plan, pe.rule?.nextTime), rule = pe.rule),
             partnerNextTime = slot.partner?.let { partnerTrack ->
@@ -3042,6 +3069,7 @@ class DayViewModel @Inject constructor(
         const val KEY_SELECTED_PAGE = "selectedPageKey"
         const val KEY_TIMED_REP_EVENT = "day_timed_rep_event"
         const val KEY_PAST_CARDIO_EFFORT = "day_past_cardio_effort"
+        const val KEY_PAST_CARDIO_START_SET = "day_past_cardio_start_set"
         const val KEY_PAST_CARDIO = "day_past_cardio_draft"
         const val KEY_PAST_CARDIO_DAY = "day_past_cardio_day"
         const val KEY_PAST_CARDIO_RECEIPT_ID = "day_past_cardio_receipt_id"

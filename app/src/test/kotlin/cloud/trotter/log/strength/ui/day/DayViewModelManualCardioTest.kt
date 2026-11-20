@@ -135,6 +135,61 @@ class DayViewModelManualCardioTest {
         return vm
     }
 
+    private suspend fun prepareTwentyFiveMinuteRun() {
+        prepare()
+        val plan = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        repo.setCardioWorking(plan, "A", CardioBlock(CardioActivity.ROAD_RUN,
+            listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1500)))))
+    }
+
+    @Test fun `the default start follows the duration`() = runTest(dispatcher) {
+        prepareTwentyFiveMinuteRun()
+        val vm = readyVm()
+        vm.openPastCardio()
+        val initial = requireNotNull(vm.pastCardio.value)
+        assertEquals(now - 25 * 60_000L, initial.startedAt)
+        vm.changePastCardio(initial.copy(seconds = 2872))
+        val updated = requireNotNull(vm.pastCardio.value)
+        assertEquals(now - 48 * 60_000L, updated.startedAt)
+        assertTrue(updated.valid(now))
+    }
+
+    @Test fun `a picked start stays`() = runTest(dispatcher) {
+        prepareTwentyFiveMinuteRun()
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        vm.openPastCardio()
+        val initial = requireNotNull(vm.pastCardio.value)
+        vm.changePastCardio(initial.copy(startedAt = now - 26 * 60_000L))
+        vm.changePastCardio(initial)
+        assertEquals(true, handle.get<Boolean>("day_past_cardio_start_set"))
+        vm.changePastCardio(initial.copy(seconds = 2872))
+        val updated = requireNotNull(vm.pastCardio.value)
+        assertEquals(now - 25 * 60_000L, updated.startedAt)
+        assertFalse(updated.valid(now))
+    }
+
+    @Test fun `the start follow survives recreation`() = runTest(dispatcher) {
+        prepareTwentyFiveMinuteRun()
+        val handle = SavedStateHandle()
+        val first = readyVm(handle)
+        first.openPastCardio()
+        first.viewModelScope.cancel()
+        val restoredHandle = SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
+        val restored = readyVm(restoredHandle)
+        restored.changePastCardio(requireNotNull(restored.pastCardio.value).copy(seconds = 2872))
+        assertEquals(now - 48 * 60_000L, restored.pastCardio.value?.startedAt)
+        restored.changePastCardio(requireNotNull(restored.pastCardio.value).copy(startedAt = now - 25 * 60_000L))
+        restored.viewModelScope.cancel()
+        val pickedHandle = SavedStateHandle(restoredHandle.keys().associateWith { restoredHandle.get<Any?>(it) })
+        val picked = readyVm(pickedHandle)
+        picked.changePastCardio(requireNotNull(picked.pastCardio.value).copy(seconds = 3000))
+        assertEquals(now - 25 * 60_000L, picked.pastCardio.value?.startedAt)
+        assertFalse(requireNotNull(picked.pastCardio.value).valid(now))
+        picked.dismissPastCardio()
+        assertNull(pickedHandle.get<Boolean>("day_past_cardio_start_set"))
+    }
+
     private fun enter(vm: DayViewModel, startedAt: Long = now - 2_472_000) {
         vm.openPastCardio()
         vm.changePastCardio(requireNotNull(vm.pastCardio.value).copy(

@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.today
 
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import androidx.compose.runtime.Immutable
 import cloud.trotter.log.strength.ui.day.DaySelection
 
@@ -28,6 +29,8 @@ data class TodayDay(
     val trainDayId: String? = null,
     val lighterAvailable: Boolean = false,
     val beforeSprint: Boolean = false,
+    val cardioActivity: CardioActivity? = null,
+    val liftCount: Int = 0,
 ) {
     val selection: DaySelection get() = DaySelection(planId, dayId)
 }

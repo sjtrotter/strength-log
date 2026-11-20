@@ -10,4 +10,5 @@ data class LoggedSlot(
     val exerciseId: String? = null,
     val note: String = "",
     val opening: OpeningDto? = null,
+    val planned: List<LoggedSet>? = null,
 )

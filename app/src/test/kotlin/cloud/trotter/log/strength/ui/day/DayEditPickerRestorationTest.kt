@@ -127,9 +127,11 @@ class DayEditPickerRestorationTest {
             allCandidates = ExerciseCatalog.CODE_ONLY.entries.filter { it.id != "bb_back_squat" },
             defaultEquipment = Equipment.entries.toSet())
         composeTestRule.onNodeWithText("Search all exercises").assertDoesNotExist()
-        composeTestRule.onNode(hasSetTextAction()).performTextInput("bridge")
+        // #535: bridge now appears as a library fallback; use an unmatched query to reach Search all.
+        composeTestRule.onNode(hasSetTextAction()).performTextInput("zzzz-no-such-exercise")
         composeTestRule.onNodeWithText("No matching exercises").assertIsDisplayed()
         composeTestRule.onNodeWithText("Search all exercises").performClick()
+        composeTestRule.onNode(hasSetTextAction()).performTextReplacement("bridge")
         composeTestRule.onNodeWithText("Barbell Glute Bridge").assertIsDisplayed()
         composeTestRule.onNodeWithText("Search all exercises").assertDoesNotExist()
 
@@ -149,8 +151,10 @@ class DayEditPickerRestorationTest {
         show(key = "swap:equipment", allCandidates = ExerciseCatalog.CODE_ONLY.entries,
             defaultEquipment = setOf(Equipment.MACHINE))
         composeTestRule.onNodeWithText("Cable").assertDoesNotExist()
-        composeTestRule.onNode(hasSetTextAction()).performTextInput("shoulder press")
+        // #535: shoulder press now appears as a library fallback; an unmatched query retains this scope test.
+        composeTestRule.onNode(hasSetTextAction()).performTextInput("zzzz-no-such-exercise")
         composeTestRule.onNodeWithText("Search all exercises").performClick()
+        composeTestRule.onNode(hasSetTextAction()).performTextReplacement("shoulder press")
 
         composeTestRule.onNode(hasSetTextAction()).assertTextContains("shoulder press")
         composeTestRule.onNodeWithText("Machine Shoulder Press").assertIsDisplayed()

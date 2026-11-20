@@ -316,8 +316,12 @@ class DayViewModelGpsTest {
             CardioGpsSet(id, 1, 360, 360, 120, true, false)), stamps(handle))
         vm.endCardioBlock()
         runCurrent()
-        assertEquals(listOf(DistanceSource.GPS, DistanceSource.GPS, null), rows().map { it.distanceSource })
-        assertEquals(CardioSetStatus.SKIPPED, rows()[2].status)
+        // #536: the last timed work started at recovery end, so End logs its covered GPS segment.
+        assertEquals(listOf(DistanceSource.GPS, DistanceSource.GPS, DistanceSource.GPS), rows().map { it.distanceSource })
+        // #536: End shortens the now-running work instead of skipping an unstarted set.
+        assertEquals(CardioSetStatus.SHORTENED, rows()[2].status)
+        assertEquals(10, rows()[2].elapsedSeconds)
+        assertEquals(24, rows()[2].metres)
         assertTrue(stamps(handle).none { it.runId == id })
     }
 
@@ -572,7 +576,7 @@ class DayViewModelGpsTest {
 
     private suspend fun savedRoute() = CardioRouteJson.decode(db.cardioRouteDao().all().single().pointsJson)
 
-    @Test fun `pocket boundaries buzz through recovery and end tracking at the next work set`() = test {
+    @Test fun `pocket boundaries buzz through recovery and keep tracking the next timed work set`() = test {
         prepareBlock(time(60), time(60, CardioRole.RECOVERY), time(60))
         val handle = SavedStateHandle()
         pocketVm(handle)
@@ -592,8 +596,17 @@ class DayViewModelGpsTest {
         runCurrent()
         assertEquals(2, alarm.buzzes)
         assertEquals(2, savedRun(handle).position)
-        assertFalse(savedRun(handle).running)
-        assertNull(alarm.callback)
+        // #536: timed work after recovery now runs and retains tracking until its own boundary.
+        assertTrue(savedRun(handle).running)
+        // #536: the work deadline replaces the absent ready-state alarm.
+        assertTrue(alarm.callback != null)
+        assertEquals(startElapsed + 180_000, alarm.deadline)
+        // #536: tracking stays active across the recovery-to-work transition.
+        assertEquals(0, foreground.stops)
+        pocketFixes(121, 180)
+        alarm.fire()
+        runCurrent()
+        assertEquals(3, alarm.buzzes)
         assertEquals(1, foreground.stops)
     }
 

@@ -4,12 +4,12 @@
   "start": {
     "restore": "start-backup.json",
     "date": "2026-12-04",
-    "time": "20:00",
+    "time": "20:05",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "note": "Final month review only; all eleven diary visits have finished. Catalog supplies History, Full Body expansion, Trends and calendar, More, and Settings routes."
+      "note": "Month finished. Inspect backup choices discovered in s11 run44768456252 step9; read-only review, no file picker or export success assumed."
     },
     {
       "tap": {
@@ -18,76 +18,30 @@
       }
     },
     {
-      "checkpoint": "month-history"
-    },
-    {
-      "tap": {
-        "text": "Full Body",
-        "role": "Button",
-        "index": 0
-      }
-    },
-    {
-      "checkpoint": "latest-visit-history-expanded"
-    },
-    {
-      "scrollTo": {
-        "text": "Trends and calendar"
-      }
-    },
-    {
-      "tap": {
-        "text": "Trends and calendar"
-      }
-    },
-    {
-      "checkpoint": "month-trends-calendar"
-    },
-    {
       "tap": {
         "desc": "More",
         "role": "Button"
       }
     },
     {
-      "checkpoint": "history-more-menu"
-    },
-    {
-      "back": true
-    },
-    {
       "tap": {
-        "text": "Today",
-        "role": "Tab"
+        "text": "Backup and export"
       }
     },
     {
-      "tap": {
-        "desc": "Settings"
-      }
-    },
-    {
-      "checkpoint": "month-settings-top"
-    },
-    {
-      "scrollTo": {
-        "text": "Suggested cool-down"
-      }
-    },
-    {
-      "checkpoint": "month-settings-lower"
+      "checkpoint": "month-backup-and-export-options"
     },
     {
       "back": true
     },
     {
       "expect": {
-        "text": "Today",
+        "text": "History",
         "role": "Tab"
       }
     },
     {
-      "checkpoint": "month-review-solid-end"
+      "checkpoint": "month-final-review-solid-end"
     }
   ]
 }

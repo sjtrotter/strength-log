@@ -3,8 +3,8 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-12-02",
-    "time": "18:00",
+    "date": "2026-12-04",
+    "time": "17:30",
     "zone": "America/Chicago"
   },
   "steps": [
@@ -22,11 +22,11 @@
     },
     {
       "tap": {
-        "desc": "Day B"
+        "desc": "Day C"
       }
     },
     {
-      "checkpoint": "dec2-offered-day-b"
+      "checkpoint": "dec4-offered-day-c"
     },
     {
       "tap": {
@@ -34,17 +34,17 @@
       }
     },
     {
-      "checkpoint": "dec2-base-prescriptions"
+      "checkpoint": "dec4-base-prescriptions"
     },
     {
       "scrollTo": {
-        "textContains": "Conventional Deadlift",
+        "textContains": "Barbell Back Squat",
         "index": 0
       }
     },
     {
       "tap": {
-        "textContains": "Conventional Deadlift",
+        "textContains": "Barbell Back Squat",
         "index": 0
       }
     },
@@ -58,14 +58,14 @@
     {
       "type": {
         "text": "Reps",
-        "value": "5",
+        "value": "8",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "245",
+        "value": "185",
         "ime": "done"
       }
     },
@@ -76,51 +76,13 @@
     },
     {
       "scrollTo": {
-        "textContains": "Overhead Press (Barbell)",
+        "textContains": "Incline DB Press",
         "index": 0
       }
     },
     {
       "tap": {
-        "textContains": "Overhead Press (Barbell)",
-        "index": 0
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "105",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Leg Press",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Leg Press",
+        "textContains": "Incline DB Press",
         "index": 0
       }
     },
@@ -141,7 +103,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "310",
+        "value": "55",
         "ime": "done"
       }
     },
@@ -152,13 +114,13 @@
     },
     {
       "scrollTo": {
-        "textContains": "Seated Cable Row",
+        "textContains": "Romanian Deadlift",
         "index": 0
       }
     },
     {
       "tap": {
-        "textContains": "Seated Cable Row",
+        "textContains": "Romanian Deadlift",
         "index": 0
       }
     },
@@ -172,15 +134,47 @@
     {
       "type": {
         "text": "Reps",
-        "value": "10",
+        "value": "8",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "120",
+        "value": "175",
         "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Pull-Up",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Pull-Up",
+        "index": 0
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "7",
+        "ime": "done",
+        "index": 1
       }
     },
     {
@@ -199,7 +193,7 @@
       }
     },
     {
-      "checkpoint": "dec2-offered-bike-target"
+      "checkpoint": "dec4-offered-2k-target"
     },
     {
       "tap": {
@@ -207,14 +201,14 @@
       }
     },
     {
-      "checkpoint": "dec2-corrected-lifts"
+      "checkpoint": "dec4-corrected-lifting-plan"
     },
     {
       "back": true
     },
     {
       "tap": {
-        "text": "Start day B"
+        "text": "Start day C"
       }
     },
     {
@@ -224,7 +218,7 @@
       }
     },
     {
-      "checkpoint": "dec2-first-deadlift"
+      "checkpoint": "dec4-first-squat"
     },
     {
       "advance": "35s"
@@ -290,7 +284,7 @@
       }
     },
     {
-      "checkpoint": "dec2-deadlift-done"
+      "checkpoint": "dec4-squat-done"
     },
     {
       "advance": "35s"
@@ -333,14 +327,19 @@
       "tap": {
         "tag": "workout-action-filled"
       }
-    },
-    {
-      "advance": "35s"
     },
     {
       "tap": {
         "desc": "One fewer rep"
       }
+    },
+    {
+      "tap": {
+        "desc": "One fewer rep"
+      }
+    },
+    {
+      "advance": "35s"
     },
     {
       "tap": {
@@ -361,7 +360,7 @@
       }
     },
     {
-      "checkpoint": "dec2-ohp-done"
+      "checkpoint": "dec4-incline-done"
     },
     {
       "advance": "35s"
@@ -427,7 +426,7 @@
       }
     },
     {
-      "checkpoint": "dec2-leg-press-done"
+      "checkpoint": "dec4-rdl-done"
     },
     {
       "advance": "35s"
@@ -439,7 +438,7 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-GOOD"
+        "tag": "workout-effort-HARD"
       }
     },
     {
@@ -451,24 +450,8 @@
       }
     },
     {
-      "advance": "35s"
-    },
-    {
       "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
+        "desc": "One fewer rep"
       }
     },
     {
@@ -481,7 +464,7 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-GOOD"
+        "tag": "workout-effort-HARD"
       }
     },
     {
@@ -493,82 +476,46 @@
       }
     },
     {
-      "checkpoint": "dec2-cable-row-done"
-    },
-    {
       "tap": {
-        "desc": "All sets, Rope Pushdown"
+        "desc": "One fewer rep"
       }
     },
     {
       "tap": {
-        "desc": "More"
+        "desc": "One fewer rep"
+      }
+    },
+    {
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
       }
     },
     {
       "tap": {
-        "text": "Skip for this workout"
+        "tag": "workout-effort-HARD"
       }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "dec4-pullups-done"
     },
     {
       "expect": {
-        "text": "Incline DB Curl"
+        "text": "Rower"
       }
     },
     {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Skip for this workout"
-      }
-    },
-    {
-      "expect": {
-        "text": "Stationary bike"
-      }
-    },
-    {
-      "checkpoint": "dec2-curls-skipped-bike-start"
-    },
-    {
-      "note": "The editor has nine work/recovery pairs, but prior workouts opened eight. Add one live pair for the ninth performed round. Verify the resulting timer and saved intervals; do not count a note as a ninth native round."
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add set"
-      }
-    },
-    {
-      "checkpoint": "dec2-live-bike-extra-pair"
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "dec2-live-bike-after-add"
-    },
-    {
-      "expect": {
-        "desc": "Work, set 1 of 18"
-      }
+      "checkpoint": "dec4-2k-start"
     },
     {
       "tap": {
@@ -576,10 +523,21 @@
       }
     },
     {
-      "advance": "18m"
+      "advance": "7m58s"
     },
     {
-      "checkpoint": "dec2-nine-rounds-done"
+      "type": {
+        "tag": "workout-cardio-distance",
+        "value": "2000"
+      }
+    },
+    {
+      "checkpoint": "dec4-2k-7m58"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-tonal"
+      }
     },
     {
       "tap": {
@@ -590,17 +548,20 @@
       "optional": true
     },
     {
+      "advance": "1m"
+    },
+    {
       "expect": {
-        "text": "Finish day B",
+        "text": "Finish day C",
         "tag": "workout-action-filled"
       }
     },
     {
-      "checkpoint": "dec2-bike-saved"
+      "checkpoint": "dec4-row-saved-minute-on-rower"
     },
     {
       "tap": {
-        "text": "Finish day B",
+        "text": "Finish day C",
         "tag": "workout-action-filled"
       }
     },
@@ -611,7 +572,7 @@
       "timeoutMs": 20000
     },
     {
-      "checkpoint": "dec2-summary"
+      "checkpoint": "dec4-summary"
     },
     {
       "scrollTo": {
@@ -626,8 +587,23 @@
     {
       "type": {
         "text": "Note",
-        "value": "Late; skipped curls. Bike 9 rounds, 30 s hard / 90 s easy, about 300 W. Only rower occupied.",
+        "value": "7:58 PR!! First sub-8 2k.\nRDL: straps. Face pulls 30 lb x 15/15/15.",
         "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "dec4-note-draft-before-interruption"
+    },
+    {
+      "recreate": true
+    },
+    {
+      "checkpoint": "dec4-note-after-interruption"
+    },
+    {
+      "expect": {
+        "textContains": "RDL: straps. Face pulls 30 lb x 15/15/15.",
+        "editable": true
       }
     },
     {
@@ -636,22 +612,12 @@
       }
     },
     {
-      "checkpoint": "dec2-note-saved"
-    },
-    {
-      "tap": {
-        "text": "Done",
-        "role": "Button"
-      }
-    },
-    {
       "expect": {
-        "text": "Today",
-        "role": "Tab"
+        "text": "Edit note"
       }
     },
     {
-      "checkpoint": "dec2-finished"
+      "checkpoint": "dec4-final-summary-note-saved"
     }
   ]
 }

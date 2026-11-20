@@ -3,8 +3,8 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-24",
-    "time": "09:30",
+    "date": "2026-11-27",
+    "time": "09:00",
     "zone": "America/Phoenix"
   },
   "steps": [
@@ -21,19 +21,66 @@
     },
     {
       "tap": {
-        "desc": "Day A"
+        "desc": "Day B"
       }
     },
     {
-      "checkpoint": "tuesday-plan-and-last-session"
+      "checkpoint": "holiday-home-balance-plan"
     },
     {
       "tap": {
-        "text": "Start day A"
+        "text": "Start day B",
+        "role": "Button"
       }
     },
     {
-      "note": "Tuesday Nov24 normal gym session. Trainer card loads, bike5min. On the first row set I accidentally tap Max, then change it back to Good before leaving the set."
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "holiday-balance-start"
+    },
+    {
+      "note": "Friday Nov27: the Y is closed. Home balance at the kitchen counter only. I time left10s then right10s myself, pair1."
+    },
+    {
+      "advance": "20s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "holiday-pair-1-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "note": "Counter support: left10s, right10s, pair2."
+    },
+    {
+      "advance": "20s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "holiday-pair-2-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "note": "Light week gives two records. I still do pair3 left10s/right10s manually, then rest at the counter. No gym work today."
+    },
+    {
+      "advance": "20s"
     },
     {
       "advance": "5m"
@@ -45,466 +92,18 @@
       }
     },
     {
-      "checkpoint": "tuesday-balance-start"
-    },
-    {
-      "note": "Rail-supported left 10 seconds, right 10 seconds, pair 1. I time the holds myself."
-    },
-    {
-      "advance": "20s"
-    },
-    {
       "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "note": "Rail-supported left 10 seconds, right 10 seconds, pair 2. I time the holds myself."
-    },
-    {
-      "advance": "20s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "note": "Rail-supported left 10 seconds, right 10 seconds, pair 3. Light week offers only two balance records; I still do my third pair and time it myself, without logging it against the next machine."
-    },
-    {
-      "advance": "20s"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "expect": {
-        "text": "Leg Press"
-      }
-    },
-    {
-      "checkpoint": "tuesday-leg-press-offer-after-light-week-notice"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "110"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "40s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "tuesday-leg-press-set-1-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "110"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "40s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "tuesday-leg-press-set-2-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "tuesday-chest-press-offered"
-    },
-    {
-      "expect": {
-        "text": "seat on 5"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "40"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "40s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "tuesday-chest-press-set-1-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "40"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "40s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "tuesday-chest-press-set-2-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "tuesday-row-offered"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "50"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "40s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-MAX"
-      }
-    },
-    {
-      "checkpoint": "row-wrong-max-rating"
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "expect": {
-        "text": "Good",
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "row-corrected-to-good"
-    },
-    {
-      "checkpoint": "tuesday-row-set-1-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "50"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "40s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "tuesday-row-set-2-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "tuesday-shoulder-press-offered"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "10"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "40s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "tuesday-shoulder-press-set-1-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "10"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "40s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "tuesday-shoulder-press-set-2-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "note": "Pulldown 50 lb 2x10 and rail calf raises done from trainer card; still in session note rather than separate entries. Ten minutes includes rests and moving around the gym."
-    },
-    {
-      "advance": "10m"
-    },
-    {
-      "tap": {
-        "text": "Skip",
+        "text": "Finish day B",
         "role": "Button"
       }
     },
     {
-      "tap": {
-        "tag": "workout-action-filled"
+      "expect": {
+        "text": "Balance, done."
       }
     },
     {
-      "checkpoint": "tuesday-full-body-summary"
+      "checkpoint": "holiday-balance-summary"
     },
     {
       "scrollTo": {
@@ -519,7 +118,7 @@
     {
       "type": {
         "textContains": "Note",
-        "value": "Bike 5m; pulldown 50 lb 2x10; calf raises; balance 3 pairs, 2 logged. Row Max wrong tap, corrected Good."
+        "value": "Y closed. Home counter balance: 3 pairs, left/right 10s each. Light week offered 2 records; third pair done manually."
       }
     },
     {
@@ -540,7 +139,7 @@
       }
     },
     {
-      "checkpoint": "tuesday-gym-saved"
+      "checkpoint": "holiday-home-balance-saved"
     }
   ]
 }

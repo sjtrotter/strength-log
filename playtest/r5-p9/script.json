@@ -1,0 +1,221 @@
+{
+  "seat": "r5-p9",
+  "capture": "compact",
+  "start": {
+    "date": "2026-11-08",
+    "time": "15:00",
+    "zone": "America/Phoenix"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Lift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "2",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "tap": {
+        "text": "45",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Choose exactly"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "setup-equipment-BARBELL"
+      }
+    },
+    {
+      "tap": {
+        "tag": "setup-equipment-BARBELL"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "setup-equipment-TRAP_BAR"
+      }
+    },
+    {
+      "tap": {
+        "tag": "setup-equipment-TRAP_BAR"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "setup-equipment-RACK"
+      }
+    },
+    {
+      "tap": {
+        "tag": "setup-equipment-RACK"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "setup-equipment-PULLUP_BAR"
+      }
+    },
+    {
+      "tap": {
+        "tag": "setup-equipment-PULLUP_BAR"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "setup-equipment-EZ_BAR"
+      }
+    },
+    {
+      "tap": {
+        "tag": "setup-equipment-EZ_BAR"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "setup-equipment-KETTLEBELL"
+      }
+    },
+    {
+      "tap": {
+        "tag": "setup-equipment-KETTLEBELL"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "10 lb",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "5 lb",
+        "role": "RadioButton",
+        "index": 1
+      }
+    },
+    {
+      "checkpoint": "equipment-and-stack-step"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Under a year"
+      }
+    },
+    {
+      "tap": {
+        "text": "65 or older"
+      }
+    },
+    {
+      "checkpoint": "age-and-experience"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "setup-recent-weight-db_shoulder"
+      }
+    },
+    {
+      "type": {
+        "tag": "setup-recent-weight-db_shoulder",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "tag": "setup-recent-reps-db_shoulder",
+        "value": "10"
+      }
+    },
+    {
+      "checkpoint": "trainer-shoulder-number"
+    },
+    {
+      "tap": {
+        "text": "Why we ask"
+      }
+    },
+    {
+      "checkpoint": "recent-number-explanation"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "generated-plan"
+    },
+    {
+      "tap": {
+        "text": "Why this plan"
+      }
+    },
+    {
+      "checkpoint": "plan-explanation"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Add",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "balance-day-added"
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "setup-complete"
+    }
+  ]
+}

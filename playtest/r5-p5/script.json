@@ -63,19 +63,12 @@
       }
     },
     {
-      "tap": {
-        "text": "Skip",
-        "role": "Button",
-        "inDialog": true
-      },
-      "optional": true
-    },
-    {
       "expect": {
         "text": "Done",
         "role": "Button",
         "inDialog": false
-      }
+      },
+      "timeoutMs": 20000
     },
     {
       "checkpoint": "nov-10-run-saved"

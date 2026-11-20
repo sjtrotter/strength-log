@@ -3,8 +3,8 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-21",
-    "time": "09:00",
+    "date": "2026-11-26",
+    "time": "07:30",
     "zone": "America/Chicago"
   },
   "steps": [
@@ -15,25 +15,13 @@
       }
     },
     {
-      "tap": {
-        "text": "New plan"
+      "scrollTo": {
+        "text": "Thursday bench — meet block"
       }
     },
     {
       "tap": {
-        "text": "Start empty"
-      }
-    },
-    {
-      "type": {
-        "text": "Name",
-        "value": "Saturday assistance \u2014 meet block",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Create"
+        "text": "Thursday bench — meet block"
       }
     },
     {
@@ -49,80 +37,54 @@
     },
     {
       "tap": {
-        "text": "Edit day"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Horizontal push"
-      }
-    },
-    {
-      "tap": {
-        "text": "Horizontal push"
-      }
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "Close-grip bench",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Create exercise"
-      }
-    },
-    {
-      "type": {
-        "text": "Name",
-        "value": "Close-grip bench",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Movement pattern"
-      }
-    },
-    {
-      "tap": {
-        "text": "Horizontal push",
-        "role": "RadioButton",
-        "inDialog": true
-      }
-    },
-    {
-      "tap": {
-        "text": "Save",
+        "text": "Edit",
         "role": "Button"
       }
     },
     {
+      "scrollTo": {
+        "text": "Competition bench (paused)"
+      }
+    },
+    {
       "tap": {
-        "text": "Close-grip bench",
-        "index": 1
+        "text": "Competition bench (paused)"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "112.5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
       }
     },
     {
       "scrollTo": {
-        "text": "Close-grip bench"
+        "text": "Two-second paused squat"
       }
     },
     {
       "tap": {
-        "text": "Close-grip bench"
+        "text": "Two-second paused squat"
       }
     },
     {
@@ -135,14 +97,14 @@
     {
       "type": {
         "text": "Reps",
-        "value": "6",
+        "value": "4",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "92.5",
+        "value": "155",
         "ime": "done"
       }
     },
@@ -152,7 +114,7 @@
       }
     },
     {
-      "checkpoint": "saturday-four-closegrip-sets-prescribed"
+      "checkpoint": "week3-targets-bench112-point-5-pausedsquat155"
     },
     {
       "back": true
@@ -166,7 +128,7 @@
     {
       "tap": {
         "desc": "Plan options",
-        "index": 5
+        "index": 3
       }
     },
     {
@@ -195,88 +157,34 @@
       "advance": "20m"
     },
     {
-      "checkpoint": "closegrip92-point-5-main-work"
-    },
-    {
-      "advance": "45s"
-    },
-    {
       "tap": {
-        "tag": "workout-action-filled"
+        "desc": "Edit set 1"
       }
     },
     {
-      "expect": {
-        "tag": "workout-set-done"
+      "type": {
+        "text": "Weight (kg)",
+        "value": "130",
+        "ime": "done"
       }
     },
     {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
+      "type": {
+        "text": "Reps",
+        "value": "1",
+        "ime": "done"
       }
     },
     {
       "tap": {
-        "tag": "workout-effort-GOOD"
+        "text": "Save set"
       }
     },
     {
-      "advance": "3m"
+      "checkpoint": "thanksgiving-single130-target8"
     },
     {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
+      "advance": "30s"
     },
     {
       "tap": {
@@ -294,54 +202,282 @@
       }
     },
     {
-      "checkpoint": "four-closegrip-sets-complete-final8-point-5-note"
+      "checkpoint": "single130-complete-actual8-point-5"
+    },
+    {
+      "note": "Thanksgiving hard stop. Single130x1 was8.5 versus target8, plus last week bench miss: lower only today backoffs112.5 to110. No extra single."
+    },
+    {
+      "advance": "4m"
     },
     {
       "tap": {
-        "text": "Done",
-        "role": "Button",
-        "inDialog": true
-      }
-    },
-    {
-      "note": "Other completed Saturday work is retained in the receipt note for coverage: seated DB press24kg/hand3x10, cable row25kg stationC3x12/side, lateral raises8kg/hand3x15, hammer curls16kg/hand2x12. This is not evidence native accessory/cardio entry is unavailable."
-    },
-    {
-      "advance": "18m"
-    },
-    {
-      "checkpoint": "other-saturday-accessories-completed-note-entry-follows"
-    },
-    {
-      "advance": "10m"
-    },
-    {
-      "checkpoint": "treadmill-first10min-at5kmh5percent"
-    },
-    {
-      "advance": "15m"
-    },
-    {
-      "checkpoint": "treadmill-last15min-at5kmh3percent-calves-tight"
-    },
-    {
-      "tap": {
-        "text": "All sets",
-        "role": "Button"
+        "tag": "workout-action-filled"
       }
     },
     {
       "tap": {
-        "text": "Add a set"
+        "desc": "Edit set 2"
       }
     },
     {
-      "back": true
+      "type": {
+        "text": "Weight (kg)",
+        "value": "110",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "110",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "110",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "110",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "four-bench-backoffs110x4-no-misses"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "two-pausedsquat155x4-complete-two-remaining-omitted"
+    },
+    {
+      "advance": "1m30s"
+    },
+    {
+      "note": "47-minute hard stop: two remaining paused squat sets, pressdowns and Pallof presses omitted, not failed. No accessories completed."
     },
     {
       "tap": {
         "tag": "workout-finish"
       }
+    },
+    {
+      "checkpoint": "finish-seven-of-nine-mainsets-hardstop"
     },
     {
       "tap": {
@@ -358,7 +494,7 @@
       }
     },
     {
-      "checkpoint": "saturday75min-saved-main-sets"
+      "checkpoint": "thanksgiving47min-saved-review"
     },
     {
       "scrollTo": {
@@ -374,7 +510,7 @@
       "type": {
         "editable": true,
         "index": 0,
-        "value": "CGlast8.5;DBpress24x10x3;rowC25x12x3/side;raise8x15x3;curl16x12x2.Walk25m5km/h:5%10m,3%15m(calves).blank5=save",
+        "value": "Thanksgiving47m.B130x1 target8 actual8.5;112.5->110x4x4 today.PSq155x4x2/4.No pressdowns/Pallof:hard stop,not failed.",
         "ime": "done"
       }
     },
@@ -384,7 +520,7 @@
       }
     },
     {
-      "checkpoint": "saturday-accessories-and-incline-change-note-saved"
+      "checkpoint": "thanksgiving-reductions-and-omissions-note-saved"
     },
     {
       "tap": {
@@ -398,7 +534,7 @@
       }
     },
     {
-      "checkpoint": "saturday-finished"
+      "checkpoint": "thanksgiving-session-finished"
     }
   ]
 }

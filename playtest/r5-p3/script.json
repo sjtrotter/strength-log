@@ -3,8 +3,8 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-12-01",
-    "time": "17:30",
+    "date": "2026-12-05",
+    "time": "09:00",
     "zone": "America/Chicago"
   },
   "steps": [
@@ -16,12 +16,12 @@
     },
     {
       "scrollTo": {
-        "text": "Tuesday technique — meet block"
+        "text": "Saturday assistance \u2014 meet block"
       }
     },
     {
       "tap": {
-        "text": "Tuesday technique — meet block"
+        "text": "Saturday assistance \u2014 meet block"
       }
     },
     {
@@ -43,48 +43,12 @@
     },
     {
       "scrollTo": {
-        "text": "Paused deadlift (off floor)"
+        "text": "Close-grip bench"
       }
     },
     {
       "tap": {
-        "text": "Paused deadlift (off floor)"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "150",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Chest-Supported Row"
-      }
-    },
-    {
-      "tap": {
-        "text": "Chest-Supported Row"
+        "text": "Close-grip bench"
       }
     },
     {
@@ -97,14 +61,14 @@
     {
       "type": {
         "text": "Reps",
-        "value": "8",
+        "value": "6",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "55",
+        "value": "80",
         "ime": "done"
       }
     },
@@ -114,7 +78,7 @@
       }
     },
     {
-      "checkpoint": "dec1-light-paused150x3x3-rowA55x8x2"
+      "checkpoint": "dec5-light-closegrip80x6x2-prescribed"
     },
     {
       "back": true
@@ -128,7 +92,7 @@
     {
       "tap": {
         "desc": "Plan options",
-        "index": 2
+        "index": 5
       }
     },
     {
@@ -154,24 +118,27 @@
       }
     },
     {
-      "note": "Diary context: gym Wi-Fi down/no useful signal. Replay has no network-toggle action; do not claim verified offline access. Row machine A55kg2x8; remaining accessories and bike saved as note only, not native sets/cardio."
+      "advance": "20m"
     },
     {
-      "advance": "25m"
-    },
-    {
-      "checkpoint": "dec1-workout-in-front-of-me"
+      "checkpoint": "dec5-main-work-after-warmup"
     },
     {
       "tap": {
-        "text": "142 kg × 3",
-        "role": "Button"
+        "desc": "Edit set 1"
       }
     },
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "150",
+        "value": "80",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6",
         "ime": "done"
       }
     },
@@ -181,7 +148,7 @@
       }
     },
     {
-      "checkpoint": "dec1-set1-restored-to-actual150"
+      "checkpoint": "dec5-actual80x6-set1"
     },
     {
       "advance": "45s"
@@ -211,14 +178,20 @@
     },
     {
       "tap": {
-        "text": "142 kg × 3",
-        "role": "Button"
+        "desc": "Edit set 2"
       }
     },
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "150",
+        "value": "80",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6",
         "ime": "done"
       }
     },
@@ -228,7 +201,7 @@
       }
     },
     {
-      "checkpoint": "dec1-set2-restored-to-actual150"
+      "checkpoint": "dec5-actual80x6-set2"
     },
     {
       "advance": "45s"
@@ -249,109 +222,7 @@
       }
     },
     {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "text": "142 kg × 3",
-        "role": "Button"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "150",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "checkpoint": "dec1-set3-restored-to-actual150"
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-EASY"
-      }
-    },
-    {
-      "checkpoint": "three-light-paused-deadlift-sets-complete"
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-EASY"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-EASY"
-      }
-    },
-    {
-      "checkpoint": "two-chest-supported-rows-original-exercise-returned"
+      "checkpoint": "dec5-two-easy-worksets-complete"
     },
     {
       "tap": {
@@ -361,19 +232,19 @@
       }
     },
     {
-      "note": "Complete pulldown machine A45kg2x10 and rear-delt fly station C7.5kg2x15, both around RPE6; mobility and transitions in this interval. Then bike15min easy RPE3. Native cardio entry remains untested."
+      "note": "Two easy accessory sets each: DBpress20kg/hand2x10, cable row stationC20kg2x12/side by feel, lateralraise6kg/hand2x15, hammercurl12kg/hand2x12. Note-only coverage, not evidence structured logging is unavailable."
     },
     {
-      "advance": "20m15s"
+      "advance": "35m30s"
+    },
+    {
+      "checkpoint": "dec5-two-easy-sets-each-accessory-complete"
     },
     {
       "advance": "15m"
     },
     {
-      "checkpoint": "dec1-bike15min-easy-complete"
-    },
-    {
-      "note": "All5native worksets complete; same known full-finish workaround adds one unperformed EXTRA row set, never logged."
+      "checkpoint": "dec5-treadmill15min5kmh3percent-complete"
     },
     {
       "tap": {
@@ -409,7 +280,7 @@
       }
     },
     {
-      "checkpoint": "dec1-tuesday75min-saved-review"
+      "checkpoint": "dec5-final-saturday75min-saved-review"
     },
     {
       "scrollTo": {
@@ -425,7 +296,7 @@
       "type": {
         "editable": true,
         "index": 0,
-        "value": "Light wk.DL150x3x3.RowA55x8x2;PD A45x10x2;flyC7.5x15x2(accRPE6).Bike15mRPE3.No gym signal.Blank6=save fix.",
+        "value": "Light wk/RPE6.DBpress20x10x2;rowC20x12x2/side;raise6x15x2;curl12x12x2(perhand).Walk15m5km/h3%.Bench recovery.Blank3=save",
         "ime": "done"
       }
     },
@@ -435,7 +306,7 @@
       }
     },
     {
-      "checkpoint": "dec1-note-with-bike-and-machines-saved"
+      "checkpoint": "dec5-final-note-saved"
     },
     {
       "tap": {
@@ -449,7 +320,7 @@
       }
     },
     {
-      "checkpoint": "dec1-finished"
+      "checkpoint": "dec5-block-finished"
     },
     {
       "tap": {
@@ -470,7 +341,25 @@
       "optional": true
     },
     {
-      "checkpoint": "export-controls-for-final-block-backup"
+      "checkpoint": "end-of-block-backup-and-csv-controls"
+    },
+    {
+      "tap": {
+        "text": "Export CSV"
+      },
+      "optional": true
+    },
+    {
+      "checkpoint": "end-of-block-export-csv-requested"
+    },
+    {
+      "tap": {
+        "text": "Export backup"
+      },
+      "optional": true
+    },
+    {
+      "checkpoint": "end-of-block-full-json-backup-requested"
     }
   ]
 }

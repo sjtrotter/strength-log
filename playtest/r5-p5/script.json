@@ -2,182 +2,1027 @@
   "seat": "r5-p5",
   "capture": "compact",
   "start": {
-    "date": "2026-11-08",
-    "time": "20:30",
+    "restore": "start-backup.json",
+    "date": "2026-11-09",
+    "time": "17:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
       "tap": {
-        "text": "Both",
-        "role": "RadioButton"
+        "desc": "Settings"
       }
     },
     {
       "tap": {
-        "text": "Next"
+        "text": "Distance"
       }
     },
     {
       "tap": {
-        "text": "Running",
-        "role": "RadioButton"
+        "role": "RadioButton",
+        "text": "Kilometers"
       }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "General fitness",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Just cardio fitness",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "5",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "tap": {
-        "text": "45",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "checkpoint": "five-days-closest-duration"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "expect": {
-        "text": "lb",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "checkpoint": "gym-and-lifting-units"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Under a year",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "tap": {
-        "text": "Some",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "checkpoint": "actual-experience"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "expect": {
-        "text": "Recent numbers"
-      }
-    },
-    {
-      "tap": {
-        "text": "Why we ask"
-      }
-    },
-    {
-      "checkpoint": "recent-lift-fields-do-not-match-my-lifts"
     },
     {
       "back": true
     },
     {
-      "note": "My recent sets were goblet squat and dumbbell RDL. These fields are for other lifts, so leave them blank."
-    },
-    {
       "tap": {
-        "text": "Next"
+        "role": "Tab",
+        "text": "Plans"
       }
     },
     {
-      "expect": {
-        "text": "Longest run in the past 30 days"
+      "tap": {
+        "text": "Lifting and Just cardio fitness, 5 days"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day B"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Squat (bilateral)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Squat (bilateral)"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Goblet Squat"
       }
     },
     {
       "type": {
-        "text": "Minutes",
-        "value": "74.5",
+        "text": "Sets",
+        "value": "3",
         "ime": "done"
       }
     },
     {
-      "checkpoint": "longest-run-74-and-half-minutes"
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
     },
     {
-      "tap": {
-        "text": "Next"
+      "type": {
+        "text": "Weight (lb)",
+        "value": "35",
+        "ime": "done"
       }
     },
     {
       "tap": {
-        "text": "Separate days",
-        "role": "RadioButton"
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Barbell Back Squat"
       }
     },
     {
       "tap": {
-        "text": "Next"
+        "desc": "More options for Barbell Back Squat"
       }
-    },
-    {
-      "checkpoint": "review-running-priority-plan"
     },
     {
       "tap": {
-        "text": "Why this plan"
+        "text": "Remove"
       }
     },
     {
-      "checkpoint": "plan-explanation"
+      "scrollTo": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Barbell Row"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Cable Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Cable Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Plank"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Hinge"
+      }
+    },
+    {
+      "tap": {
+        "text": "Hinge"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "romanian",
+        "ime": "done"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Single-leg"
+      }
+    },
+    {
+      "tap": {
+        "text": "Single-leg"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "lunge",
+        "ime": "done"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "tap": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "tap": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "15",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Each side",
+        "role": "Switch"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Calf: gastrocnemius"
+      }
+    },
+    {
+      "tap": {
+        "text": "Calf: gastrocnemius"
+      }
+    },
+    {
+      "tap": {
+        "text": "Create exercise"
+      }
+    },
+    {
+      "type": {
+        "text": "Name",
+        "value": "Standing DB Calf Raise",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Movement pattern"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Calf: gastrocnemius"
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "inDialog": true,
+        "text": "Calf: gastrocnemius"
+      }
+    },
+    {
+      "tap": {
+        "role": "Switch",
+        "text": "Per hand (dumbbell/unilateral)"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Starting weight (lb)"
+      }
+    },
+    {
+      "type": {
+        "text": "Starting weight (lb)",
+        "value": "20",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "custom-calf-created"
+    },
+    {
+      "scrollTo": {
+        "text": "Standing DB Calf Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Standing DB Calf Raise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Standing DB Calf Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Standing DB Calf Raise"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "12",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "20",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Core: anti-extension"
+      }
+    },
+    {
+      "tap": {
+        "text": "Core: anti-extension"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "side",
+        "ime": "done"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Side Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Side Plank"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Side Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Side Plank"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Each side",
+        "role": "Switch"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "strength-a-prescription"
+    },
+    {
+      "tap": {
+        "text": "Start day B"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "role": "Button",
+        "text": "Done"
+      }
+    },
+    {
+      "checkpoint": "strength-a-start"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "start squats at 30 next time",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "expect": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "350",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "35",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "squat-typing-corrected"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-HARD"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "advance": "105s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "squat-35x8-35x6-30x8"
     },
     {
       "back": true
     },
     {
       "tap": {
-        "text": "Start",
-        "role": "Button"
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Left side wobbly. 15 lb in each hand; reps are per leg.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Standing DB Calf Raise"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Side Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Round 1: 30 s each. Round 2: 24 s left, 30 s right. Each-side field has one time per round.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:24",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "14m45s"
+    },
+    {
+      "checkpoint": "all-strength-a-sets-logged"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "strength-a-saved"
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "start squats at 30 next time. Left lunge wobbly. Planks: 30/30 then 24 left/30 right.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "role": "Button",
+        "text": "Done"
       }
     },
     {
@@ -187,7 +1032,7 @@
       }
     },
     {
-      "checkpoint": "setup-saved"
+      "checkpoint": "strength-a-finished"
     }
   ]
 }

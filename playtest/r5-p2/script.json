@@ -3,11 +3,14 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-27",
+    "date": "2026-11-28",
     "time": "06:00",
     "zone": "America/Chicago"
   },
   "steps": [
+    {
+      "note": "Nov28 UpperB,38min cut short. Leave for a thing at7:15, no lateral raises or rear delts. Nov26 Thanksgiving stayed unlogged; Nov27 saved in prior segment. Nov29 walk will be separate if played."
+    },
     {
       "tap": {
         "text": "Plans",
@@ -21,16 +24,16 @@
     },
     {
       "scrollTo": {
-        "desc": "Day C"
+        "desc": "Day E"
       }
     },
     {
       "tap": {
-        "desc": "Day C"
+        "desc": "Day E"
       }
     },
     {
-      "checkpoint": "nov27-offered-c"
+      "checkpoint": "nov28-offered-upper-b"
     },
     {
       "tap": {
@@ -39,16 +42,16 @@
     },
     {
       "scrollTo": {
-        "text": "Conventional Deadlift"
+        "text": "Incline DB Press"
       }
     },
     {
       "tap": {
-        "text": "Conventional Deadlift"
+        "text": "Incline DB Press"
       }
     },
     {
-      "checkpoint": "nov27-prescription-before-conventional-deadlift"
+      "checkpoint": "nov28-incline-prescription-before"
     },
     {
       "type": {
@@ -60,14 +63,14 @@
     {
       "type": {
         "text": "Reps",
-        "value": "5",
+        "value": "8",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "285",
+        "value": "60",
         "ime": "done"
       }
     },
@@ -77,117 +80,17 @@
       }
     },
     {
-      "checkpoint": "nov27-saved-conventional-deadlift"
+      "checkpoint": "nov28-incline60-saved"
     },
     {
       "back": true
     },
     {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Front Squat"
-      }
+      "checkpoint": "nov28-configured-upper-b"
     },
     {
       "tap": {
-        "text": "Front Squat"
-      }
-    },
-    {
-      "checkpoint": "nov27-prescription-before-front-squat"
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "6",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "170",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "nov27-saved-front-squat"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Edit"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Bulgarian Split Squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "Bulgarian Split Squat"
-      }
-    },
-    {
-      "checkpoint": "nov27-prescription-before-bulgarian-split-squat"
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "2",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "35",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "nov27-saved-bulgarian-split-squat"
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "nov27-configured-c"
-    },
-    {
-      "tap": {
-        "text": "Start day C"
+        "text": "Start day E"
       }
     },
     {
@@ -197,10 +100,10 @@
       }
     },
     {
-      "checkpoint": "nov27-first-set-c"
+      "checkpoint": "nov28-first-press120"
     },
     {
-      "note": "Nov26 Thanksgiving: no training. Nov27 moved LowerB starts06:00. Brother-in-law shares rack; warm up off-app; DL285x5 mixed from rep1 with chalk, two255 backoffs. Swap front squat for goblet70x10x3 for this workout only. No planks; talking;75min total."
+      "note": "Warmups barx10,65x5,95x3 performed off-app. Work:press1205/5/4, incline60s9/9/8,chins10/9/8; no lateral or rear. Finish38min, no false rear sets."
     },
     {
       "advance": "480s"
@@ -220,45 +123,15 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-HARD"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "nov27-deadlift-top-285"
-    },
-    {
-      "advance": "240s"
+      "advance": "180s"
     },
     {
       "tap": {
         "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "255",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
       }
     },
     {
@@ -280,7 +153,7 @@
       }
     },
     {
-      "advance": "240s"
+      "advance": "180s"
     },
     {
       "tap": {
@@ -297,15 +170,8 @@
     },
     {
       "type": {
-        "text": "Weight (lb)",
-        "value": "255",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
         "text": "Reps",
-        "value": "5",
+        "value": "4",
         "ime": "done"
       }
     },
@@ -329,14 +195,14 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-GOOD"
+        "tag": "workout-effort-MAX"
       }
     },
     {
-      "checkpoint": "nov27-deadlift-285-top-255-backoffs"
+      "checkpoint": "nov28-press120-5-5-4"
     },
     {
-      "advance": "240s"
+      "advance": "180s"
     },
     {
       "tap": {
@@ -345,67 +211,12 @@
     },
     {
       "expect": {
-        "text": "Front Squat",
+        "text": "Incline DB Press",
         "inDialog": false
       }
     },
     {
-      "checkpoint": "nov27-starting-front-squat"
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "checkpoint": "nov27-front-squat-more-menu"
-    },
-    {
-      "tap": {
-        "text": "Swap exercise"
-      }
-    },
-    {
-      "checkpoint": "nov27-squat-substitution-choices"
-    },
-    {
-      "scrollTo": {
-        "text": "Goblet Squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "Goblet Squat"
-      }
-    },
-    {
-      "checkpoint": "nov27-goblet-swap-scope"
-    },
-    {
-      "tap": {
-        "text": "This workout",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "nov27-goblet-workout-swap-result"
-    },
-    {
-      "expect": {
-        "text": "Goblet Squat",
-        "inDialog": false
-      }
+      "checkpoint": "nov28-incline-start"
     },
     {
       "advance": "1s"
@@ -417,15 +228,8 @@
     },
     {
       "type": {
-        "text": "Weight (lb)",
-        "value": "70",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
         "text": "Reps",
-        "value": "10",
+        "value": "9",
         "ime": "done"
       }
     },
@@ -453,7 +257,7 @@
       }
     },
     {
-      "advance": "240s"
+      "advance": "120s"
     },
     {
       "tap": {
@@ -470,15 +274,8 @@
     },
     {
       "type": {
-        "text": "Weight (lb)",
-        "value": "70",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
         "text": "Reps",
-        "value": "10",
+        "value": "9",
         "ime": "done"
       }
     },
@@ -486,97 +283,6 @@
       "tap": {
         "text": "Save set"
       }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "240s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 3"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "70",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "1s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "nov27-goblet70-10-10-10"
-    },
-    {
-      "advance": "240s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "Bulgarian Split Squat",
-        "inDialog": false
-      }
-    },
-    {
-      "checkpoint": "nov27-starting-split-squat"
     },
     {
       "advance": "1s"
@@ -623,10 +329,140 @@
       }
     },
     {
-      "checkpoint": "nov27-split35-10-10-no-planks"
+      "checkpoint": "nov28-incline60-9-9-8"
     },
     {
-      "advance": "2447s"
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Pull-Up / Chin-Up",
+        "inDialog": false
+      }
+    },
+    {
+      "checkpoint": "nov28-chins-start"
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "nov28-chins10-9-8-before-cut-short"
+    },
+    {
+      "advance": "646s"
     },
     {
       "tap": {
@@ -634,7 +470,7 @@
       }
     },
     {
-      "checkpoint": "nov27-finish-with-planks-left"
+      "checkpoint": "nov28-finish-with-rear-sets-left"
     },
     {
       "tap": {
@@ -643,7 +479,7 @@
       }
     },
     {
-      "checkpoint": "nov27-receipt"
+      "checkpoint": "nov28-short-session-receipt"
     },
     {
       "scrollTo": {
@@ -658,7 +494,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "Brother-in-law shared rack. DL285x5 mixed from1,chalk;2555/5. Rack busy:goblet70 3x10 for front. Split35s2x10;no planks.",
+        "value": "Cut short38min: leaving for7:15 thing. Press1205/5/4,better. Incline60s9/9/8;chins10/9/8. No lateral/rear.",
         "ime": "done"
       }
     },
@@ -668,7 +504,7 @@
       }
     },
     {
-      "checkpoint": "nov27-brother-in-law-note"
+      "checkpoint": "nov28-short-session-note"
     },
     {
       "tap": {
@@ -683,7 +519,7 @@
       }
     },
     {
-      "checkpoint": "nov27-saved-solid-ground"
+      "checkpoint": "nov28-saved-solid-ground"
     }
   ]
 }

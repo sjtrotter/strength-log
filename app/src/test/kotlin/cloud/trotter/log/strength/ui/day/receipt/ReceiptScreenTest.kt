@@ -66,6 +66,9 @@ import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.ReadingSource
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.SprintTime
+import cloud.trotter.log.strength.domain.model.StartProtocol
+import cloud.trotter.log.strength.domain.model.TimingMethod
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.records.PrKind
@@ -156,6 +159,38 @@ class ReceiptScreenTest {
     @Test fun `rides show no pace`() {
         setReceipt(rowerPaceReceiptFixture().copy(activity = CardioActivity.STATIONARY_BIKE))
         rule.onAllNodesWithText("Pace", substring = true, useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test fun `a finished distance receipt shows pace without GPS or rebuilt sets`() {
+        val result = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(2000)),
+            CardioSetStatus.FINISHED, 477, metresAtEnd = 2000, secondsAtEnd = 477)
+        val receipt = rowerPaceReceiptFixture().copy(cardioRows = ReceiptBuilder.cardio(
+            CardioActivity.ROWER, listOf(result), emptyMap()))
+        assertNull(receipt.cardioRows.single().intervals.single().metres)
+        setReceipt(receipt)
+        rule.onNodeWithText("Pace 1:59 /500 m", useUnmergedTree = true).assertExists()
+        rule.onNodeWithContentDescription("2,000 meters. Time, 7 minutes 57 seconds. Pace 1 minute 59 seconds per 500 meters.").assertExists()
+    }
+
+    @Test fun `a shortened distance receipt without meters has no pace`() {
+        val result = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(2000)),
+            CardioSetStatus.SHORTENED, 400)
+        setReceipt(rowerPaceReceiptFixture().copy(cardioRows = ReceiptBuilder.cardio(
+            CardioActivity.ROWER, listOf(result), emptyMap())))
+        rule.onAllNodesWithText("Pace", substring = true, useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test fun `a timed sprint receipt has no wall clock pace`() {
+        val result = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(400)),
+            CardioSetStatus.FINISHED, 100, metresAtEnd = 400, secondsAtEnd = 100,
+            timing = SprintTime(5500, TimingMethod.HAND, StartProtocol.STANDING))
+        val receipt = cardioReceiptFixture().copy(cardioRows = ReceiptBuilder.cardio(
+            CardioActivity.TRACK_RUN, listOf(result), emptyMap()))
+        rule.setContent { AppTheme {
+            SessionReceiptScreen(receipt, {}, {}, progress = ReceiptProgressState(cardioSets = listOf(listOf(result))))
+        } }
+        rule.onAllNodesWithText("Pace", substring = true, useUnmergedTree = true).assertCountEquals(0)
+        rule.onAllNodesWithContentDescription("Pace", substring = true).assertCountEquals(0)
     }
 
     @Test fun `the spoken row includes pace and last time`() {
@@ -737,7 +772,8 @@ class ReceiptScreenTest {
                 CardioInterval(CardioSetStatus.SHORTENED, 80, 300), CardioInterval(CardioSetStatus.SKIPPED, 0, null)),
             listOf(90, 120, 90), CardioRecordMark(PrKind.FASTER, 1, 102, null))
         setReceipt(cardioReceiptFixture().copy(cardioRows = listOf(row)))
-        rule.onNodeWithContentDescription("4 by 400 meters. Fastest, 1 minute 38 seconds. Faster record, up from 1 minute 42 seconds.").performClick()
+        // #531: measured shortened work contributes to the row's average pace.
+        rule.onNodeWithContentDescription("4 by 400 meters. Fastest, 1 minute 38 seconds. Faster record, up from 1 minute 42 seconds. Pace 6 minutes 48 seconds per mile.").performClick()
         rule.onNodeWithText("Shortened: 300 m of 400 m", useUnmergedTree = true).assertExists()
         rule.onNodeWithContentDescription("Set 3. Shortened: 300 meters of 400 meters.").assertExists()
         rule.onNodeWithContentDescription("Interval 4, skipped.").assertExists()

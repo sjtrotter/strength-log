@@ -6,11 +6,8 @@ import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
-import cloud.trotter.log.strength.data.decodedCardioMode
-import cloud.trotter.log.strength.domain.cardio.CardioBlocks
-import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.data.resolvedActivity
 import cloud.trotter.log.strength.domain.model.CardioFamily
-import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -212,7 +209,7 @@ object JournalBuilder {
         for (session in sessions) {
             val date = Instant.ofEpochMilli(session.completedAt).atZone(zone).toLocalDate()
             if (date < start || date >= end) continue
-            val activity = activityOf(session) ?: continue
+            val activity = session.resolvedActivity() ?: continue
             val family = CardioFamily.of(activity)
             val results = sets[session.id].orEmpty()
             val performed = results.filter { it.status != CardioSetStatus.SKIPPED }
@@ -227,10 +224,6 @@ object JournalBuilder {
         return CardioFamily.entries.mapNotNull { totals[it] }
     }
 
-    private fun activityOf(session: CardioSessionEntity): CardioActivity? =
-        CardioActivity.entries.find { it.name == session.activity }
-            ?: CardioBlocks.activityOf(session.decodedCardioMode() ?: CardioMode.NONE)
-
     fun cardioTrends(
         sessions: List<CardioSessionEntity>,
         sets: Map<Long, List<CardioSetResult>>,
@@ -240,7 +233,7 @@ object JournalBuilder {
         val standing = mutableMapOf<CardioRecordKey, CardioSetResult>()
         val latest = mutableMapOf<CardioRecordKey, CardioSessionEntity>()
         for (session in sessions.sortedWith(compareBy({ it.completedAt }, { it.id }))) {
-            val activity = activityOf(session) ?: continue
+            val activity = session.resolvedActivity() ?: continue
             for ((key, best) in CardioBests.bests(activity, sets[session.id].orEmpty())) {
                 val previous = standing[key]
                 val newHigh = previous == null || CardioBests.compare(best, previous) > 0

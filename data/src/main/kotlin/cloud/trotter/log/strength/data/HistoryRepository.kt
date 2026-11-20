@@ -25,6 +25,7 @@ import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.data.serialization.SetDto
 import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.domain.cardio.ManualCardio
+import cloud.trotter.log.strength.domain.cardio.CardioBlocks
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.CardioSetResult
@@ -472,6 +473,10 @@ class HistoryRepository(
 /** Unknown stored enum names stay unknown: callers may render [mode], while typed consumers skip it. */
 fun CardioSessionEntity.decodedCardioMode(): CardioMode? =
     CardioMode.entries.find { it.name == mode }
+
+fun CardioSessionEntity.resolvedActivity(): CardioActivity? =
+    CardioActivity.entries.find { it.name == activity }
+        ?: CardioBlocks.activityOf(decodedCardioMode() ?: CardioMode.NONE)
 
 /** One archived track of the newest session for a plan and day. */
 data class SlotSession(val planned: List<LoggedSet>, val actual: List<LoggedSet>, val retired: Boolean, val offer: NextOffer? = null, val opened: Boolean = false, val rough: Boolean = false, val reason: String? = null)

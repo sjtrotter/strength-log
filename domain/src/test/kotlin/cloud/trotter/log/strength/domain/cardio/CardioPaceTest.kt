@@ -7,6 +7,9 @@ import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.SprintTime
+import cloud.trotter.log.strength.domain.model.StartProtocol
+import cloud.trotter.log.strength.domain.model.TimingMethod
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -47,6 +50,45 @@ class CardioPaceTest {
 
     @Test fun `an hour or more per unit reads h mm ss`() {
         assertEquals("1:01:01 /km", pace(CardioActivity.OUTDOOR_WALK, 3661, 1000)?.text)
+    }
+
+    @Test fun `finished distance work uses at end meters without GPS`() {
+        val row = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(2000)),
+            CardioSetStatus.FINISHED, 477, metresAtEnd = 2000, secondsAtEnd = 477)
+        assertEquals("1:59 /500 m", CardioPace.ofWork(CardioActivity.ROWER, listOf(row), DistanceUnit.KM)?.text)
+        val track = row.copy(spec = CardioSetSpec(CardioRole.WORK, Measure.Distance(400)),
+            elapsedSeconds = 100, metresAtEnd = 400, secondsAtEnd = 100)
+        assertEquals("4:10 /km", CardioPace.ofWork(CardioActivity.TRACK_RUN, listOf(track), DistanceUnit.KM)?.text)
+        val measured = row.copy(metres = 2100, distanceSource = DistanceSource.GPS)
+        assertEquals("1:54 /500 m", CardioPace.ofWork(CardioActivity.ROWER, listOf(measured), DistanceUnit.KM)?.text)
+    }
+
+    @Test fun `missing total distance has no fallback for shortened work or time ends`() {
+        val row = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(2000)),
+            CardioSetStatus.SHORTENED, 477)
+        assertNull(CardioPace.ofWork(CardioActivity.ROWER, listOf(row), DistanceUnit.KM))
+        assertNull(CardioPace.ofWork(CardioActivity.ROWER, listOf(row.copy(metresAtEnd = 2000)), DistanceUnit.KM))
+        val timed = row.copy(spec = CardioSetSpec(CardioRole.WORK, Measure.Time(477)),
+            status = CardioSetStatus.FINISHED, metresAtEnd = 2000, secondsAtEnd = 477)
+        assertNull(CardioPace.ofWork(CardioActivity.ROWER, listOf(timed), DistanceUnit.KM))
+    }
+
+    @Test fun `timed sprint reps do not contribute wall clock seconds to pace`() {
+        val work = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(400)),
+            CardioSetStatus.FINISHED, 100, metresAtEnd = 400, secondsAtEnd = 100)
+        val sprint = work.copy(elapsedSeconds = 200,
+            timing = SprintTime(5500, TimingMethod.HAND, StartProtocol.STANDING))
+        assertNull(CardioPace.ofWork(CardioActivity.TRACK_RUN, listOf(sprint), DistanceUnit.KM))
+        assertEquals("4:10 /km", CardioPace.ofWork(CardioActivity.TRACK_RUN,
+            listOf(work, sprint, sprint.copy(metres = 400, distanceSource = DistanceSource.MANUAL)), DistanceUnit.KM)?.text)
+    }
+
+    @Test fun `zero or missing time has no pace`() {
+        assertNull(pace(CardioActivity.ROAD_RUN, 0, 5000))
+        assertNull(pace(CardioActivity.ROAD_RUN, -1, 5000))
+        val missing = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(2000)),
+            CardioSetStatus.FINISHED, 0, metresAtEnd = 2000)
+        assertNull(CardioPace.ofWork(CardioActivity.ROWER, listOf(missing), DistanceUnit.KM))
     }
 
     @Test fun `pace rounds half up and bounds empty zero and very slow efforts`() {

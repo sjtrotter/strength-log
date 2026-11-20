@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
+import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 
@@ -34,12 +35,19 @@ object CardioPace {
         val metres = measured.sumOf { requireNotNull(it.metres).toLong() }
         if (metres <= 0L) return null
         val seconds = measured.sumOf { it.seconds.toLong() }
+        if (seconds <= 0L) return null
         val rounded = Math.round(seconds * per.metres / metres)
         return rounded.takeIf { it in 0L..86_400L }?.let { Pace(it.toInt(), per) }
     }
 
     /** Pace of performed WORK sets, including shortened work. */
     fun ofWork(activity: CardioActivity, results: List<CardioSetResult>, setting: DistanceUnit): Pace? =
-        of(activity, results.filter { it.spec.role == CardioRole.WORK && it.status != CardioSetStatus.SKIPPED }
-            .map { Effort(it.elapsedSeconds, it.metres) }, setting)
+        of(activity, results.filter {
+            it.spec.role == CardioRole.WORK && it.status != CardioSetStatus.SKIPPED && it.timing == null
+        }.map { result ->
+            val metres = if (result.status == CardioSetStatus.FINISHED && result.spec.end is Measure.Distance) {
+                result.metres ?: result.metresAtEnd
+            } else result.metres
+            Effort(result.elapsedSeconds, metres)
+        }, setting)
 }

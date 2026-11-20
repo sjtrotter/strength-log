@@ -66,6 +66,16 @@ internal fun spokenDuration(seconds: Int): String = buildList {
 }.joinToString(" ")
 
 @Composable
+internal fun spokenPace(pace: Pace): String {
+    val per = stringResource(when (pace.per) {
+        PacePer.FIVE_HUNDRED_M -> R.string.receipt_say_per_500_meters
+        PacePer.KM -> R.string.receipt_say_per_kilometer
+        PacePer.MI -> R.string.receipt_say_per_mile
+    })
+    return stringResource(R.string.receipt_say_pace, spokenDuration(pace.seconds), per)
+}
+
+@Composable
 internal fun spokenSet(set: ReceiptSet, tracking: TrackingType, unit: WeightUnit): String = when (tracking) {
     TrackingType.WEIGHTED -> stringResource(R.string.receipt_say_weight_for_reps, spokenWeight(set.weightLb, unit), set.reps)
     TrackingType.REPS -> stringResource(R.string.receipt_say_reps, set.reps)
@@ -271,14 +281,7 @@ internal fun spokenCardioRow(row: CardioReceiptRow, unit: DistanceUnit, sprint: 
     } else stringResource(R.string.receipt_say_cardio_value, cardioValueLabel(row),
         if (row.endMetres != null) spokenDuration(best.elapsedSeconds) else spokenDistance(requireNotNull(best.metres), unit))
     val record = row.record?.let { stringResource(R.string.receipt_say_record_up_from, spokenRecord(it.kind), spokenCardioPrevious(it, unit)) }
-    val paceLine = pace?.let {
-        val per = stringResource(when (it.per) {
-            PacePer.FIVE_HUNDRED_M -> R.string.receipt_say_per_500_meters
-            PacePer.KM -> R.string.receipt_say_per_kilometer
-            PacePer.MI -> R.string.receipt_say_per_mile
-        })
-        stringResource(R.string.receipt_say_pace, spokenDuration(it.seconds), per)
-    }
+    val paceLine = pace?.let { spokenPace(it) }
     val lastLine = lastTime?.takeIf { row.record == null }?.let { cardioLastLine(it, unit, spoken = true) }
     return listOfNotNull(stringResource(R.string.receipt_say_cardio_measure, name), value, record, paceLine, lastLine).joinToString(" ")
 }

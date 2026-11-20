@@ -65,6 +65,7 @@ import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
+import cloud.trotter.log.strength.ui.log.JournalBuilder
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -1758,6 +1759,36 @@ class DayViewModelReceiptTest {
         advanceUntilIdle()
         val expected = listOf(CardioLastTime(492, null, true))
         assertNull(vm.finisher.receiptProgress.value?.planId)
+        assertEquals(expected, vm.finisher.progressState.value.cardioLastTimes)
+        val restored = newViewModel(SavedStateHandle(mapOf(
+            "day_workout_receipt" to vm.finisher.receipt.value,
+            "day_receipt_progress" to vm.finisher.receiptProgress.value,
+        )), cardioClock = FixedCardioClock(end))
+        advanceUntilIdle()
+        assertEquals(expected, restored.finisher.progressState.value.cardioLastTimes)
+    }
+
+    @Test fun `last time finds a legacy session counted by the trend`() = runVmTest {
+        val end = System.currentTimeMillis() - 1000
+        val previous = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(2000)),
+            CardioSetStatus.FINISHED, 492, metresAtEnd = 2000, secondsAtEnd = 492)
+        suspend fun log(at: Long, result: CardioSetResult, activity: String?) = repo.logCardioSession(CardioSessionEntity(
+            dayId = "A", mode = "OUTDOOR_RUN", hard = false, label = "Road run",
+            startedAt = at - result.elapsedSeconds * 1000L, completedAt = at,
+            seconds = result.elapsedSeconds, stepsCompleted = 1, activity = activity), listOf(result))
+        val previousId = log(end - 86_400_000, previous, activity = null)
+        val current = previous.copy(elapsedSeconds = 477, secondsAtEnd = 477)
+        val id = log(end, current, activity = "ROAD_RUN")
+        val sessions = listOf(previousId, id).map { requireNotNull(repo.history.cardioSession(it)) }
+        val sets = sessions.associate { it.id to repo.history.cardioSetsFor(it.id) }
+        assertNull(sessions.first().activity)
+        val trend = JournalBuilder.cardioTrends(sessions, sets).single()
+        assertEquals(CardioActivity.ROAD_RUN, trend.activity)
+        assertEquals(listOf(492f, 477f), trend.points.map { it.value })
+        val vm = newCollectingViewModel(cardioClock = FixedCardioClock(end))
+        vm.finisher.showLoggedCardio(sessions.last(), listOf(current), 0, emptyMap())
+        advanceUntilIdle()
+        val expected = listOf(CardioLastTime(492, null, true))
         assertEquals(expected, vm.finisher.progressState.value.cardioLastTimes)
         val restored = newViewModel(SavedStateHandle(mapOf(
             "day_workout_receipt" to vm.finisher.receipt.value,

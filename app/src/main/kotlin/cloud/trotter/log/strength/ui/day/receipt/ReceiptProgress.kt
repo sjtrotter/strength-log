@@ -12,12 +12,12 @@ import cloud.trotter.log.strength.data.CardioJudge
 import android.os.Parcelable
 import cloud.trotter.log.strength.data.DayTracks
 import cloud.trotter.log.strength.data.HistoryRepository
+import cloud.trotter.log.strength.data.resolvedActivity
 import cloud.trotter.log.strength.data.ProgramSlot
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
-import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.CardioSetResult
@@ -95,10 +95,10 @@ internal object ReceiptProgressBuilder {
                 .maxWithOrNull(compareBy({ it.completedAt }, { it.id }))
         val results = entry?.id?.let { history.cardioSetsFor(it) }.orEmpty()
         val cardioSets = ReceiptBuilder.cardioGroups(results).map { it.sets }
-        val activity = CardioActivity.entries.firstOrNull { it.name == entry?.activity }
+        val activity = entry?.resolvedActivity()
         val cardioLastTimes = if (entry != null && activity != null) {
             val previous = cardio.filter { session ->
-                session.activity == activity.name && (session.completedAt < entry.completedAt ||
+                session.resolvedActivity() == activity && (session.completedAt < entry.completedAt ||
                     session.completedAt == entry.completedAt && session.id < entry.id)
             }.sortedWith(compareBy({ it.completedAt }, { it.id }))
             val latest = CardioBests.latest(activity, previous.map { sets[it.id].orEmpty() })

@@ -38,6 +38,9 @@ import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.ReadingSource
 import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.SprintTime
+import cloud.trotter.log.strength.domain.model.StartProtocol
+import cloud.trotter.log.strength.domain.model.TimingMethod
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.ui.components.LocalDistanceUnit
 import cloud.trotter.log.strength.ui.navigation.TopLevelDestination
@@ -122,6 +125,36 @@ class LogScreenInteractionTest {
             LogScreenBuilder.cardioItem(session, listOf(result)), LogScreenBuilder.cardioItem(ride, listOf(result))))
         composeTestRule.onAllNodesWithText("Pace", substring = true).assertCountEquals(1)
         composeTestRule.onNodeWithText("Pace 9:39 /mi").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Pace 9 minutes 39 seconds per mile.").assertIsDisplayed()
+    }
+
+    @Test fun `a finished distance history row shows pace without GPS`() {
+        val session = CardioSessionEntity(id = 8, dayId = "A", mode = "LOW_IMPACT", hard = false,
+            label = "Rower", startedAt = 1000, completedAt = 478_000, seconds = 477,
+            stepsCompleted = 1, activity = CardioActivity.ROWER.name)
+        val result = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(2000)),
+            CardioSetStatus.FINISHED, 477, metresAtEnd = 2000, secondsAtEnd = 477)
+        val shortened = result.copy(status = CardioSetStatus.SHORTENED, metresAtEnd = null, secondsAtEnd = null)
+        val sprint = result.copy(timing = SprintTime(47000, TimingMethod.HAND, StartProtocol.STANDING))
+        setContent(false, sessions = listOf(
+            LogScreenBuilder.cardioItem(session, listOf(result)),
+            LogScreenBuilder.cardioItem(session.copy(id = 9), listOf(shortened)),
+            LogScreenBuilder.cardioItem(session.copy(id = 10), listOf(sprint))))
+        composeTestRule.onAllNodesWithText("Pace", substring = true).assertCountEquals(1)
+        composeTestRule.onNodeWithText("Pace 1:59 /500 m").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Pace 1 minute 59 seconds per 500 meters.").assertIsDisplayed()
+    }
+
+    @Test fun `a track history row speaks pace per kilometer`() {
+        val session = CardioSessionEntity(id = 8, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+            label = "Track run", startedAt = 1000, completedAt = 101_000, seconds = 100,
+            stepsCompleted = 1, activity = CardioActivity.TRACK_RUN.name)
+        val result = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(400)),
+            CardioSetStatus.FINISHED, 100, metresAtEnd = 400, secondsAtEnd = 100)
+        setContent(false, distanceUnit = DistanceUnit.KM,
+            sessions = listOf(LogScreenBuilder.cardioItem(session, listOf(result))))
+        composeTestRule.onNodeWithText("Pace 4:10 /km").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Pace 4 minutes 10 seconds per kilometer.").assertIsDisplayed()
     }
 
     @Test fun `the cardio trend card shows its heading and latest value`() {

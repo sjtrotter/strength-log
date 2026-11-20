@@ -27,7 +27,7 @@
     {
       "type": {
         "text": "Name",
-        "value": "Meet block — Nov 9 to Dec 5"
+        "value": "Meet block \u2014 Nov 9 to Dec 5"
       }
     },
     {
@@ -1151,7 +1151,7 @@
       "checkpoint": "logged-set-16"
     },
     {
-      "note": "The prior two runs dismissed the automatic cool-down with Skip, then could not reach a receipt. Use the visible Done control on that sheet this time."
+      "note": "Cool-down Done returns to the completed workout. Tap the visible Finish day A action next; a receipt is still required before counting this session saved."
     },
     {
       "tap": {
@@ -1162,6 +1162,15 @@
     },
     {
       "checkpoint": "after-cooldown-done"
+    },
+    {
+      "tap": {
+        "text": "Finish day A",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "after-explicit-finish-following-cooldown-done"
     },
     {
       "expect": {

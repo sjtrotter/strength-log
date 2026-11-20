@@ -634,7 +634,7 @@
       }
     },
     {
-      "advance": "60s"
+      "advance": "90s"
     },
     {
       "tap": {
@@ -660,7 +660,7 @@
       }
     },
     {
-      "advance": "60s"
+      "advance": "90s"
     },
     {
       "tap": {
@@ -709,7 +709,7 @@
       "checkpoint": "logged-hanging-leg-raise"
     },
     {
-      "advance": "1488s"
+      "advance": "1428s"
     },
     {
       "tap": {

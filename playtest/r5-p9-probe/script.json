@@ -1,222 +1,14 @@
 {
   "seat": "r5-p9-probe",
+  "probe": true,
   "capture": "compact",
   "start": {
-    "date": "2026-11-08",
-    "time": "15:00",
+    "restore": "start-backup.json",
+    "date": "2026-11-09",
+    "time": "09:00",
     "zone": "America/Phoenix"
   },
   "steps": [
-    {
-      "tap": {
-        "text": "Lift"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "2",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "tap": {
-        "text": "45",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Choose exactly"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "setup-equipment-BARBELL"
-      }
-    },
-    {
-      "tap": {
-        "tag": "setup-equipment-BARBELL"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "setup-equipment-TRAP_BAR"
-      }
-    },
-    {
-      "tap": {
-        "tag": "setup-equipment-TRAP_BAR"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "setup-equipment-RACK"
-      }
-    },
-    {
-      "tap": {
-        "tag": "setup-equipment-RACK"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "setup-equipment-PULLUP_BAR"
-      }
-    },
-    {
-      "tap": {
-        "tag": "setup-equipment-PULLUP_BAR"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "setup-equipment-EZ_BAR"
-      }
-    },
-    {
-      "tap": {
-        "tag": "setup-equipment-EZ_BAR"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "setup-equipment-KETTLEBELL"
-      }
-    },
-    {
-      "tap": {
-        "tag": "setup-equipment-KETTLEBELL"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "10 lb",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "5 lb",
-        "role": "RadioButton",
-        "index": 1
-      }
-    },
-    {
-      "checkpoint": "equipment-and-stack-step"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Under a year"
-      }
-    },
-    {
-      "tap": {
-        "text": "65 or older"
-      }
-    },
-    {
-      "checkpoint": "age-and-experience"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "setup-recent-weight-db_shoulder"
-      }
-    },
-    {
-      "type": {
-        "tag": "setup-recent-weight-db_shoulder",
-        "value": "10"
-      }
-    },
-    {
-      "type": {
-        "tag": "setup-recent-reps-db_shoulder",
-        "value": "10"
-      }
-    },
-    {
-      "checkpoint": "trainer-shoulder-number"
-    },
-    {
-      "tap": {
-        "text": "Why we ask"
-      }
-    },
-    {
-      "checkpoint": "recent-number-explanation"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "generated-plan"
-    },
-    {
-      "tap": {
-        "text": "Why this plan"
-      }
-    },
-    {
-      "checkpoint": "plan-explanation"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Add",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "balance-day-added"
-    },
-    {
-      "tap": {
-        "text": "Start",
-        "role": "Button"
-      }
-    },
-    {
-      "expect": {
-        "text": "Today",
-        "role": "Tab"
-      }
-    },
-    {
-      "checkpoint": "setup-complete"
-    },
     {
       "tap": {
         "text": "Plans",
@@ -224,15 +16,9 @@
       }
     },
     {
-      "checkpoint": "plans-list"
-    },
-    {
       "tap": {
         "textContains": "General fitness, 2 days"
       }
-    },
-    {
-      "checkpoint": "plan-details"
     },
     {
       "tap": {
@@ -245,40 +31,121 @@
       }
     },
     {
-      "checkpoint": "day-a-editor"
-    },
-    {
       "tap": {
-        "textContains": "Hack Squat"
+        "desc": "More options for Hack Squat"
       }
     },
     {
-      "checkpoint": "hack-squat-prescription"
+      "checkpoint": "permanent-exercise-options"
     },
     {
       "back": true
     },
     {
-      "scrollTo": {
-        "text": "Add exercise"
-      }
+      "back": true
+    },
+    {
+      "back": true
     },
     {
       "tap": {
-        "text": "Add exercise"
+        "desc": "Day B"
       }
     },
     {
-      "checkpoint": "movement-groups"
+      "checkpoint": "home-balance-detail"
     },
     {
       "tap": {
-        "text": "Squat (bilateral)"
+        "text": "Edit"
       }
     },
     {
-      "checkpoint": "squat-exercises"
+      "checkpoint": "home-balance-editor"
+    },
+    {
+      "tap": {
+        "textContains": "Single-Leg Stance"
+      }
+    },
+    {
+      "checkpoint": "balance-side-and-hold-prescription"
+    },
+    {
+      "tap": {
+        "text": "Cancel",
+        "role": "Button"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Start day B",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "balance-session-start"
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "balance-first-hold"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "checkpoint": "balance-hold-edit"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "balance-hold-running-or-logged"
+    },
+    {
+      "advance": "10s"
+    },
+    {
+      "checkpoint": "balance-after-ten-seconds"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-tonal"
+      }
+    },
+    {
+      "checkpoint": "balance-after-stop"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "balance-all-sets"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "balance-workout-options"
     }
-  ],
-  "probe": true
+  ]
 }

@@ -35,14 +35,12 @@
     },
     {
       "scrollTo": {
-        "role": "Button",
-        "index": 2
+        "desc": "More options for Trap-Bar Deadlift"
       }
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 2
+        "desc": "More options for Trap-Bar Deadlift"
       }
     },
     {
@@ -62,20 +60,17 @@
     },
     {
       "tap": {
-        "textContains": "Deadlift",
-        "index": 1
+        "text": "Conventional Deadlift"
       }
     },
     {
       "scrollTo": {
-        "role": "Button",
-        "index": 3
+        "desc": "More options for Barbell Row"
       }
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 3
+        "desc": "More options for Barbell Row"
       }
     },
     {
@@ -98,14 +93,12 @@
     },
     {
       "scrollTo": {
-        "role": "Button",
-        "index": 6
+        "desc": "More options for EZ-Bar Curl"
       }
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 6
+        "desc": "More options for EZ-Bar Curl"
       }
     },
     {
@@ -131,14 +124,12 @@
     },
     {
       "scrollTo": {
-        "role": "Button",
-        "index": 7
+        "desc": "More options for Pallof Press"
       }
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 7
+        "desc": "More options for Pallof Press"
       }
     },
     {
@@ -148,14 +139,12 @@
     },
     {
       "scrollTo": {
-        "role": "Button",
-        "index": 5
+        "desc": "More options for DB Bench Press"
       }
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 5
+        "desc": "More options for DB Bench Press"
       }
     },
     {
@@ -165,14 +154,12 @@
     },
     {
       "scrollTo": {
-        "role": "Button",
-        "index": 4
+        "desc": "More options for Bulgarian Split Squat"
       }
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 4
+        "desc": "More options for Bulgarian Split Squat"
       }
     },
     {

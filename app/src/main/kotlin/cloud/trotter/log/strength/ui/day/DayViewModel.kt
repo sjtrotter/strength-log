@@ -635,7 +635,10 @@ class DayViewModel @Inject constructor(
         )
 
         viewModelScope.launch {
-            dayState.collect { state ->
+            combine(dayState, historyRepository.cardioSessionsFlow) { state, history ->
+                val logged = history.loggedToday(state.planId, state.viewDayId, cardioClock.wallMillis())
+                state.copy(cardio = state.cardio?.copy(loggedSeconds = logged?.seconds))
+            }.collect { state ->
                 if (!state.loading && state.viewDayId == currentDay() &&
                     state.viewDayId != pinHeldFor &&
                     selectedPage.value == null &&
@@ -2458,9 +2461,7 @@ class DayViewModel @Inject constructor(
     private fun currentDay(): String? = effectiveDayId.value
 
     private fun workoutGroups(state: DayUiState): List<WorkoutSelection.Group> =
-        state.exercises.map { card ->
-            WorkoutSelection.Group("exercise:${card.programExerciseId}", card.rows.all { it.complete })
-        } + listOfNotNull(state.cardio?.let { WorkoutSelection.Group("cardio", it.loggedSeconds != null) })
+        state.pages.map { WorkoutSelection.Group(it.key, it.allDone || it.total == 0) }
 
     private fun workoutFocus(state: DayUiState, shown: WorkoutSelection.Shown): WorkoutFocus? {
         val group = shown as? WorkoutSelection.Shown.Group ?: return null

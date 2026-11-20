@@ -1050,8 +1050,10 @@ internal fun ExercisePickerScreen( // internal: restoration pinned directly — 
         ExercisePicker.filter(searchCandidates, query, equipmentFilter)
     }
 
-    val fallback = if (results.isEmpty() && allCandidates != null && !searchAll)
-        ExercisePicker.fallback(candidates, allCandidates, query, equipmentFilter) else emptyList<ExerciseEntry>()
+    val fallback = remember(results, candidates, allCandidates, searchAll, query, equipmentFilter) {
+        if (results.isEmpty() && allCandidates != null && !searchAll)
+            ExercisePicker.fallback(candidates, allCandidates, query, equipmentFilter) else emptyList<ExerciseEntry>()
+    }
 
     Column(Modifier.fillMaxWidth().fillMaxHeight(0.9f).padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {

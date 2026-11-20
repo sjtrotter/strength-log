@@ -107,16 +107,12 @@ data class CardioExecution(
         ) next.copy(anchor = BootAnchor(now.wallMillis, now.elapsedMillis, now.bootCount)) else next
     }
 
-    /** Recovery and cool-down start on their own, as does timed work after recovery. Distance work waits for
-     *  the runner's start line, including sprint reps. */
-    private fun startsOnItsOwn(finished: CardioSetSpec, next: CardioSetSpec): Boolean =
-        next.role == CardioRole.RECOVERY || next.role == CardioRole.COOLDOWN ||
-            (next.role == CardioRole.WORK && next.end is Measure.Time && finished.role == CardioRole.RECOVERY)
-
     /** Expired automatic sets keep their exact deadlines. A time-ended work set after a recovery
      *  is automatic too (#536), but only while it could still be running: work that would already be over is never
-     *  invented. Distance never finishes by inference, and work that waits for Start never starts by inference. */
+     *  invented. GPS reconciliation allows its fix-settle wait before that cutoff.
+     *  Distance never finishes by inference, and work that waits for Start never starts by inference. */
     fun reconcile(now: Clocks, meter: SetMeter? = null, waitForFix: Boolean = true): CardioExecution {
+        val settleAllowance = if (meter != null && waitForFix) DistanceTrack.FRESH_MILLIS else 0L
         var run = this
         while (run.running && !run.complete) {
             if (run.allowOpenEnded && run.block.openEnded) break
@@ -131,7 +127,7 @@ data class CardioExecution(
             val next = run.block.sets.getOrNull(run.position)
             val nextEnd = next?.end
             if (run.running && next?.role == CardioRole.WORK && nextEnd is Measure.Time &&
-                run.elapsedMillis(now) >= nextEnd.seconds * 1_000L) {
+                run.elapsedMillis(now) >= nextEnd.seconds * 1_000L + settleAllowance) {
                 return run.copy(anchor = null)
             }
         }
@@ -162,3 +158,9 @@ data class CardioExecution(
         stepsCompleted = results.count { it.status == CardioSetStatus.FINISHED },
     )
 }
+
+/** Recovery and cool-down start on their own, as does timed work after recovery. Distance work waits for
+ *  the runner's start line, including sprint reps. */
+fun startsOnItsOwn(finished: CardioSetSpec, next: CardioSetSpec): Boolean =
+    next.role == CardioRole.RECOVERY || next.role == CardioRole.COOLDOWN ||
+        (next.role == CardioRole.WORK && next.end is Measure.Time && finished.role == CardioRole.RECOVERY)

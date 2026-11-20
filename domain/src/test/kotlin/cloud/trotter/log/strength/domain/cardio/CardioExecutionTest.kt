@@ -45,6 +45,44 @@ class CardioExecutionTest {
     }
 
     @Test
+    fun `a short timed work set still starts when the recovery is handled within the settle allowance`() {
+        for (seconds in listOf(5, 10)) {
+            val meter = DistanceTrack.forActivity(CardioActivity.ROAD_RUN)
+            val initial = execution(time(CardioRole.RECOVERY, 50), time(CardioRole.WORK, seconds),
+                time(CardioRole.RECOVERY, 50)).start(start)
+            assertEquals(initial, initial.reconcile(start.advance(50_000L), meter))
+            val run = initial.reconcile(start.advance(50_000L + DistanceTrack.FRESH_MILLIS), meter)
+            assertEquals(1, run.position)
+            assertTrue(run.running)
+            assertEquals(BootAnchor(start.wallMillis + 50_000L, start.elapsedMillis + 50_000L, start.bootCount), run.anchor)
+            assertEquals(listOf(50), run.results.map { it.elapsedSeconds })
+        }
+    }
+
+    @Test
+    fun `GPS work at its end plus the settle allowance stays ready`() {
+        val run = execution(time(CardioRole.RECOVERY, 50), time(CardioRole.WORK, 10))
+            .start(start).reconcile(start.advance(60_000L + DistanceTrack.FRESH_MILLIS),
+                DistanceTrack.forActivity(CardioActivity.ROAD_RUN))
+        assertEquals(1, run.position)
+        assertFalse(run.running)
+        assertEquals(listOf(50), run.results.map { it.elapsedSeconds })
+    }
+
+    @Test
+    fun `an abandoned GPS ladder is not logged as run`() {
+        val block = RunWalkLadder.block(1, CardioActivity.ROAD_RUN)
+        val total = block.sets.sumOf { (it.end as Measure.Time).seconds }
+        val run = CardioExecution(block).start(start).reconcile(start.advance((total + 600) * 1_000L),
+            DistanceTrack.forActivity(CardioActivity.ROAD_RUN))
+        assertEquals(2, run.position)
+        assertFalse(run.running)
+        assertEquals(block.sets.take(2), run.results.map { it.spec })
+        assertTrue(run.results.all { it.status == CardioSetStatus.FINISHED })
+        assertNull(run.completedAt)
+    }
+
+    @Test
     fun `the run walk ladder runs every round from one Start`() {
         val block = RunWalkLadder.block(1, CardioActivity.ROAD_RUN)
         var run = CardioExecution(block).start(start)

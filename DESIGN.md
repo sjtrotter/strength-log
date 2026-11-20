@@ -148,8 +148,6 @@ You, wizard, custom exercise and History corrections use labeled M3
 `OutlinedTextField`s; rest durations open a minutes/seconds dialog. Custom
 exercises require a name and an explicit movement-pattern choice.
 
-| 2026-11-20, cardio A | Timed intervals start after their recovery; a run day opens on its run; past-session errors sit by the start time | #536, #533 and playtest r5-p6 |
-
 ### Watch
 
 Follow the Wear OS design guidelines (developer.android.com/design/ui/wear) and Material for
@@ -294,6 +292,7 @@ That needs no separate owner question unless it touches a hard constraint. Brief
 | 2026-11-16, wizard rebuild 6c-ii | You edits two optional numbers; Level is gone; the Plans row reads Not set until a bodyweight exists | Design §4.2 and #527; nothing reads level since 6c-i |
 | 2026-11-18, wizard rebuild PR 7c | Run and Both setup with event, longest-run and Together choices; h:mm:ss goal times | The first Run and Both plan writer; hour-long goals retain a readable clock |
 | 2026-11-18, wizard rebuild PR 7f | Sprint setup open, including Both with a sprint goal; yards for 40 yd on sprint surfaces | Suggested weeks, careful answers, fitting explanations and the leg-lift floor; ordinary distances keep their units |
+| 2026-11-20, cardio A | Timed intervals start after their recovery; a run day opens on its run; past-session errors sit by the start time | #536, #533 and playtest r5-p6 |
 
 ### Watch
 

@@ -44,6 +44,7 @@ import cloud.trotter.log.strength.ui.day.receipt.ReceiptRow
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptNextTime
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptNextTimes
 import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
+import cloud.trotter.log.strength.ui.day.receipt.CardioRecordMark
 import cloud.trotter.log.strength.ui.day.receipt.isPartial
 import cloud.trotter.log.strength.ui.day.receipt.loggedSetCount
 import cloud.trotter.log.strength.data.db.entity.Slot

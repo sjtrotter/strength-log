@@ -61,6 +61,52 @@ class TodayViewModelWiringTest : OverviewFixture() {
         assertTrue(shown.cardioOnly)
     }
 
+    @Test fun `Resume carries a cardio day's activity and lift count`() = runTest(dispatcher) {
+        insertProgram()
+        val plan = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        val program = repo.plans.programFor(plan).first()
+        val day = program.days.first()
+        repo.replaceProgram(Program(program.days.map {
+            if (it.id == day.id) it.copy(kind = ProgramDayKind.CARDIO,
+                cardioBlock = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1500)))))
+            else it
+        }))
+        val vm = today()
+        advanceUntilIdle()
+        val upNext = vm.uiState.value.upNext.single { it.dayId == day.id }
+        vm.workoutStart.start(upNext.selection)
+        advanceUntilIdle()
+        val resume = requireNotNull(vm.uiState.value.resume)
+        assertEquals(upNext.selection, resume.selection)
+        assertEquals(CardioActivity.ROAD_RUN, resume.cardioActivity)
+        assertEquals(upNext.cardioActivity, resume.cardioActivity)
+        assertEquals(1, resume.liftCount)
+        assertEquals(upNext.liftCount, resume.liftCount)
+    }
+
+    @Test fun `a cardio day counts both superset partners on Up next and Resume`() = runTest(dispatcher) {
+        insertProgram()
+        val plan = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        val program = repo.plans.programFor(plan).first()
+        val day = program.days.first { it.id == "B" }
+        assertTrue(day.exercises.single().superset != null)
+        repo.replaceProgram(Program(program.days.map {
+            if (it.id == day.id) it.copy(kind = ProgramDayKind.CARDIO,
+                cardioBlock = CardioBlock(CardioActivity.ROAD_RUN, listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(1500)))))
+            else it
+        }))
+        db.planDao().updateSuggestedDay(plan, day.id)
+        val vm = today()
+        advanceUntilIdle()
+        val upNext = vm.uiState.value.upNext.single { it.dayId == day.id }
+        assertEquals(2, upNext.liftCount)
+        vm.workoutStart.start(upNext.selection)
+        advanceUntilIdle()
+        val resume = requireNotNull(vm.uiState.value.resume)
+        assertEquals(CardioActivity.ROAD_RUN, resume.cardioActivity)
+        assertEquals(2, resume.liftCount)
+    }
+
     @Test fun lighterTodayHidesDuringALightWeekDraftOrRun() = runTest(dispatcher) {
         insertProgram()
         db.convertTestPlans(settings)

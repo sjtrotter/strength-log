@@ -22,7 +22,8 @@ internal fun RunPhase.met(anchor: RecentMaxima, marathonBest: Boolean, week: Rec
     RunPhase.ULTRA_BUILD -> false
 }
 
-/** The ladder gate reads WORK only (revision 47); without a log, [anchor] is the typed longest. */
+/** The ladder gate reads WORK only (revision 47); without a log, [anchor] is the typed longest.
+ *  The 5K gate, for every runner; [shortLadderMet] is the short-event exit. */
 internal fun ladderMet(anchor: RecentMaxima?, runningSeconds: Int?, runningMetres: Int?): Boolean =
     (runningSeconds ?: anchor?.seconds ?: 0) >= 1_800 || (runningMetres ?: anchor?.metres ?: 0) >= 5_000
 
@@ -40,8 +41,23 @@ internal fun runningMetres(run: RunAnswers, known: KnownLoads): Int? {
     return if (hasLog(run, known)) known.longestRunningMetres[family] else run.seed()?.metres
 }
 
+/** The longest single WORK set when the family has a finished log, else the typed longest. Never the session
+ *  totals ([KnownLoads.longestRecent]), which include walk breaks. */
+internal fun runningBout(run: RunAnswers, known: KnownLoads): RecentMaxima? =
+    if (hasLog(run, known)) known.longestBout[CardioFamily.of(run.activity)] else run.seed()
+
+/** Practice (ladder-date design §4.1): 20 minutes is the event plan's easy floor and Start to Run's endpoint; the
+ *  2-mile is the longest field test and longer than any middle-distance race. */
+internal fun shortLadderMet(run: RunAnswers, bout: RecentMaxima?): Boolean = run.shortLadderGate &&
+    ((bout?.seconds ?: 0) >= EASY_SECONDS || (bout?.metres ?: 0) >= requireNotNull(FitnessTest.TWO_MILE.metres))
+
+/** Practice, a scheduling allowance rather than a proven minimum: a ladder-only event still needs about four weeks
+ *  of its own work after the ladder, weekly intervals before a ten-day taper and room for a practice test (wizard
+ *  evidence report §Fitness tests). Four weeks or less of HIIT improves VO2max against no training (Wen 2019). */
+const val EVENT_WEEKS_AFTER_LADDER = 4
+
 internal fun startPhase(run: RunAnswers, anchor: RecentMaxima?, week: RecentMaxima?, running: Int?, runningMetres: Int?,
-                        atLeast: RunPhase? = null): RunPhase? {
+                        bout: RecentMaxima?, atLeast: RunPhase? = null): RunPhase? {
     val path = run.phases
     if (path.isEmpty()) return null
     val ladderOnly = run.goal.phases.isEmpty()
@@ -50,8 +66,10 @@ internal fun startPhase(run: RunAnswers, anchor: RecentMaxima?, week: RecentMaxi
     val start = if (anchor == null) {
         if (run.experience == RunExperience.NEW) RunPhase.LADDER else path.firstOrNull { it != RunPhase.LADDER }
     } else {
-        path.firstOrNull { !it.met(anchor, run.marathonBestSeconds != null, week, running, runningMetres) }
-            ?: path.last().takeUnless { ladderOnly }
+        path.firstOrNull { phase ->
+            !phase.met(anchor, run.marathonBestSeconds != null, week, running, runningMetres) &&
+                !(phase == RunPhase.LADDER && shortLadderMet(run, bout))
+        } ?: path.last().takeUnless { ladderOnly }
     }
     return start?.let { maxOf(it, atLeast ?: it) }
 }
@@ -66,9 +84,10 @@ internal fun runWeek(run: RunAnswers, known: KnownLoads): RecentMaxima? = known.
 internal fun ladderWeeks(level: Int, ladderSessions: Int): Int? = if (ladderSessions == 0) null
     else (RunWalkLadder.EASY_PER_LEVEL * (RunWalkLadder.TOP - level + 1) + ladderSessions - 1) / ladderSessions
 
-/** Null when the counted phases include LADDER and [ladderWeeks] is null. */
+/** Null when the counted phases include LADDER and [ladderWeeks] is null.
+ *  A ladder-only goal adds [EVENT_WEEKS_AFTER_LADDER] for its own plan. */
 internal fun weeksNeeded(goal: RunGoal, start: RunPhase, ladderWeeks: Int?): Int? {
-    if (goal.phases.isEmpty()) return if (start == RunPhase.LADDER) ladderWeeks else 0
+    if (goal.phases.isEmpty()) return if (start == RunPhase.LADDER) ladderWeeks?.plus(EVENT_WEEKS_AFTER_LADDER) else 0
     val phases = goal.phases.filter { it >= start && it <= requireNotNull(goal.eventPhase) }
     if (RunPhase.LADDER in phases && ladderWeeks == null) return null
     return phases.sumOf { if (it == RunPhase.LADDER) requireNotNull(ladderWeeks) else requireNotNull(it.minWeeks) }

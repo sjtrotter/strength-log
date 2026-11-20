@@ -2227,3 +2227,56 @@ instrumented tests, pilots and screenshot comparison remain pending. The read-on
 the working-tree moves await caller staging, so git ls-files still lists the old generator paths.
 
 §8 row 8 is complete: `:domain` has no `generator/` package.
+
+
+## 66. Revision 57 (ladder gate for short events, 2026-11-2x)
+
+The [ladder-date brief](ladder-date-2026-11-19/design.md), including its council check and the owner's decision,
+amends revision 49 §1.1's one gate for every goal. On Fitness test and Middle distance, a runner who is not New
+also leaves the ladder after one continuous run of 1,200 s or 3,219 m. New runners and every other goal keep
+1,800 s or 5,000 m, read as before. Racing still skips the ladder; a Some runner with no log or typed longest
+still starts past it. A runner past the short gate gets the existing event plan, with no ease-in.
+
+For that extra exit only, revision 49 §1.5 now reads the longest single WORK set (`CardioHistory.longestBout`),
+never summed WORK. Seconds and meters take independent maxima across finished sessions in the 30-day window.
+A RECOVERY or the Start tap before another WORK set breaks a bout. The log wins over the typed longest and never
+falls back to session totals for this reading. The 5K gate and ladder start keep reading summed WORK.
+
+`weeksNeeded` on a ladder-only goal starting on the ladder adds `EVENT_WEEKS_AFTER_LADDER` (4, practice) to the
+ladder weeks. A null ladder estimate stays null. Phased goals keep their existing weeks.
+`PlanReason.LadderWeeks` carries the ladder length as a plan-level reason; `Planner.day` omits it.
+Your plan states at least that many weeks. A dated Fitness test or Middle distance ladder plan gets its own
+DateTooClose line for the four event weeks; phased plans keep the generic line. The Plan screen shows
+Run/walk ladder over stored LADDER days, including the taper window. The Where label asks short-gate runners for
+a run without walk breaks. The running-experience Why sheet states both gates.
+
+### Files
+
+Domain: planner/RunAnswers, RunPhase, RunSessions, RunLayout, BothLayout and Planner; progression/CardioHistory
+and SlotSeeding. App: wizard/SetupFlowModels, SetupFlowStateBuilder, SetupFlowPlan and SetupFlowRun;
+plan/PlanScreenBuilder; strings.xml. Docs: this revision, the ladder-date brief, the briefs index and DESIGN.md.
+No storage, recipe, SavedStateHandle, watch or progression-rule change.
+
+### Expectations and verification
+
+No pinned §11.2 number moves. Existing expectation changes, each marked `// ladder-date:`:
+
+- PlannerEntryLadderTest, `a dated New field test counts the ladder weeks`: 49 days to 83 (DateTooClose),
+  56 days to 84 (no DateTooClose). Eight ladder weeks plus four event weeks require 84 days.
+- SetupFlowScreenTest, `running experience Why describes the ladder gate`: the existing gate description gains
+  the exact short-event sentence: “For a fitness test or a race up to 3000 m, a Some runner skips it after
+  20 minutes or 2 miles without walk breaks; a New runner still needs 30 minutes or 5 km.”
+- PlanViewModelTest, `the taper line follows the day as it turns`: NEW to SOME in the 5K-to-10K fixture, so the
+  plan starts at BASE and the test still checks the date turning into the taper window.
+- PlannerTest and PlannerSprintTest: exhaustive reason filters add `LadderWeeks` to the false branch;
+  day-level expectations stay the same.
+
+New domain tests cover single-bout history, both short-gate boundaries, preserved New and other-goal gates,
+P8's event plan, ladder and event weeks, plan-level reasons and both Both layouts. App tests cover the Why rows,
+Where label, ladder length and taper suppression. Preview definitions use s71 through s74 for the Where label and
+the dated ladder plan's Why sheet, each at 1x and 2x. Existing s43 and s44 definitions stay unchanged.
+
+P8 derives 123 s per 400 m rep (`779 × 400 / 2414 × 0.95`, rounded) and a 1,440 s D end
+(`RunCap.limit(1320, 60)`). Neither differs from the build spec. The invariant and progression grids stay unchanged.
+No network, Gradle, compilation, builds, tests or subagents were used. CI unit tests, build, pilots and generated
+render artifacts remain pending.

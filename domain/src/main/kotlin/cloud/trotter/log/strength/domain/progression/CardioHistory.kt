@@ -81,6 +81,13 @@ data class CardioHistory(
                 if (metres.all { it != null }) metres.sumOf { requireNotNull(it) } else null
             }.maxOrNull()
 
+        /** The longest single finished WORK set within [WINDOW_MILLIS] before [asOfMillis]: seconds (secondsAtEnd, else
+         *  elapsedSeconds) and meters ([RunCap.metres]), each its own maximum; null when none finished. A RECOVERY, or the
+         *  Start tap before a following WORK set, breaks a bout. The short ladder gate reads it (ladder-date design §4.1). */
+        fun longestBout(sessions: List<LoggedCardio>, asOfMillis: Long): RecentMaxima? = finishedWork(sessions, asOfMillis)
+            .flatten().map { RecentMaxima(RunCap.metres(it), it.secondsAtEnd ?: it.elapsedSeconds) }
+            .reduceOrNull { longest, next -> longest.max(next) }
+
         private fun finishedWork(sessions: List<LoggedCardio>, asOfMillis: Long): List<List<CardioSetResult>> = sessions
             .filter { asOfMillis - it.completedAt in 0 until WINDOW_MILLIS && RunCap.finished(it.results) }
             .map { session -> session.results.filter { it.spec.role == CardioRole.WORK } }
@@ -91,7 +98,8 @@ data class CardioHistory(
             longestRecent = of(sessions, asOfMillis).longest?.let { mapOf(family to it) }.orEmpty(),
             longestWeek = longestWeek(sessions, asOfMillis)?.let { mapOf(family to it) }.orEmpty(),
             longestRunning = longestRunning(sessions, asOfMillis)?.let { mapOf(family to it) }.orEmpty(),
-            longestRunningMetres = longestRunningMetres(sessions, asOfMillis)?.let { mapOf(family to it) }.orEmpty())
+            longestRunningMetres = longestRunningMetres(sessions, asOfMillis)?.let { mapOf(family to it) }.orEmpty(),
+            longestBout = longestBout(sessions, asOfMillis)?.let { mapOf(family to it) }.orEmpty())
 
         /** The history a judgment reads at [asOfMillis]. [sessions] are the family's sessions completed before it,
          *  oldest first: [longest] spans those within [WINDOW_MILLIS], the pace the newest finished one with a metres

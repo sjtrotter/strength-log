@@ -13,7 +13,7 @@ import cloud.trotter.log.strength.domain.progression.RunRange
 import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.progression.RunWalkLadder
 
-private const val EASY_SECONDS = 1_200
+internal const val EASY_SECONDS = 1_200
 private const val STRENGTH_SECONDS = 1_500
 
 internal fun easyLimit(long: CardioBlock?): Int? = long?.let { maxOf(60, (3 * plannedSeconds(it) / 4) / 60 * 60) }

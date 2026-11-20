@@ -292,6 +292,7 @@ That needs no separate owner question unless it touches a hard constraint. Brief
 | 2026-11-16, wizard rebuild 6c-ii | You edits two optional numbers; Level is gone; the Plans row reads Not set until a bodyweight exists | Design §4.2 and #527; nothing reads level since 6c-i |
 | 2026-11-18, wizard rebuild PR 7c | Run and Both setup with event, longest-run and Together choices; h:mm:ss goal times | The first Run and Both plan writer; hour-long goals retain a readable clock |
 | 2026-11-18, wizard rebuild PR 7f | Sprint setup open, including Both with a sprint goal; yards for 40 yd on sprint surfaces | Suggested weeks, careful answers, fitting explanations and the leg-lift floor; ordinary distances keep their units |
+| 2026-11-2x, ladder date | Your plan states the ladder's length and, on dated ladder-only plans, the weeks the date leaves; the Plan screen shows the ladder, not Taper, over ladder days; Some testers are asked for a run without walk breaks | Playtest r5-p8 and the ladder-date council, 2026-11-19 |
 
 ### Watch
 

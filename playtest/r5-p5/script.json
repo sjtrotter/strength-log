@@ -609,11 +609,39 @@
       }
     },
     {
+      "scrollTo": {
+        "text": "Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plank"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Plank"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
       "type": {
         "text": "Search exercises",
         "value": "side",
         "ime": "done"
       }
+    },
+    {
+      "checkpoint": "side-plank-swap-results"
     },
     {
       "scrollTo": {

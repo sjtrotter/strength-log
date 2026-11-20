@@ -3,13 +3,13 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-12-02",
+    "date": "2026-12-04",
     "time": "18:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
-      "note": "Dec2 diary: easier leg press70 10/10/10; chest25 10/10/8; row35 10/10/10; curl25 10/10. Walk5min before and10min after. Total53min."
+      "note": "Dec4 final diary visit: leg80, chest25, row35, curl25, all planned sets10reps. Walk5min before and12min after. Good day; ate beforehand. Total56min."
     },
     {
       "tap": {
@@ -28,7 +28,7 @@
       }
     },
     {
-      "checkpoint": "dec2-offered-day"
+      "checkpoint": "dec4-offered-day"
     },
     {
       "tap": {
@@ -50,10 +50,10 @@
       }
     },
     {
-      "checkpoint": "dec2-after-warmup"
+      "checkpoint": "dec4-after-warmup"
     },
     {
-      "advance": "12m"
+      "advance": "13m"
     },
     {
       "expect": {
@@ -61,7 +61,7 @@
       }
     },
     {
-      "checkpoint": "dec2-leg-offered"
+      "checkpoint": "dec4-leg-offered"
     },
     {
       "advance": "1m"
@@ -74,7 +74,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "70",
+        "value": "80",
         "ime": "done"
       }
     },
@@ -101,7 +101,7 @@
       }
     },
     {
-      "checkpoint": "dec2-leg-set-1-logged"
+      "checkpoint": "dec4-leg-set-1-logged"
     },
     {
       "advance": "90s"
@@ -122,7 +122,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "70",
+        "value": "80",
         "ime": "done"
       }
     },
@@ -149,7 +149,7 @@
       }
     },
     {
-      "checkpoint": "dec2-leg-set-2-logged"
+      "checkpoint": "dec4-leg-set-2-logged"
     },
     {
       "advance": "90s"
@@ -170,7 +170,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "70",
+        "value": "80",
         "ime": "done"
       }
     },
@@ -197,7 +197,7 @@
       }
     },
     {
-      "checkpoint": "dec2-leg-set-3-logged"
+      "checkpoint": "dec4-leg-set-3-logged"
     },
     {
       "advance": "90s"
@@ -213,7 +213,7 @@
       }
     },
     {
-      "checkpoint": "dec2-chest-offered"
+      "checkpoint": "dec4-chest-offered"
     },
     {
       "advance": "1m"
@@ -253,7 +253,7 @@
       }
     },
     {
-      "checkpoint": "dec2-chest-set-1-logged"
+      "checkpoint": "dec4-chest-set-1-logged"
     },
     {
       "advance": "90s"
@@ -297,11 +297,11 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-HARD"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "dec2-chest-set-2-logged"
+      "checkpoint": "dec4-chest-set-2-logged"
     },
     {
       "advance": "90s"
@@ -329,7 +329,7 @@
     {
       "type": {
         "text": "Reps",
-        "value": "8",
+        "value": "10",
         "ime": "done"
       }
     },
@@ -345,11 +345,11 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-MAX"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "dec2-chest-set-3-logged"
+      "checkpoint": "dec4-chest-set-3-logged"
     },
     {
       "advance": "90s"
@@ -365,7 +365,7 @@
       }
     },
     {
-      "checkpoint": "dec2-row-offered"
+      "checkpoint": "dec4-row-offered"
     },
     {
       "advance": "1m"
@@ -405,7 +405,7 @@
       }
     },
     {
-      "checkpoint": "dec2-row-set-1-logged"
+      "checkpoint": "dec4-row-set-1-logged"
     },
     {
       "advance": "90s"
@@ -453,7 +453,7 @@
       }
     },
     {
-      "checkpoint": "dec2-row-set-2-logged"
+      "checkpoint": "dec4-row-set-2-logged"
     },
     {
       "advance": "90s"
@@ -501,7 +501,7 @@
       }
     },
     {
-      "checkpoint": "dec2-row-set-3-logged"
+      "checkpoint": "dec4-row-set-3-logged"
     },
     {
       "advance": "90s"
@@ -517,7 +517,7 @@
       }
     },
     {
-      "checkpoint": "dec2-curl-offered"
+      "checkpoint": "dec4-curl-offered"
     },
     {
       "advance": "1m"
@@ -557,7 +557,7 @@
       }
     },
     {
-      "checkpoint": "dec2-curl-set-1-logged"
+      "checkpoint": "dec4-curl-set-1-logged"
     },
     {
       "advance": "90s"
@@ -605,7 +605,7 @@
       }
     },
     {
-      "checkpoint": "dec2-curl-set-2-logged"
+      "checkpoint": "dec4-curl-set-2-logged"
     },
     {
       "tap": {
@@ -613,10 +613,10 @@
       }
     },
     {
-      "checkpoint": "dec2-walk-before"
+      "checkpoint": "dec4-walk-before"
     },
     {
-      "advance": "10m"
+      "advance": "12m"
     },
     {
       "tap": {
@@ -624,17 +624,17 @@
       }
     },
     {
-      "checkpoint": "dec2-manual-walk-form"
+      "checkpoint": "dec4-manual-walk-form"
     },
     {
       "type": {
         "text": "Duration",
-        "value": "10:00",
+        "value": "12:00",
         "ime": "done"
       }
     },
     {
-      "checkpoint": "dec2-manual-walk-ready"
+      "checkpoint": "dec4-manual-walk-ready"
     },
     {
       "tap": {
@@ -664,7 +664,7 @@
       }
     },
     {
-      "checkpoint": "dec2-receipt"
+      "checkpoint": "dec4-receipt"
     },
     {
       "scrollTo": {
@@ -677,7 +677,7 @@
       }
     },
     {
-      "checkpoint": "dec2-why-next"
+      "checkpoint": "dec4-why-next"
     },
     {
       "back": true
@@ -695,7 +695,7 @@
     {
       "type": {
         "textContains": "Note",
-        "value": "Walked 5 min before, 10 min after. Lowered leg press to 70; much better. Chest 25 for 10/10/8, more reps than my first try at 25.",
+        "value": "Walked 5 min before, 12 min after. Ate before coming; good day. Chest 25 for all 10s. Eleven visits, with the short one.",
         "ime": "done"
       }
     },
@@ -705,22 +705,15 @@
       }
     },
     {
-      "checkpoint": "dec2-note-saved"
-    },
-    {
-      "tap": {
-        "text": "Done",
-        "role": "Button"
-      }
+      "checkpoint": "dec4-note-saved"
     },
     {
       "expect": {
-        "text": "Today",
-        "role": "Tab"
+        "textContains": "Full Body,"
       }
     },
     {
-      "checkpoint": "dec2-saved-back-on-today"
+      "checkpoint": "dec4-final-saved-receipt"
     }
   ]
 }

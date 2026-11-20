@@ -697,10 +697,8 @@
       }
     },
     {
-      "type": {
-        "text": "Start time",
-        "value": "19:11",
-        "ime": "done"
+      "expect": {
+        "text": "19:11"
       }
     },
     {

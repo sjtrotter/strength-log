@@ -26,9 +26,6 @@
       }
     },
     {
-      "checkpoint": "mixed-units-selected"
-    },
-    {
       "back": true
     },
     {
@@ -43,17 +40,11 @@
       }
     },
     {
-      "checkpoint": "my-plan-days-and-controls"
-    },
-    {
       "tap": {
         "desc": "Day B"
       }
     },
     {
-      "checkpoint": "strength-day-before-edit"
-    },
-    {
       "tap": {
         "text": "Edit"
       }
@@ -70,159 +61,427 @@
     },
     {
       "scrollTo": {
-        "text": "Horizontal pull"
+        "text": "Calf: gastrocnemius"
       }
     },
     {
+      "checkpoint": "calf-movement-and-neighbors"
+    },
+    {
       "swipe": {
-        "text": "Horizontal pull",
+        "text": "Calf: gastrocnemius",
         "direction": "up"
       }
     },
     {
-      "checkpoint": "lower-movements-1"
-    },
-    {
-      "swipe": {
-        "text": "Horizontal pull",
-        "direction": "up"
-      }
-    },
-    {
-      "checkpoint": "lower-movements-2"
-    },
-    {
-      "swipe": {
-        "text": "Horizontal pull",
-        "direction": "up"
-      }
-    },
-    {
-      "checkpoint": "lower-movements-3"
-    },
-    {
-      "swipe": {
-        "text": "Horizontal pull",
-        "direction": "up"
-      }
-    },
-    {
-      "checkpoint": "lower-movements-4"
-    },
-    {
-      "back": true
+      "checkpoint": "movements-below-calf"
     },
     {
       "scrollTo": {
-        "text": "Add exercise"
+        "text": "Calf: gastrocnemius"
       }
     },
     {
       "tap": {
-        "text": "Add exercise"
+        "text": "Calf: gastrocnemius"
       }
     },
     {
-      "tap": {
-        "text": "Hinge"
-      }
+      "checkpoint": "standing-calf-exercise-choices"
     },
     {
       "type": {
         "text": "Search exercises",
-        "value": "bridge",
+        "value": "standing",
         "ime": "done"
       }
     },
     {
+      "checkpoint": "standing-calf-search-results"
+    },
+    {
+      "back": true
+    },
+    {
       "scrollTo": {
-        "text": "Create exercise"
+        "text": "Plank"
       }
     },
     {
       "tap": {
-        "text": "Create exercise"
+        "desc": "More options for Plank"
       }
     },
     {
       "tap": {
-        "text": "Movement pattern"
+        "text": "Swap"
       }
     },
     {
-      "checkpoint": "custom-movement-options"
+      "checkpoint": "plank-swap-picker"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "side",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "side-plank-search-results"
     },
     {
       "back": true
     },
     {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "editor-after-custom-pattern-inspection"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "Day A"
+      "scrollTo": {
+        "text": "Barbell Back Squat"
       }
     },
     {
       "tap": {
-        "text": "Edit"
+        "desc": "More options for Barbell Back Squat"
       }
     },
     {
       "tap": {
-        "text": "Edit cardio"
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Barbell Bench Press"
       }
     },
     {
       "tap": {
-        "text": "Set 1 \u00b7 Work"
+        "desc": "More options for Barbell Bench Press"
       }
     },
     {
       "tap": {
-        "text": "Distance",
-        "role": "RadioButton"
+        "text": "Remove"
       }
     },
     {
-      "checkpoint": "distance-ended-run-fields"
+      "scrollTo": {
+        "text": "Barbell Row"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Cable Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Cable Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Plank"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Squat (bilateral)"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "35",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
     },
     {
       "back": true
     },
     {
-      "back": true
-    },
-    {
-      "back": true
+      "checkpoint": "goblet-prescription-before-start"
     },
     {
       "tap": {
-        "text": "Start day A"
+        "text": "Start day B"
       }
     },
     {
-      "checkpoint": "standalone-cardio-before-start"
+      "advance": "5m"
     },
     {
       "tap": {
-        "text": "Log past session"
+        "text": "Done",
+        "role": "Button"
       }
     },
     {
-      "checkpoint": "past-cardio-with-mixed-units"
+      "checkpoint": "goblet-start"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 1"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "350",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "35",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "typo-corrected-before-log"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "text": "Next set",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-HARD"
+      }
+    },
+    {
+      "tap": {
+        "text": "+15 s"
+      }
+    },
+    {
+      "advance": "105s"
+    },
+    {
+      "tap": {
+        "text": "Next set",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "squat-actual-sets-before-finish"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "squat-all-sets-after-changes"
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "29m45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "full-goblet-probe-summary"
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "start squats at 30 next time",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Done",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "probe-save-landed"
     }
   ]
 }

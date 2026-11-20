@@ -3,8 +3,8 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-28",
-    "time": "09:00",
+    "date": "2026-11-30",
+    "time": "17:30",
     "zone": "America/Chicago"
   },
   "steps": [
@@ -16,12 +16,12 @@
     },
     {
       "scrollTo": {
-        "text": "Saturday assistance — meet block"
+        "text": "Meet block — Nov 9 to Dec 5"
       }
     },
     {
       "tap": {
-        "text": "Saturday assistance — meet block"
+        "text": "Meet block — Nov 9 to Dec 5"
       }
     },
     {
@@ -43,12 +43,12 @@
     },
     {
       "scrollTo": {
-        "text": "Close-grip bench"
+        "text": "Barbell Back Squat"
       }
     },
     {
       "tap": {
-        "text": "Close-grip bench"
+        "text": "Barbell Back Squat"
       }
     },
     {
@@ -61,14 +61,14 @@
     {
       "type": {
         "text": "Reps",
-        "value": "6",
+        "value": "4",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "95",
+        "value": "145",
         "ime": "done"
       }
     },
@@ -78,7 +78,109 @@
       }
     },
     {
-      "checkpoint": "saturday-week3-planned95x6x4"
+      "scrollTo": {
+        "text": "Competition bench (paused)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Competition bench (paused)"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "90",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Lying Leg Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lying Leg Curl"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "40",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Ab wheel"
+      }
+    },
+    {
+      "tap": {
+        "text": "Ab wheel"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done",
+        "index": 1
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "lighter-week4-four-squat-three-bench-two-accessory-sets"
     },
     {
       "back": true
@@ -92,7 +194,7 @@
     {
       "tap": {
         "desc": "Plan options",
-        "index": 5
+        "index": 1
       }
     },
     {
@@ -118,24 +220,24 @@
       }
     },
     {
-      "advance": "20m"
-    },
-    {
-      "checkpoint": "warmup80x5-felt-heavy-reduce-today"
-    },
-    {
-      "note": "Warm-up close-grip80x5 felt heavy; keep warm-ups separate from work volume. Today reduce95 to90 and do3x6, leaving fourth unperformed. Accessories/cardio will be saved in session note; native structured entry remains untested."
+      "advance": "25m"
     },
     {
       "tap": {
-        "text": "95 kg × 6",
-        "role": "Button"
+        "desc": "Edit set 1"
       }
     },
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "90",
+        "value": "175",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "1",
         "ime": "done"
       }
     },
@@ -145,7 +247,7 @@
       }
     },
     {
-      "checkpoint": "today-only-set-1-reduced-to90"
+      "checkpoint": "lighter-single175x1-backoffs145x4"
     },
     {
       "advance": "45s"
@@ -162,7 +264,114 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-GOOD"
+        "tag": "workout-effort-EASY"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-EASY"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-EASY"
+      }
+    },
+    {
+      "advance": "4m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-EASY"
+      }
+    },
+    {
+      "checkpoint": "squat-lighter-work-complete"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-EASY"
       }
     },
     {
@@ -174,27 +383,6 @@
       }
     },
     {
-      "tap": {
-        "text": "95 kg × 6",
-        "role": "Button"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "90",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "checkpoint": "today-only-set-2-reduced-to90"
-    },
-    {
       "advance": "45s"
     },
     {
@@ -209,7 +397,7 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-GOOD"
+        "tag": "workout-effort-EASY"
       }
     },
     {
@@ -221,25 +409,33 @@
       }
     },
     {
-      "tap": {
-        "text": "95 kg × 6",
-        "role": "Button"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "90",
-        "ime": "done"
-      }
+      "advance": "45s"
     },
     {
       "tap": {
-        "text": "Save set"
+        "tag": "workout-action-filled"
       }
     },
     {
-      "checkpoint": "today-only-set-3-reduced-to90"
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-EASY"
+      }
+    },
+    {
+      "checkpoint": "bench-lighter-work-complete"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
     },
     {
       "advance": "45s"
@@ -256,31 +452,127 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-GOOD"
+        "tag": "workout-effort-EASY"
       }
     },
     {
-      "checkpoint": "three90x6-worksets-done-fourth-not-performed"
+      "advance": "90s"
     },
     {
-      "advance": "26m45s"
+      "tap": {
+        "tag": "workout-action-filled"
+      }
     },
     {
-      "checkpoint": "accessories-press22-perhand-rowC25-raise8-curl16"
+      "advance": "45s"
     },
     {
-      "advance": "20m"
+      "tap": {
+        "tag": "workout-action-filled"
+      }
     },
     {
-      "checkpoint": "walk20min-4-point-8kmh-3percent"
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-EASY"
+      }
+    },
+    {
+      "checkpoint": "curl-lighter-work-complete"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-EASY"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-EASY"
+      }
+    },
+    {
+      "checkpoint": "ab-wheel-lighter-work-complete"
+    },
+    {
+      "advance": "5m45s"
+    },
+    {
+      "note": "All11realsets complete. Known full-finish workaround: add one unperformed EXTRA ab-wheel set to expose working partial Finish; never log it."
+    },
+    {
+      "tap": {
+        "text": "Done",
+        "role": "Button",
+        "inDialog": true
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "eleven-real-sets-and-one-unperformed-save-placeholder"
     },
     {
       "tap": {
         "tag": "workout-finish"
       }
-    },
-    {
-      "checkpoint": "finish-reduced-saturday-three-of-four"
     },
     {
       "tap": {
@@ -297,7 +589,7 @@
       }
     },
     {
-      "checkpoint": "saturday75min-saved-review"
+      "checkpoint": "nov30-lighter-monday75min-saved-review"
     },
     {
       "scrollTo": {
@@ -313,7 +605,7 @@
       "type": {
         "editable": true,
         "index": 0,
-        "value": "WU80x5heavy;95->90x6x3/4.DB22x10x3;rowC25x12x3/side;raise8x15x3;curl16x12x2(perhand).Walk20m4.8km/h3%.Lighter wk next",
+        "value": "Intentional light wk:RPE6.Sq175x1,145x4x3;BP90x5x3.CurlA40x10x2;ab8x2.All easy,no extra work.Blank12=save fix.",
         "ime": "done"
       }
     },
@@ -323,7 +615,7 @@
       }
     },
     {
-      "checkpoint": "saturday-reductions-and-walk-note-saved"
+      "checkpoint": "lighter-week-intent-and-rpe-note-saved"
     },
     {
       "tap": {
@@ -337,7 +629,7 @@
       }
     },
     {
-      "checkpoint": "nov28-saturday-finished"
+      "checkpoint": "nov30-monday-finished"
     }
   ]
 }

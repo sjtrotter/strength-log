@@ -1,194 +1,14 @@
 {
   "seat": "r5-p5-probe",
+  "probe": true,
   "capture": "compact",
   "start": {
-    "date": "2026-11-08",
-    "time": "20:30",
+    "restore": "start-backup.json",
+    "date": "2026-11-09",
+    "time": "17:30",
     "zone": "America/Chicago"
   },
   "steps": [
-    {
-      "tap": {
-        "text": "Both",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Running",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "General fitness",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Just cardio fitness",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "5",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "tap": {
-        "text": "45",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "checkpoint": "five-days-closest-duration"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "expect": {
-        "text": "lb",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "checkpoint": "gym-and-lifting-units"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Under a year",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "tap": {
-        "text": "Some",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "checkpoint": "actual-experience"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "expect": {
-        "text": "Recent numbers"
-      }
-    },
-    {
-      "tap": {
-        "text": "Why we ask"
-      }
-    },
-    {
-      "checkpoint": "recent-lift-fields-do-not-match-my-lifts"
-    },
-    {
-      "back": true
-    },
-    {
-      "note": "My recent sets were goblet squat and dumbbell RDL. These fields are for other lifts, so leave them blank."
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "expect": {
-        "text": "Longest run in the past 30 days"
-      }
-    },
-    {
-      "type": {
-        "text": "Minutes",
-        "value": "74.5",
-        "ime": "done"
-      }
-    },
-    {
-      "checkpoint": "longest-run-74-and-half-minutes"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Separate days",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "review-running-priority-plan"
-    },
-    {
-      "tap": {
-        "text": "Why this plan"
-      }
-    },
-    {
-      "checkpoint": "plan-explanation"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Start",
-        "role": "Button"
-      }
-    },
-    {
-      "expect": {
-        "text": "Today",
-        "role": "Tab"
-      }
-    },
-    {
-      "checkpoint": "setup-saved"
-    },
     {
       "tap": {
         "desc": "Settings"
@@ -200,10 +20,13 @@
       }
     },
     {
-      "checkpoint": "actual-settings-distance-unit-choices"
+      "tap": {
+        "text": "Kilometers",
+        "role": "RadioButton"
+      }
     },
     {
-      "back": true
+      "checkpoint": "mixed-units-selected"
     },
     {
       "back": true
@@ -215,21 +38,20 @@
       }
     },
     {
-      "checkpoint": "plans-list-from-my-setup"
-    },
-    {
       "tap": {
-        "text": "Today",
-        "role": "Tab"
+        "text": "Lifting and Just cardio fitness, 5 days"
       }
     },
     {
+      "checkpoint": "my-plan-days-and-controls"
+    },
+    {
       "tap": {
-        "desc": "Day A"
+        "desc": "Day B"
       }
     },
     {
-      "checkpoint": "my-first-day-details"
+      "checkpoint": "strength-day-before-edit"
     },
     {
       "tap": {
@@ -237,16 +59,175 @@
       }
     },
     {
-      "checkpoint": "my-first-day-editor"
+      "checkpoint": "strength-editor-before-changes"
     },
     {
       "tap": {
-        "desc": "More"
+        "text": "Barbell Back Squat"
       }
     },
     {
-      "checkpoint": "day-editor-menu"
+      "checkpoint": "existing-squat-prescription"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "strength-row-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Squat (bilateral)"
+      }
+    },
+    {
+      "checkpoint": "squat-exercise-choices"
+    },
+    {
+      "scrollTo": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "checkpoint": "goblet-selected"
+    },
+    {
+      "scrollTo": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "checkpoint": "goblet-prescription-fields"
+    },
+    {
+      "back": true
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Hinge"
+      }
+    },
+    {
+      "checkpoint": "hinge-exercise-choices"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Single-leg"
+      }
+    },
+    {
+      "checkpoint": "single-leg-exercise-choices"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Horizontal push"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Horizontal push",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "remaining-movement-categories"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit cardio"
+      }
+    },
+    {
+      "checkpoint": "easy-run-cardio-prescription"
     }
-  ],
-  "probe": true
+  ]
 }

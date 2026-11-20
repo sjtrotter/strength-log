@@ -108,7 +108,7 @@
     },
     {
       "tap": {
-        "desc": "4 o'clock",
+        "desc": "3 o'clock",
         "inDialog": true
       }
     },
@@ -134,7 +134,7 @@
     },
     {
       "expect": {
-        "text": "16:10",
+        "text": "15:10",
         "inDialog": true
       }
     },
@@ -158,7 +158,7 @@
     },
     {
       "expect": {
-        "desc": "25 minutes. Distance, 3.1 miles."
+        "desc": "25 minutes. Distance, 3.1 miles. Pace 8 minutes 4 seconds per mile."
       }
     },
     {
@@ -187,7 +187,7 @@
     },
     {
       "expect": {
-        "text": "16:10",
+        "text": "15:10",
         "inDialog": true
       }
     },

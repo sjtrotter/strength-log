@@ -276,40 +276,11 @@
     },
     {
       "scrollTo": {
-        "text": "Add exercise"
+        "text": "Single-leg RDL (one dumbbell)"
       }
     },
     {
       "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Single-leg"
-      }
-    },
-    {
-      "tap": {
-        "text": "Single-leg"
-      }
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "Single-leg RDL (one dumbbell)",
-        "ime": "done"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Single-leg RDL (one dumbbell)",
-        "index": 1
-      }
-    },
-    {
-      "tap": {
-        "index": 1,
         "text": "Single-leg RDL (one dumbbell)"
       }
     },
@@ -568,40 +539,11 @@
     },
     {
       "scrollTo": {
-        "text": "Add exercise"
+        "text": "Seated Calf Raise (added load)"
       }
     },
     {
       "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Calf: soleus"
-      }
-    },
-    {
-      "tap": {
-        "text": "Calf: soleus"
-      }
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "Seated Calf Raise (added load)",
-        "ime": "done"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Seated Calf Raise (added load)",
-        "index": 1
-      }
-    },
-    {
-      "tap": {
-        "index": 1,
         "text": "Seated Calf Raise (added load)"
       }
     },
@@ -788,40 +730,11 @@
     },
     {
       "scrollTo": {
-        "text": "Add exercise"
+        "text": "Pallof Press (cable)"
       }
     },
     {
       "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Core: anti-rotation"
-      }
-    },
-    {
-      "tap": {
-        "text": "Core: anti-rotation"
-      }
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "Pallof Press (cable)",
-        "ime": "done"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Pallof Press (cable)",
-        "index": 1
-      }
-    },
-    {
-      "tap": {
-        "index": 1,
         "text": "Pallof Press (cable)"
       }
     },
@@ -941,6 +854,9 @@
     },
     {
       "checkpoint": "created-floor-bridges-(bodyweight)"
+    },
+    {
+      "back": true
     },
     {
       "back": true

@@ -713,7 +713,18 @@
     },
     {
       "tap": {
-        "tag": "workout-finish"
+        "text": "Skip",
+        "role": "Button",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "cooldown-skipped"
+    },
+    {
+      "tap": {
+        "text": "Finish day A",
+        "tag": "workout-action-filled"
       }
     },
     {
@@ -746,7 +757,8 @@
     },
     {
       "tap": {
-        "text": "Done"
+        "text": "Done",
+        "role": "Button"
       }
     },
     {

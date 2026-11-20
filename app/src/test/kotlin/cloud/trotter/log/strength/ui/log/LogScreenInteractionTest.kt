@@ -186,7 +186,9 @@ class LogScreenInteractionTest {
             logSessionFixture(false).copy(sessionId = 100L + i, dateDisplay = "Older session $i")
         }
         setContent(false, sessions = sessions, journal = journal)
-        composeTestRule.onNodeWithText("Trends and calendar").performScrollTo().performClick()
+        // The trend cards push the toggle past the lazy list's composed items, so scroll the list to it first.
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Trends and calendar"))
+        composeTestRule.onNodeWithText("Trends and calendar").performClick()
         composeTestRule.onNode(hasScrollAction())
             .performScrollToNode(hasContentDescription("November 3, today, day A, 1 session"))
         composeTestRule.onNodeWithContentDescription("November 3, today, day A, 1 session").performClick()

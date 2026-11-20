@@ -3,8 +3,8 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-17",
-    "time": "09:30",
+    "date": "2026-11-21",
+    "time": "10:00",
     "zone": "America/Phoenix"
   },
   "steps": [
@@ -25,7 +25,7 @@
       }
     },
     {
-      "checkpoint": "achy-knee-day-plan"
+      "checkpoint": "saturday-plan-and-last-session"
     },
     {
       "tap": {
@@ -33,7 +33,7 @@
       }
     },
     {
-      "note": "Nov17: knee achy after Sunday walk. Five minutes on recumbent bike; avoid leg press today. Light curl 20 lb is a plausible light stack setting, not given on trainer card."
+      "note": "Grandchildren visited Friday Nov20, so no gym. Saturday Nov21 10am: usual workout; knee feels fine, leg press 110. Bike five minutes before machines."
     },
     {
       "advance": "5m"
@@ -45,7 +45,10 @@
       }
     },
     {
-      "note": "Counter/rail-supported stance pair 1: 10 seconds left and 10 right, timed manually."
+      "checkpoint": "saturday-balance-start"
+    },
+    {
+      "note": "Rail-supported left 10 seconds, right 10 seconds, pair 1. I time the holds myself."
     },
     {
       "advance": "20s"
@@ -59,7 +62,7 @@
       "advance": "2m"
     },
     {
-      "note": "Counter/rail-supported stance pair 2: 10 seconds left and 10 right, timed manually."
+      "note": "Rail-supported left 10 seconds, right 10 seconds, pair 2. I time the holds myself."
     },
     {
       "advance": "20s"
@@ -73,7 +76,7 @@
       "advance": "2m"
     },
     {
-      "note": "Counter/rail-supported stance pair 3: 10 seconds left and 10 right, timed manually."
+      "note": "Rail-supported left 10 seconds, right 10 seconds, pair 3. I time the holds myself."
     },
     {
       "advance": "20s"
@@ -85,55 +88,14 @@
     },
     {
       "advance": "2m"
-    },
-    {
-      "checkpoint": "leg-press-before-session-only-swap"
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "tap": {
-        "text": "Swap exercise"
-      }
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "curl"
-      }
-    },
-    {
-      "checkpoint": "curl-search-for-knee-day"
-    },
-    {
-      "tap": {
-        "text": "Seated Leg Curl"
-      }
     },
     {
       "expect": {
-        "text": "This workout"
+        "text": "Leg Press"
       }
     },
     {
-      "checkpoint": "curl-swap-scope"
-    },
-    {
-      "tap": {
-        "text": "Swap",
-        "inDialog": true
-      }
-    },
-    {
-      "checkpoint": "light-leg-curl-offered"
+      "checkpoint": "saturday-leg-press-offer-after-session-only-curl"
     },
     {
       "tap": {
@@ -143,7 +105,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "20"
+        "value": "110"
       }
     },
     {
@@ -171,7 +133,7 @@
       }
     },
     {
-      "checkpoint": "light-leg-curl-set-1-saved"
+      "checkpoint": "saturday-leg-press-set-1-logged"
     },
     {
       "advance": "2m"
@@ -189,7 +151,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "20"
+        "value": "110"
       }
     },
     {
@@ -217,7 +179,7 @@
       }
     },
     {
-      "checkpoint": "light-leg-curl-set-2-saved"
+      "checkpoint": "saturday-leg-press-set-2-logged"
     },
     {
       "advance": "2m"
@@ -226,6 +188,9 @@
       "tap": {
         "tag": "workout-action-filled"
       }
+    },
+    {
+      "checkpoint": "saturday-chest-press-offered"
     },
     {
       "expect": {
@@ -233,9 +198,6 @@
       }
     },
     {
-      "checkpoint": "chest-press-offered"
-    },
-    {
       "tap": {
         "desc": "Edit set 1"
       }
@@ -271,7 +233,7 @@
       }
     },
     {
-      "checkpoint": "chest-press-set-1-saved"
+      "checkpoint": "saturday-chest-press-set-1-logged"
     },
     {
       "advance": "2m"
@@ -317,7 +279,7 @@
       }
     },
     {
-      "checkpoint": "chest-press-set-2-saved"
+      "checkpoint": "saturday-chest-press-set-2-logged"
     },
     {
       "advance": "2m"
@@ -328,7 +290,7 @@
       }
     },
     {
-      "checkpoint": "row-offered"
+      "checkpoint": "saturday-row-offered"
     },
     {
       "tap": {
@@ -366,7 +328,7 @@
       }
     },
     {
-      "checkpoint": "row-set-1-saved"
+      "checkpoint": "saturday-row-set-1-logged"
     },
     {
       "advance": "2m"
@@ -412,33 +374,127 @@
       }
     },
     {
-      "checkpoint": "row-set-2-saved"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "note": "Knee achy and leaving at about thirty minutes. Stopping before shoulder press, pulldown and calf raises today."
+      "checkpoint": "saturday-row-set-2-logged"
     },
     {
       "advance": "2m"
     },
     {
       "tap": {
-        "tag": "workout-finish"
+        "tag": "workout-action-filled"
       }
     },
     {
-      "checkpoint": "finish-early-confirmation"
+      "checkpoint": "saturday-shoulder-press-offered"
     },
     {
       "tap": {
-        "text": "Finish",
-        "inDialog": true
+        "desc": "Edit set 1"
       }
     },
     {
-      "checkpoint": "achy-knee-short-session-receipt"
+      "type": {
+        "text": "Weight (lb)",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "40s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "saturday-shoulder-press-set-1-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 2"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "40s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      },
+      "optional": true
+    },
+    {
+      "checkpoint": "saturday-shoulder-press-set-2-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "note": "Pulldown 50 lb 2x10 and rail calf raises done from trainer card; still in session note rather than separate entries. Ten minutes includes rests and moving around the gym."
+    },
+    {
+      "advance": "10m"
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      },
+      "optional": true
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "saturday-full-body-summary"
     },
     {
       "scrollTo": {
@@ -453,7 +509,7 @@
     {
       "type": {
         "textContains": "Note",
-        "value": "Knee achy: bike 5m, leg curl 20 lb instead of press. Left at 30m; no shoulder, pulldown or calves."
+        "value": "Friday missed: grandchildren. Saturday make-up. Bike 5m, pulldown 50 lb 2x10, rail calf raises. Leg press 110 fine."
       }
     },
     {
@@ -474,7 +530,7 @@
       }
     },
     {
-      "checkpoint": "nov17-short-session-saved"
+      "checkpoint": "saturday-gym-saved"
     }
   ]
 }

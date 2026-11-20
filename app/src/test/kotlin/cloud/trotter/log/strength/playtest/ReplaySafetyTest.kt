@@ -4,11 +4,14 @@ import android.graphics.BitmapFactory
 import android.os.Looper
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -20,7 +23,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.scrollBy
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -29,6 +36,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.Popup
 import androidx.test.espresso.Espresso
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
@@ -39,8 +47,9 @@ import com.github.takahirom.roborazzi.InternalRoborazziApi
 import com.github.takahirom.roborazzi.fetchRobolectricWindowRoots
 import java.io.File
 import kotlin.test.assertFailsWith
-import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
@@ -180,8 +189,8 @@ class ReplaySafetyTest {
         }
         val anchor = compose.onNodeWithText("Road run")
         assertTrue(anchor.fetchSemanticsNode().config.contains(SemanticsProperties.EditableText))
-        assertTrue(anchor.fetchSemanticsNode().dropdownAnchor())
-        anchor.performClick()
+        assertTrue(anchor.fetchSemanticsNode().opensOnTap())
+        perform("""{"tap":{"text":"Road run"}}""")
         compose.onNodeWithText("Trail run").performClick()
         assertEquals(CardioActivity.TRAIL_RUN, draft.value.activity)
     }
@@ -190,7 +199,147 @@ class ReplaySafetyTest {
         compose.setContent { AppTheme { OutlinedTextField("185", {}, label = { Text("Weight") }) } }
         val node = compose.onNodeWithText("185").fetchSemanticsNode()
         assertTrue(node.config.contains(SemanticsProperties.EditableText))
-        assertFalse(node.dropdownAnchor())
+        assertFalse(node.opensOnTap())
+        val error = assertFailsWith<PlaytestError> { perform("""{"tap":{"text":"Weight"}}""") }
+        assertEquals("script", error.kind)
+        assertTrue(requireNotNull(error.message).contains("Use type instead of tap"))
+    }
+
+    @Test fun readOnlyPickerFieldAllowsTap() {
+        var opened = false
+        compose.setContent { AppTheme {
+            OutlinedTextField("17:05", {}, readOnly = true, label = { Text("Start time") },
+                modifier = Modifier.semantics { onClick { opened = true; true } })
+        } }
+        perform("""{"tap":{"text":"Start time"}}""")
+        assertTrue(opened)
+    }
+
+    @Test fun readOnlyPickerFieldRefusesTypeWithPickerHint() {
+        compose.setContent { AppTheme {
+            OutlinedTextField("17:05", {}, readOnly = true, label = { Text("Start time") },
+                modifier = Modifier.semantics { onClick { true } })
+        } }
+        val error = assertFailsWith<PlaytestError> {
+            perform("""{"type":{"text":"Start time","value":"16:10"}}""")
+        }
+        assertEquals("not-editable", error.kind)
+        assertTrue(requireNotNull(error.message).contains("this field opens a picker; tap it instead"))
+    }
+
+    @Test fun dialogLazySearchLeavesUnderlyingListAtItsOriginalPosition() {
+        assertOverlaySearch(inDialog = true)
+    }
+
+    @Test fun unscopedLazySearchStaysInTopmostDialog() {
+        assertOverlaySearch(inDialog = false)
+    }
+
+    @Test fun unscopedLazySearchStaysInTopmostPopup() {
+        assertOverlaySearch(inDialog = false, popup = true)
+    }
+
+    private fun assertOverlaySearch(inDialog: Boolean, popup: Boolean = false) {
+        val underneath = LazyListState()
+        compose.mainClock.autoAdvance = false
+        compose.setContent { AppTheme {
+            LazyColumn(state = underneath, modifier = Modifier.height(160.dp)) {
+                items(40) { Text("Behind $it", Modifier.height(48.dp)) }
+            }
+            if (popup) {
+                Popup { LazyColumn(Modifier.height(160.dp)) {
+                    items(40) { Text("Overlay $it", Modifier.height(48.dp)) }
+                } }
+            } else {
+                Dialog(onDismissRequest = {}) { LazyColumn(Modifier.height(160.dp)) {
+                    items(40) { Text("Overlay $it", Modifier.height(48.dp)) }
+                } }
+            }
+        } }
+        val scope = if (inDialog) ",\"inDialog\":true" else ""
+        assertTrue(compose.onAllNodesWithText("Overlay 30").fetchSemanticsNodes().isEmpty())
+        perform("""{"scrollTo":{"text":"Overlay 30"$scope}}""")
+        assertTrue(compose.onNodeWithText("Overlay 30").fetchSemanticsNode().visibleForTouch())
+        listOf("Behind 30", "Behind 0").forEach { label ->
+            val error = assertFailsWith<PlaytestError> {
+                perform("""{"scrollTo":{"text":"$label"$scope},"timeoutMs":1000}""")
+            }
+            assertEquals("not-found", error.kind)
+        }
+        assertEquals(0, underneath.firstVisibleItemIndex)
+        assertEquals(0, underneath.firstVisibleItemScrollOffset)
+    }
+
+    @Test fun lazySearchContinuesAfterAContainerIsDisposed() {
+        val visible = mutableStateOf(true)
+        compose.mainClock.autoAdvance = false
+        compose.setContent { AppTheme {
+            Column {
+                if (visible.value) LazyColumn(Modifier.height(120.dp).semantics {
+                    scrollBy { _, _ -> visible.value = false; true }
+                }) { items(40) { Text("Removed $it", Modifier.height(48.dp)) } }
+                LazyColumn(Modifier.height(120.dp)) {
+                    items(40) { Text("Remaining $it", Modifier.height(48.dp)) }
+                }
+            }
+        } }
+        perform("""{"scrollTo":{"text":"Remaining 30"}}""")
+        assertFalse(visible.value)
+        assertTrue(compose.onNodeWithText("Remaining 30").fetchSemanticsNode().visibleForTouch())
+    }
+
+    @Test fun filledWorkoutActionTapWaitsForTheFrameClockGuard() {
+        assertWorkoutAction("workout-action-filled", "tap")
+    }
+
+    @Test fun tonalWorkoutActionTapWaitsForTheFrameClockGuard() {
+        assertWorkoutAction("workout-action-tonal", "tap")
+    }
+
+    @Test fun workoutActionLongPressWaitsForTheFrameClockGuard() {
+        assertWorkoutAction("workout-action-tonal", "longPress")
+    }
+
+    private fun assertWorkoutAction(tag: String, action: String) {
+        val label = mutableStateOf("Start")
+        val guarded = mutableStateOf(false)
+        var delivered = 0
+        val time = PlaytestTime()
+        val wallTime = time.clock.instant()
+        val elapsed = time.elapsedMillis()
+        compose.mainClock.autoAdvance = false
+        compose.setContent { AppTheme {
+            LaunchedEffect(label.value) {
+                guarded.value = true
+                delay(600L)
+                guarded.value = false
+            }
+            val onAction: () -> Unit = { if (!guarded.value) delivered++ }
+            Box(Modifier.size(64.dp).testTag(tag).combinedClickable(
+                role = Role.Button, onClick = onAction, onLongClick = onAction,
+            )) { Text(label.value) }
+        } }
+        compose.runOnUiThread { label.value = "Log set" }
+        compose.mainClock.advanceTimeByFrame()
+        compose.onNodeWithText("Log set").assertExists()
+        assertTrue(guarded.value)
+        val before = compose.mainClock.currentTime
+        perform("""{"$action":{"tag":"$tag"}}""")
+        assertEquals(1, delivered)
+        assertTrue(compose.mainClock.currentTime - before >= 700L)
+        assertEquals(wallTime, time.clock.instant())
+        assertEquals(elapsed, time.elapsedMillis())
+        assertFalse(compose.mainClock.autoAdvance)
+    }
+
+    private fun perform(json: String) {
+        val step = Step.parse(Json.parseToJsonElement(json))
+        val deadline = StepDeadline(step.timeoutMs)
+        val actions = ReplayActions(compose, Selectors(compose, compose.density.density))
+        deadline.run(compose) {
+            if (step.action == "scrollTo") actions.scrollTo(requireNotNull(step.selector), deadline)
+            else actions.act(step, deadline)
+        }
     }
 
     @Test fun zeroSizeAndOffScreenNodesRequireScrolling() {

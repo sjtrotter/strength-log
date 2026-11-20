@@ -44,12 +44,14 @@ internal class Selectors(private val nodes: ComposeTestRule, private val density
         requireEnabled: Boolean = false,
         requireVisible: Boolean = false,
         search: (() -> Unit)? = null,
+        scope: SemanticsMatcher? = null,
     ): Target? {
         var lastFailure: PlaytestError? = null
         var hiddenFrames = 0
         while (true) {
             if (deadline.expired) throw lastFailure ?: deadline.timeout()
-            val collection = nodes.onAllNodes(matcher(selector, typing, deadline), useUnmergedTree = typing)
+            val collectionMatcher = matcher(selector, typing, deadline).let { if (scope == null) it else it and scope }
+            val collection = nodes.onAllNodes(collectionMatcher, useUnmergedTree = typing)
             val all = try {
                 deadline.call {
                     nodes.onAllNodes(SemanticsMatcher("all nodes") { true }, useUnmergedTree = typing)
@@ -59,7 +61,7 @@ internal class Selectors(private val nodes: ComposeTestRule, private val density
                 if (error.kind == "timeout" && error.cause == null && lastFailure != null) throw lastFailure
                 throw error
             }
-            val match = matcher(selector, typing)
+            val match = matcher(selector, typing).let { if (scope == null) it else it and scope }
             val matches = all.filter { match.matches(it) }
             lastMatches = describe(matches)
             val index = selector.index ?: 0

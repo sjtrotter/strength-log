@@ -1,0 +1,198 @@
+{
+  "seat": "past-session-start-time",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Run"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Some"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "type": {
+        "text": "Minutes",
+        "value": "40",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Just cardio fitness"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Road run"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Road run"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Start day",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log past session"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start time"
+      }
+    },
+    {
+      "tap": {
+        "desc": "4 o'clock",
+        "inDialog": true
+      }
+    },
+    {
+      "tap": {
+        "desc": "10 minutes",
+        "inDialog": true
+      }
+    },
+    {
+      "tap": {
+        "text": "PM",
+        "inDialog": true
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button",
+        "inDialog": true,
+        "index": 1
+      }
+    },
+    {
+      "expect": {
+        "text": "16:10",
+        "inDialog": true
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "25:00"
+      }
+    },
+    {
+      "type": {
+        "text": "Distance (mi)",
+        "value": "3.1"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "desc": "25 minutes. Distance, 3.1 miles."
+      }
+    },
+    {
+      "tap": {
+        "text": "Done",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "History",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Edit session",
+        "inDialog": true
+      }
+    },
+    {
+      "expect": {
+        "text": "16:10",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "saved-past-session-start-time"
+    }
+  ]
+}

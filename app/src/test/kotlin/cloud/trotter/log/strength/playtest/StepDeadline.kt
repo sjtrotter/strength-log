@@ -7,7 +7,11 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /** One monotonic, real-time budget shared by lookup, action, settling, and capture. */
-internal class StepDeadline(private val timeoutMs: Long, private val index: Int? = null) : IdlingResource {
+internal class StepDeadline(
+    private val timeoutMs: Long,
+    index: Int? = null,
+    private val operation: String = index?.let { "Step $it" } ?: "Launch",
+) : IdlingResource {
     private val started = System.nanoTime()
     private val remainingNanos: Long get() = timeoutMs * 1_000_000 - (System.nanoTime() - started)
     val expired: Boolean get() = remainingNanos <= 0
@@ -23,7 +27,7 @@ internal class StepDeadline(private val timeoutMs: Long, private val index: Int?
     }
 
     fun timeout(cause: Throwable? = null): PlaytestError = PlaytestError(
-        "timeout", "${index?.let { "Step $it" } ?: "Launch"} exceeded its ${timeoutMs}ms real-time deadline",
+        "timeout", "$operation exceeded its ${timeoutMs}ms real-time deadline",
         cause = cause,
     )
 

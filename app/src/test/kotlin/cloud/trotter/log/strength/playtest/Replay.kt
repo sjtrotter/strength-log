@@ -2,13 +2,15 @@ package cloud.trotter.log.strength.playtest
 
 import android.os.Looper
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.isPopup
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.performClick
@@ -77,10 +79,17 @@ internal class RunArtifacts(val directory: File, val captureFrom: Int) {
         File(directory, "error.json").writeText(failureJson(error, index, step).toString() + "\n")
     }
 
-    fun writeBackup(backup: BackupService) {
+    fun writeBackup(
+        backup: BackupService,
+        deadline: StepDeadline,
+        awaitPendingWrites: suspend () -> Unit,
+    ) {
         // Written only after the export returns, then moved into place, so a timeout never
         // leaves a truncated backup.json behind.
-        val json = waitForStorage(60_000) { backup.export() }
+        val json = deadline.io {
+            awaitPendingWrites()
+            backup.withRestoreLock { backup.export() }
+        }
         val partial = File(directory, "backup.json.tmp")
         try {
             partial.writeText(json)
@@ -124,6 +133,7 @@ internal class Replay(
     private val crashes: AppCrashes,
 ) {
     private val selectors = Selectors(compose, compose.density.density)
+    private val actions = ReplayActions(compose, selectors)
     private var screen = "launch"
     private var imeLog: JsonObject? = null
     private var settledFrames = 0
@@ -207,8 +217,8 @@ internal class Replay(
             "advance" -> advance(requireNotNull(step.duration), deadline)
             "checkpoint" -> Unit
             "expect" -> expect(step, deadline)
-            "scrollTo" -> scrollTo(requireNotNull(step.selector), deadline)
-            else -> act(step, deadline)
+            "scrollTo" -> actions.scrollTo(requireNotNull(step.selector), deadline)
+            else -> imeLog = actions.act(step, deadline)
         }
     }
 
@@ -216,150 +226,6 @@ internal class Replay(
         val selector = requireNotNull(step.selector)
         val absent = (step.payload as JsonObject)["absent"] == JsonPrimitive(true)
         selectors.await(selector, deadline, absent = absent)
-    }
-
-    private fun act(step: Step, deadline: StepDeadline) {
-        val selector = requireNotNull(step.selector)
-        val typing = step.action == "type"
-        val touch = step.action == "tap" || step.action == "longPress"
-        val resolved = requireNotNull(selectors.await(selector, deadline, typing, requireEnabled = true, requireVisible = touch))
-        val target = resolved.interaction
-        val node = resolved.node
-        if (step.action == "tap" && node.config.contains(SemanticsProperties.EditableText) && !node.dropdownAnchor()) {
-            throw PlaytestError("script", "Use type instead of tap on an editable node; a second click can start the magnifier")
-        }
-        when (step.action) {
-            "tap" -> {
-                requireAction(node.config.contains(SemanticsActions.OnClick), "not-clickable", "Node has no click action")
-                deadline.call { target.performClick() }
-            }
-            "longPress" -> {
-                requireAction(node.config.contains(SemanticsActions.OnLongClick), "not-clickable", "Node has no long-click action")
-                deadline.call { target.performTouchInput { longClick() } }
-            }
-            "type" -> {
-                requireAction(node.config.contains(SemanticsActions.SetText) && node.config.contains(SemanticsActions.RequestFocus),
-                    "not-editable", "Node has no text replacement or focus action")
-                deadline.call { target.requestFocus() }
-                val payload = step.payload as JsonObject
-                deadline.call { target.performTextReplacement(payload.string("value")) }
-                if ("ime" in payload) {
-                    requireAction(node.config.contains(SemanticsActions.OnImeAction), "not-editable", "Node has no IME action")
-                    val declared = node.config.getOrNull(SemanticsProperties.ImeAction)
-                    // Compose refuses performImeAction on Default; such a field has no action key and commits as it is typed.
-                    val perform = declared != null && declared != ImeAction.Default && declared != ImeAction.None
-                    imeLog = buildJsonObject {
-                        put("declared", declared?.toString() ?: "none")
-                        put("performed", perform)
-                    }
-                    if (perform) deadline.call { target.performImeAction() }
-                }
-            }
-            "swipe" -> deadline.call {
-                target.performTouchInput {
-                    when ((step.payload as JsonObject).string("direction")) {
-                        "left" -> swipeLeft()
-                        "right" -> swipeRight()
-                        "up" -> swipeUp()
-                        "down" -> swipeDown()
-                    }
-                }
-            }
-        }
-    }
-
-    private fun scrollTo(selector: Selector, deadline: StepDeadline) {
-        val target = requireNotNull(selectors.await(selector, deadline, search = { searchLazy(selector, deadline) }))
-        enabled(target.node)
-        requireAction(target.node.scrollContainer() != null, "not-scrollable", "Node has no scrollable ancestor")
-        var moves = 0
-        while (true) {
-            val node = deadline.call { target.interaction.fetchSemanticsNode() }
-            val container = node.scrollContainer() ?: return
-            val (dx, dy) = scrollDelta(node, container)
-            if (dx == 0f && dy == 0f) return
-            if (moves++ >= MAX_SCROLL_MOVES) {
-                throw PlaytestError("not-scrollable", "Target stayed outside its scroll container after $MAX_SCROLL_MOVES scrolls")
-            }
-            val before = node.positionInRoot
-            scrollBy(container, dx, dy, deadline)
-            val after = deadline.call { target.interaction.fetchSemanticsNode() }.positionInRoot
-            requireAction(after != before, "not-scrollable", "The scroll container did not move toward the target")
-        }
-    }
-
-    /** Pages each lazy container on screen until one composes the target; the Compose clock is advanced
-     *  by hand, so an endless animation cannot stall it. */
-    private fun searchLazy(selector: Selector, deadline: StepDeadline) {
-        val matcher = selectors.matcher(selector)
-        val ids = deadline.call { compose.onAllNodes(hasScrollAction()).fetchSemanticsNodes(atLeastOneRootRequired = false) }
-            .filter { it.config.contains(SemanticsActions.ScrollToIndex) }.map { it.id }
-        ids.forEach { id ->
-            val container = compose.onNode(SemanticsMatcher("node $id") { it.id == id })
-            fun current() = deadline.call { container.fetchSemanticsNode() }
-            if (current().containsMatch(matcher)) return
-            val start = current().let { it.config.getOrNull(SemanticsProperties.VerticalScrollAxisRange)
-                ?: it.config.getOrNull(SemanticsProperties.HorizontalScrollAxisRange) }
-            // ScrollToIndex(0) throws on an empty list, which is also already at its start.
-            if (start == null || start.value() > 0f) {
-                deadline.call { compose.runOnUiThread { current().config[SemanticsActions.ScrollToIndex].action?.invoke(0) } }
-                settleScroll(deadline)
-            }
-            repeat(MAX_LAZY_PAGES) {
-                val node = current()
-                if (node.containsMatch(matcher)) return
-                val vertical = node.config.contains(SemanticsProperties.VerticalScrollAxisRange)
-                val axisKey = if (vertical) SemanticsProperties.VerticalScrollAxisRange else SemanticsProperties.HorizontalScrollAxisRange
-                val axis = node.config.getOrNull(axisKey) ?: return@forEach
-                if (axis.value() >= axis.maxValue()) return@forEach
-                val page = (if (vertical) node.size.height else node.size.width).toFloat() * (if (axis.reverseScrolling) -1f else 1f)
-                val before = axis.value()
-                scrollBy(node, if (vertical) 0f else page, if (vertical) page else 0f, deadline)
-                if (current().config.getOrNull(axisKey)?.value() == before) return@forEach
-            }
-        }
-    }
-
-    private fun scrollBy(container: SemanticsNode, dx: Float, dy: Float, deadline: StepDeadline) {
-        deadline.call { compose.runOnUiThread { container.config[SemanticsActions.ScrollBy].action?.invoke(dx, dy) } }
-        settleScroll(deadline)
-    }
-
-    /** Scroll semantics animate with a spring, which moves only while the paused Compose clock advances. */
-    private fun settleScroll(deadline: StepDeadline) {
-        deadline.call { compose.mainClock.advanceTimeBy(SCROLL_SETTLE_MS) }
-        deadline.call { shadowOf(Looper.getMainLooper()).idle() }
-    }
-
-    private fun SemanticsNode.scrollContainer(): SemanticsNode? =
-        generateSequence(parent) { it.parent }.firstOrNull { hasScrollAction().matches(it) }
-
-    private fun SemanticsNode.containsMatch(matcher: SemanticsMatcher): Boolean =
-        matcher.matches(this) || children.any { it.containsMatch(matcher) }
-
-    /** Compose's scrolling rule: bring the nearer edge into the viewport, or nothing when the target
-     *  already fits or is larger than the viewport. */
-    private fun scrollDelta(target: SemanticsNode, container: SemanticsNode): Pair<Float, Float> {
-        val viewport = container.boundsInRoot
-        val bounds = Rect(target.positionInRoot, target.size.toSize())
-        fun delta(start: Float, end: Float): Float =
-            if (sign(start) == sign(end)) (if (abs(start) < abs(end)) start else end) else 0f
-        val horizontal = container.config.getOrNull(SemanticsProperties.HorizontalScrollAxisRange)
-        val vertical = container.config.getOrNull(SemanticsProperties.VerticalScrollAxisRange)
-        var dx = if (horizontal != null) delta(bounds.left - viewport.left, bounds.right - viewport.right) else 0f
-        var dy = if (vertical != null) delta(bounds.top - viewport.top, bounds.bottom - viewport.bottom) else 0f
-        if (horizontal?.reverseScrolling == true) dx = -dx
-        if (container.layoutInfo.layoutDirection == LayoutDirection.Rtl) dx = -dx
-        if (vertical?.reverseScrolling == true) dy = -dy
-        return dx to dy
-    }
-
-    private fun enabled(node: SemanticsNode) {
-        requireAction(!node.config.contains(SemanticsProperties.Disabled), "disabled", "Matching node is disabled")
-    }
-
-    private fun requireAction(condition: Boolean, kind: String, message: String) {
-        if (!condition) throw PlaytestError(kind, message, buildJsonObject { put("matches", lastMatches) })
     }
 
     private fun advance(duration: Duration, deadline: StepDeadline) {
@@ -414,15 +280,179 @@ internal class Replay(
     }
 }
 
+internal class ReplayActions(private val compose: ComposeTestRule, private val selectors: Selectors) {
+    private val lastMatches: JsonArray get() = selectors.lastMatches
+
+    fun act(step: Step, deadline: StepDeadline): JsonObject? {
+        var imeLog: JsonObject? = null
+        val selector = requireNotNull(step.selector)
+        val typing = step.action == "type"
+        val touch = step.action == "tap" || step.action == "longPress"
+        val resolved = requireNotNull(selectors.await(selector, deadline, typing, requireEnabled = true, requireVisible = touch))
+        val target = resolved.interaction
+        val node = resolved.node
+        if (step.action == "tap" && node.config.contains(SemanticsProperties.EditableText) && !node.opensOnTap()) {
+            throw PlaytestError("script", "Use type instead of tap on an editable node; a second click can start the magnifier")
+        }
+        if (touch && node.config.getOrNull(SemanticsProperties.TestTag) in WORKOUT_ACTION_TAGS) {
+            deadline.call { compose.mainClock.advanceTimeBy(700L) }
+        }
+        when (step.action) {
+            "tap" -> {
+                requireAction(node.config.contains(SemanticsActions.OnClick), "not-clickable", "Node has no click action")
+                deadline.call { target.performClick() }
+            }
+            "longPress" -> {
+                requireAction(node.config.contains(SemanticsActions.OnLongClick), "not-clickable", "Node has no long-click action")
+                deadline.call { target.performTouchInput { longClick() } }
+            }
+            "type" -> {
+                requireAction(node.config.contains(SemanticsActions.SetText) && node.config.contains(SemanticsActions.RequestFocus),
+                    "not-editable", "Node has no text replacement or focus action" +
+                        if (node.opensOnTap()) "; this field opens a picker; tap it instead" else "")
+                deadline.call { target.requestFocus() }
+                val payload = step.payload as JsonObject
+                deadline.call { target.performTextReplacement(payload.string("value")) }
+                if ("ime" in payload) {
+                    requireAction(node.config.contains(SemanticsActions.OnImeAction), "not-editable", "Node has no IME action")
+                    val declared = node.config.getOrNull(SemanticsProperties.ImeAction)
+                    // Compose refuses performImeAction on Default; such a field has no action key and commits as it is typed.
+                    val perform = declared != null && declared != ImeAction.Default && declared != ImeAction.None
+                    imeLog = buildJsonObject {
+                        put("declared", declared?.toString() ?: "none")
+                        put("performed", perform)
+                    }
+                    if (perform) deadline.call { target.performImeAction() }
+                }
+            }
+            "swipe" -> deadline.call {
+                target.performTouchInput {
+                    when ((step.payload as JsonObject).string("direction")) {
+                        "left" -> swipeLeft()
+                        "right" -> swipeRight()
+                        "up" -> swipeUp()
+                        "down" -> swipeDown()
+                    }
+                }
+            }
+        }
+        return imeLog
+    }
+
+    fun scrollTo(selector: Selector, deadline: StepDeadline) {
+        val scope = topmostWindow(deadline)
+        val target = requireNotNull(selectors.await(selector, deadline, search = { searchLazy(selector, scope, deadline) }, scope = scope))
+        enabled(target.node)
+        requireAction(target.node.scrollContainer() != null, "not-scrollable", "Node has no scrollable ancestor")
+        var moves = 0
+        while (true) {
+            val node = deadline.call { target.interaction.fetchSemanticsNode() }
+            val container = node.scrollContainer() ?: return
+            val (dx, dy) = scrollDelta(node, container)
+            if (dx == 0f && dy == 0f) return
+            if (moves++ >= MAX_SCROLL_MOVES) {
+                throw PlaytestError("not-scrollable", "Target stayed outside its scroll container after $MAX_SCROLL_MOVES scrolls")
+            }
+            val before = node.positionInRoot
+            scrollBy(container, dx, dy, deadline)
+            val after = deadline.call { target.interaction.fetchSemanticsNode() }.positionInRoot
+            requireAction(after != before, "not-scrollable", "The scroll container did not move toward the target")
+        }
+    }
+
+    private fun topmostWindow(deadline: StepDeadline): SemanticsMatcher {
+        val roots = deadline.call { compose.onAllNodes(isRoot()).fetchSemanticsNodes(atLeastOneRootRequired = false) }
+        val overlay = roots.lastOrNull { it.containsMatch(isDialog() or isPopup()) }
+        return SemanticsMatcher("topmost window") { node ->
+            overlay == null || generateSequence(node) { it.parent }.last().id == overlay.id
+        }
+    }
+
+    /** The paused Compose clock must advance for lazy scrolling to compose new items. */
+    private fun searchLazy(selector: Selector, scope: SemanticsMatcher, deadline: StepDeadline) {
+        val matcher = selectors.matcher(selector) and scope
+        val ids = deadline.call { compose.onAllNodes(hasScrollAction() and scope).fetchSemanticsNodes(atLeastOneRootRequired = false) }
+            .filter { it.config.contains(SemanticsActions.ScrollToIndex) }.map { it.id }
+        ids.forEach { id ->
+            val container = compose.onAllNodes(SemanticsMatcher("node $id") { it.id == id } and scope)
+            fun current() = deadline.call { container.fetchSemanticsNodes(atLeastOneRootRequired = false).singleOrNull() }
+            val initial = current() ?: return@forEach
+            if (initial.containsMatch(matcher)) return
+            val start = initial.config.getOrNull(SemanticsProperties.VerticalScrollAxisRange)
+                ?: initial.config.getOrNull(SemanticsProperties.HorizontalScrollAxisRange)
+            // ScrollToIndex(0) throws on an empty list, which is also already at its start.
+            if (start == null || start.value() > 0f) {
+                val node = current() ?: return@forEach
+                deadline.call { compose.runOnUiThread { node.config[SemanticsActions.ScrollToIndex].action?.invoke(0) } }
+                settleScroll(deadline)
+            }
+            repeat(MAX_LAZY_PAGES) {
+                val node = current() ?: return@forEach
+                if (node.containsMatch(matcher)) return
+                val vertical = node.config.contains(SemanticsProperties.VerticalScrollAxisRange)
+                val axisKey = if (vertical) SemanticsProperties.VerticalScrollAxisRange else SemanticsProperties.HorizontalScrollAxisRange
+                val axis = node.config.getOrNull(axisKey) ?: return@forEach
+                if (axis.value() >= axis.maxValue()) return@forEach
+                val page = (if (vertical) node.size.height else node.size.width).toFloat() * (if (axis.reverseScrolling) -1f else 1f)
+                val before = axis.value()
+                scrollBy(node, if (vertical) 0f else page, if (vertical) page else 0f, deadline)
+                val after = current() ?: return@forEach
+                if (after.config.getOrNull(axisKey)?.value() == before) return@forEach
+            }
+        }
+    }
+
+    private fun scrollBy(container: SemanticsNode, dx: Float, dy: Float, deadline: StepDeadline) {
+        deadline.call { compose.runOnUiThread { container.config[SemanticsActions.ScrollBy].action?.invoke(dx, dy) } }
+        settleScroll(deadline)
+    }
+
+    /** Scroll semantics animate with a spring, which moves only while the paused Compose clock advances. */
+    private fun settleScroll(deadline: StepDeadline) {
+        deadline.call { compose.mainClock.advanceTimeBy(SCROLL_SETTLE_MS) }
+        deadline.call { shadowOf(Looper.getMainLooper()).idle() }
+    }
+
+    private fun SemanticsNode.scrollContainer(): SemanticsNode? =
+        generateSequence(parent) { it.parent }.firstOrNull { hasScrollAction().matches(it) }
+
+    private fun SemanticsNode.containsMatch(matcher: SemanticsMatcher): Boolean =
+        matcher.matches(this) || children.any { it.containsMatch(matcher) }
+
+    /** Compose's scrolling rule: bring the nearer edge into the viewport, or nothing when the target
+     *  already fits or is larger than the viewport. */
+    private fun scrollDelta(target: SemanticsNode, container: SemanticsNode): Pair<Float, Float> {
+        val viewport = container.boundsInRoot
+        val bounds = Rect(target.positionInRoot, target.size.toSize())
+        fun delta(start: Float, end: Float): Float =
+            if (sign(start) == sign(end)) (if (abs(start) < abs(end)) start else end) else 0f
+        val horizontal = container.config.getOrNull(SemanticsProperties.HorizontalScrollAxisRange)
+        val vertical = container.config.getOrNull(SemanticsProperties.VerticalScrollAxisRange)
+        var dx = if (horizontal != null) delta(bounds.left - viewport.left, bounds.right - viewport.right) else 0f
+        var dy = if (vertical != null) delta(bounds.top - viewport.top, bounds.bottom - viewport.bottom) else 0f
+        if (horizontal?.reverseScrolling == true) dx = -dx
+        if (container.layoutInfo.layoutDirection == LayoutDirection.Rtl) dx = -dx
+        if (vertical?.reverseScrolling == true) dy = -dy
+        return dx to dy
+    }
+
+    private fun enabled(node: SemanticsNode) {
+        requireAction(!node.config.contains(SemanticsProperties.Disabled), "disabled", "Matching node is disabled")
+    }
+
+    private fun requireAction(condition: Boolean, kind: String, message: String) {
+        if (!condition) throw PlaytestError(kind, message, buildJsonObject { put("matches", lastMatches) })
+    }
+}
+
 private const val SCROLL_SETTLE_MS = 1_000L
 private const val MAX_SCROLL_MOVES = 20
 private const val MAX_LAZY_PAGES = 50
+private val WORKOUT_ACTION_TAGS = setOf("workout-action-filled", "workout-action-tonal")
 private val INTERACTION_ACTIONS = setOf("tap", "longPress", "swipe", "back", "scrollTo")
 
-internal fun SemanticsNode.dropdownAnchor(): Boolean =
-    !config.contains(SemanticsActions.SetText) && config.contains(SemanticsActions.OnClick) &&
-        (config.getOrNull(SemanticsProperties.Role) == Role.DropdownList ||
-            config.contains(SemanticsActions.Expand) || config.contains(SemanticsActions.Collapse))
+internal fun SemanticsNode.opensOnTap(): Boolean =
+    !config.contains(SemanticsActions.SetText) && config.contains(SemanticsActions.OnClick)
 
 internal fun SemanticsNode.visibleForTouch(): Boolean {
     val bounds = boundsInWindow

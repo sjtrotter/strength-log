@@ -2,209 +2,173 @@
   "seat": "r5-p9",
   "capture": "compact",
   "start": {
-    "date": "2026-11-08",
-    "time": "15:00",
+    "restore": "start-backup.json",
+    "date": "2026-11-09",
+    "time": "09:00",
     "zone": "America/Phoenix"
   },
   "steps": [
     {
       "tap": {
-        "text": "Lift"
+        "text": "Plans",
+        "role": "Tab"
       }
     },
     {
       "tap": {
-        "text": "Next"
+        "textContains": "General fitness, 2 days"
       }
     },
     {
       "tap": {
-        "text": "Next"
+        "desc": "Day B"
       }
     },
     {
       "tap": {
-        "text": "2",
-        "role": "Checkbox"
+        "text": "Edit"
       }
     },
     {
       "tap": {
-        "text": "45",
-        "role": "Checkbox"
+        "desc": "More options for Farmer's Carry"
       }
     },
     {
       "tap": {
-        "text": "Next"
+        "text": "Remove"
       }
+    },
+    {
+      "checkpoint": "remove-carry-for-counter-only-session"
     },
     {
       "tap": {
-        "text": "Choose exactly"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "setup-equipment-BARBELL"
-      }
-    },
-    {
-      "tap": {
-        "tag": "setup-equipment-BARBELL"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "setup-equipment-TRAP_BAR"
-      }
-    },
-    {
-      "tap": {
-        "tag": "setup-equipment-TRAP_BAR"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "setup-equipment-RACK"
-      }
-    },
-    {
-      "tap": {
-        "tag": "setup-equipment-RACK"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "setup-equipment-PULLUP_BAR"
-      }
-    },
-    {
-      "tap": {
-        "tag": "setup-equipment-PULLUP_BAR"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "setup-equipment-EZ_BAR"
-      }
-    },
-    {
-      "tap": {
-        "tag": "setup-equipment-EZ_BAR"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "setup-equipment-KETTLEBELL"
-      }
-    },
-    {
-      "tap": {
-        "tag": "setup-equipment-KETTLEBELL"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "10 lb",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "5 lb",
-        "role": "RadioButton",
-        "index": 1
-      }
-    },
-    {
-      "checkpoint": "equipment-and-stack-step"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Under a year"
-      }
-    },
-    {
-      "tap": {
-        "text": "65 or older"
-      }
-    },
-    {
-      "checkpoint": "age-and-experience"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "setup-recent-weight-db_shoulder"
+        "textContains": "Single-Leg Stance"
       }
     },
     {
       "type": {
-        "tag": "setup-recent-weight-db_shoulder",
-        "value": "10"
+        "text": "Sets",
+        "value": "3"
       }
     },
     {
       "type": {
-        "tag": "setup-recent-reps-db_shoulder",
-        "value": "10"
+        "text": "Duration",
+        "value": "0:10"
       }
     },
     {
-      "checkpoint": "trainer-shoulder-number"
-    },
-    {
       "tap": {
-        "text": "Why we ask"
+        "desc": "Each side",
+        "role": "Switch"
       }
     },
     {
-      "checkpoint": "recent-number-explanation"
-    },
-    {
-      "back": true
+      "checkpoint": "three-ten-second-holds-each-side"
     },
     {
       "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "generated-plan"
-    },
-    {
-      "tap": {
-        "text": "Why this plan"
-      }
-    },
-    {
-      "checkpoint": "plan-explanation"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Add",
+        "text": "Save",
         "role": "Button"
       }
     },
     {
-      "checkpoint": "balance-day-added"
+      "back": true
+    },
+    {
+      "checkpoint": "customized-home-day"
     },
     {
       "tap": {
-        "text": "Start",
+        "text": "Start day B",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "home-balance-start"
+    },
+    {
+      "note": "Counter support: hold left 10 seconds, then right 10 seconds; log pair 1. App only supplies one Each side record."
+    },
+    {
+      "advance": "20s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "pair-1-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "note": "Counter support: hold left 10 seconds, then right 10 seconds; log pair 2. App only supplies one Each side record."
+    },
+    {
+      "advance": "20s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "pair-2-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "note": "Counter support: hold left 10 seconds, then right 10 seconds; log pair 3. App only supplies one Each side record."
+    },
+    {
+      "advance": "20s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "pair-3-logged"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      },
+      "optional": true
+    },
+    {
+      "expect": {
+        "text": "Balance, saved."
+      }
+    },
+    {
+      "checkpoint": "home-balance-saved"
+    },
+    {
+      "tap": {
+        "text": "Done",
         "role": "Button"
       }
     },
@@ -215,7 +179,7 @@
       }
     },
     {
-      "checkpoint": "setup-complete"
+      "checkpoint": "monday-home-session-finished"
     }
   ]
 }

@@ -106,8 +106,7 @@
     },
     {
       "expect": {
-        "text": "Why this plan",
-        "inDialog": true
+        "text": "Every set stops with reps left. Training to failure isn't needed (ACSM 2026)."
       }
     },
     {
@@ -123,7 +122,7 @@
     },
     {
       "expect": {
-        "text": "Start day A"
+        "text": "Up next"
       }
     },
     {

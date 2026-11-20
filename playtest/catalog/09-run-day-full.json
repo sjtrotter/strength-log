@@ -106,82 +106,28 @@
       "advance": "150s"
     },
     {
-      "tap": {
-        "text": "Start",
-        "tag": "workout-action-filled"
-      }
+      "advance": "150s"
     },
     {
       "advance": "150s"
     },
     {
-      "tap": {
-        "text": "Start",
-        "tag": "workout-action-filled"
-      }
+      "advance": "150s"
     },
     {
       "advance": "150s"
     },
     {
-      "tap": {
-        "text": "Start",
-        "tag": "workout-action-filled"
-      }
+      "advance": "150s"
     },
     {
       "advance": "150s"
     },
     {
-      "tap": {
-        "text": "Start",
-        "tag": "workout-action-filled"
-      }
-    },
-    {
       "advance": "150s"
     },
     {
-      "tap": {
-        "text": "Start",
-        "tag": "workout-action-filled"
-      }
-    },
-    {
       "advance": "150s"
-    },
-    {
-      "tap": {
-        "text": "Start",
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "150s"
-    },
-    {
-      "tap": {
-        "text": "Start",
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "150s"
-    },
-    {
-      "tap": {
-        "text": "Start",
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "150s"
-    },
-    {
-      "tap": {
-        "text": "Start",
-        "tag": "workout-action-filled"
-      }
     },
     {
       "advance": "60s"
@@ -219,6 +165,17 @@
     },
     {
       "expect": {
+        "text": "Cool-down",
+        "absent": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Run/walk, done."
+      }
+    },
+    {
+      "expect": {
         "text": "Easy",
         "tag": "receipt-cardio-effort-EASY"
       }
@@ -245,8 +202,7 @@
     },
     {
       "expect": {
-        "text": "Today",
-        "role": "Tab"
+        "text": "Start day B"
       }
     },
     {

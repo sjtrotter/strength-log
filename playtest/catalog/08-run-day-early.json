@@ -112,7 +112,19 @@
     },
     {
       "expect": {
+        "text": "Warm-up",
+        "absent": true
+      }
+    },
+    {
+      "expect": {
         "text": "Work, set 1 of 20"
+      }
+    },
+    {
+      "expect": {
+        "text": "Stop",
+        "tag": "workout-action-tonal"
       }
     },
     {
@@ -138,13 +150,13 @@
       }
     },
     {
-      "checkpoint": "Workout · Road run, waiting for Start"
+      "expect": {
+        "text": "Stop",
+        "tag": "workout-action-tonal"
+      }
     },
     {
-      "tap": {
-        "text": "Start",
-        "tag": "workout-action-filled"
-      }
+      "checkpoint": "Workout · Road run, running work set"
     },
     {
       "advance": "30s"
@@ -152,7 +164,7 @@
     {
       "tap": {
         "text": "Stop",
-        "tag": "workout-action-filled"
+        "tag": "workout-action-tonal"
       }
     },
     {
@@ -170,17 +182,13 @@
       }
     },
     {
-      "advance": "90s"
-    },
-    {
       "tap": {
         "text": "All sets"
       }
     },
     {
       "expect": {
-        "text": "Now",
-        "inDialog": true
+        "text": "Now"
       }
     },
     {
@@ -235,6 +243,17 @@
       "scrollTo": {
         "text": "Easy",
         "tag": "receipt-cardio-effort-EASY"
+      }
+    },
+    {
+      "expect": {
+        "text": "Cool-down",
+        "absent": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Run/walk, saved."
       }
     },
     {
@@ -298,6 +317,12 @@
     {
       "tap": {
         "text": "Log past session"
+      }
+    },
+    {
+      "expect": {
+        "text": "Date",
+        "editable": true
       }
     },
     {

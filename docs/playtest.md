@@ -63,19 +63,19 @@ it includes actions replayed before the capture cutoff. Layers appear topmost
 first: `[popup]`, `[dialog]` (including sheets), then `[screen]`. Lines identify
 `field`, `button`, `checkbox`, `switch`, `radio`, `tab`, `dropdown`, `image`,
 `row`, `heading`, `text`, or `area` nodes in reading order. The ` / ` parts are
-separate texts; a `text` selector matches any one. Fields show their label and
+separate text entries or lines within an entry. A `text` selector matches a whole
+entry; use `textContains` for part of a multiline entry. Fields show their label and
 editable value. `desc` gives an accessibility description when it differs from
 the text, and `tag` gives a test tag. Flags show `disabled`, `selected`,
 `checked`, `unchecked`, `indeterminate`, or `offscreen`. Only nodes inside the
 window or in scroll containers appear; invisible scroll content is marked
 `offscreen`. Scroll containers with room to move have lines such as
 `scroll area (more above, more below)`. Quotes and backslashes are escaped;
-text parts longer than 160 characters are shortened. For example, from the
+text parts longer than 160 characters are shortened. This excerpt is from the
 wizard-to-today pilot's final screen:
 
 ```text
 ## Today
-after: tap "Start"
 [screen]
   text "Today"
   button "Start day A"

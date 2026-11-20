@@ -26,18 +26,22 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       scripts: ${{ steps.pick.outputs.scripts }}
+      seats: ${{ steps.pick.outputs.seats }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ inputs.ref || github.event.pull_request.head.sha }}
       - name: Check catalog merger
         run: bash scripts/catalog-test.sh
       - id: pick
         shell: bash
         run: |
           set -euo pipefail
-          scripts=$(ls playtest/catalog/*.json | jq -Rsc 'split("\n") | map(select(length > 0))')
+          walks=(playtest/catalog/*.json)
+          scripts=$(printf '%s\n' "${walks[@]}" | jq -Rsc 'split("\n") | map(select(length > 0))')
           echo "scripts=$scripts" >> "$GITHUB_OUTPUT"
+          seats=$(jq -sc 'map(.seat)' "${walks[@]}")
+          echo "seats=$seats" >> "$GITHUB_OUTPUT"
 
   walk:
     needs: pick
@@ -50,7 +54,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ inputs.ref || github.event.pull_request.head.sha }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -97,15 +101,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ inputs.ref || github.event.pull_request.head.sha }}
       - uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           pattern: catalog-walk-*
           path: walks/
       - name: Merge listings
+        if: always()
+        env:
+          WALK_SEATS: ${{ needs.pick.outputs.seats }}
         run: |
           set -euo pipefail
-          bash scripts/catalog.sh walks "$(git rev-parse HEAD)" > catalog.md
+          mkdir -p walks
+          status=0
+          bash scripts/catalog.sh walks "$(git rev-parse HEAD)" "$WALK_SEATS" > catalog.md || status=$?
+          cat catalog.md
+          exit "$status"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -113,3 +125,11 @@ jobs:
           path: catalog.md
           if-no-files-found: error
           retention-days: 30
+      - name: Report walk failures
+        if: always()
+        env:
+          WALK_RESULT: ${{ needs.walk.result }}
+        run: |
+          set -euo pipefail
+          echo "Walk jobs: $WALK_RESULT"
+          test "$WALK_RESULT" = success

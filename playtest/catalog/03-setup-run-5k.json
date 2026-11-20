@@ -94,7 +94,7 @@
     },
     {
       "expect": {
-        "desc": "Switch to text input mode"
+        "text": "Selected date"
       }
     },
     {
@@ -107,7 +107,7 @@
     },
     {
       "expect": {
-        "desc": "Switch to calendar input mode"
+        "text": "Entered date"
       }
     },
     {
@@ -140,6 +140,12 @@
     {
       "expect": {
         "text": "Where you are"
+      }
+    },
+    {
+      "expect": {
+        "text": "Minutes",
+        "editable": true
       }
     },
     {
@@ -197,7 +203,7 @@
     },
     {
       "expect": {
-        "text": "Start day A"
+        "text": "Up next"
       }
     },
     {

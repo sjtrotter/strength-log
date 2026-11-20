@@ -65,7 +65,8 @@
     },
     {
       "tap": {
-        "tag": "lift-check-main-0"
+        "desc": "Barbell Back Squat 1, 45 × 8",
+        "role": "Checkbox"
       }
     },
     {
@@ -143,7 +144,7 @@
     },
     {
       "expect": {
-        "text": "Goblet Squat"
+        "text": "Barbell Back Squat"
       }
     },
     {
@@ -157,7 +158,7 @@
     },
     {
       "expect": {
-        "textContains": "General fitness"
+        "text": "New plan"
       }
     },
     {
@@ -250,7 +251,14 @@
     },
     {
       "expect": {
-        "text": "Reps in time"
+        "text": "Reps in time",
+        "role": "DropdownList"
+      }
+    },
+    {
+      "expect": {
+        "text": "Duration",
+        "editable": true
       }
     },
     {
@@ -298,8 +306,14 @@
       }
     },
     {
+      "scrollTo": {
+        "text": "Save route"
+      }
+    },
+    {
       "expect": {
-        "text": "GPS distance"
+        "text": "Save route",
+        "enabled": false
       }
     },
     {

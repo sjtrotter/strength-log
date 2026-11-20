@@ -44,12 +44,7 @@
     },
     {
       "expect": {
-        "text": "Start day A"
-      }
-    },
-    {
-      "expect": {
-        "text": "Start day A"
+        "text": "Up next"
       }
     },
     {
@@ -62,7 +57,7 @@
     },
     {
       "expect": {
-        "text": "Start day A"
+        "textContains": "Barbell Back Squat"
       }
     },
     {
@@ -88,6 +83,20 @@
       }
     },
     {
+      "expect": {
+        "text": "Warm-up",
+        "absent": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "Workout · Barbell Back Squat, first set"
+    },
+    {
       "tap": {
         "desc": "Edit set 1"
       }
@@ -107,11 +116,22 @@
     },
     {
       "expect": {
+        "text": "Save set",
+        "absent": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "expect": {
         "text": "All sets"
       }
     },
     {
-      "checkpoint": "Workout · Goblet Squat, after Save set"
+      "checkpoint": "Workout · Barbell Back Squat, after Save set"
     },
     {
       "tap": {
@@ -126,11 +146,16 @@
     },
     {
       "expect": {
-        "tag": "workout-rest"
+        "text": "Barbell Back Squat"
       }
     },
     {
-      "checkpoint": "Workout · Goblet Squat, rest timer"
+      "expect": {
+        "text": "Rest"
+      }
+    },
+    {
+      "checkpoint": "Workout · Barbell Back Squat, rest timer"
     },
     {
       "advance": "90s"
@@ -143,11 +168,16 @@
     },
     {
       "expect": {
-        "desc": "Edit set 2"
+        "text": "Barbell Back Squat"
       }
     },
     {
-      "checkpoint": "Workout · Goblet Squat, next set"
+      "expect": {
+        "text": "Set 2 of 2"
+      }
+    },
+    {
+      "checkpoint": "Workout · Barbell Back Squat, next set"
     },
     {
       "tap": {
@@ -156,12 +186,11 @@
     },
     {
       "expect": {
-        "text": "Goblet Squat",
-        "inDialog": true
+        "text": "Add a set"
       }
     },
     {
-      "checkpoint": "Workout · Goblet Squat, All sets"
+      "checkpoint": "Workout · Barbell Back Squat, All sets"
     },
     {
       "tap": {
@@ -174,7 +203,7 @@
       }
     },
     {
-      "checkpoint": "Workout · Goblet Squat, More menu"
+      "checkpoint": "Workout · Barbell Back Squat, More menu"
     },
     {
       "tap": {
@@ -183,11 +212,11 @@
     },
     {
       "expect": {
-        "text": "Swap Goblet Squat"
+        "text": "Swap Barbell Back Squat"
       }
     },
     {
-      "checkpoint": "Workout · Swap Goblet Squat"
+      "checkpoint": "Workout · Swap Barbell Back Squat"
     },
     {
       "type": {
@@ -235,19 +264,26 @@
       }
     },
     {
-      "expect": {
-        "text": "Goblet Squat",
-        "inDialog": true
-      }
-    },
-    {
-      "checkpoint": "Workout · Goblet Squat, added set"
-    },
-    {
       "back": true
     },
     {
-      "advance": "90s"
+      "expect": {
+        "text": "Add a set",
+        "absent": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "expect": {
+        "text": "Set 2 of 3"
+      }
+    },
+    {
+      "checkpoint": "Workout · Barbell Back Squat, added set"
     },
     {
       "tap": {

@@ -1,19 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 2 || ! -d $1 || -z $2 ]]; then
-  echo 'usage: scripts/catalog.sh <walks-dir> <build-sha>' >&2
+if [[ $# -ne 3 || ! -d $1 || -z $2 ]]; then
+  echo 'usage: scripts/catalog.sh <walks-dir> <build-sha> <walk-seats-json>' >&2
+  exit 2
+fi
+if ! jq -e 'type == "array" and length > 0 and all(.[]; type == "string" and length > 0)' <<<"$3" > /dev/null; then
+  echo 'Walk seats must be a nonempty JSON array of names' >&2
   exit 2
 fi
 shopt -s nullglob
 summaries=("$1"/*/summary.json)
-if [[ ${#summaries[@]} -eq 0 ]]; then
-  echo 'No walk summaries found' >&2
-  exit 2
+if [[ ${#summaries[@]} -gt 0 ]]; then
+  ordered=$(jq -nr '[inputs | {seat, file: input_filename}] | sort_by(.seat) | .[].file' "${summaries[@]}")
+  mapfile -t summaries <<<"$ordered"
 fi
-ordered=$(jq -nr '[inputs | {seat, file: input_filename}] | sort_by(.seat) | .[].file' "${summaries[@]}")
-mapfile -t summaries <<<"$ordered"
 problems=()
+mapfile -t expected_seats < <(jq -r 'sort | unique[]' <<<"$3")
+for seat in "${expected_seats[@]}"; do
+  listings=()
+  for summary in "${summaries[@]}"; do
+    if [[ $(jq -r '.seat' "$summary") == "$seat" ]]; then
+      listings+=("${summary%/*}"/steps/*-checkpoint-*.screen.txt)
+    fi
+  done
+  if [[ ${#listings[@]} -eq 0 ]]; then
+    problems+=("$seat: no checkpoint listings; screens in this walk are missing.")
+  fi
+done
 for summary in "${summaries[@]}"; do
   problem=$(jq -r '
     if .error_class != null then

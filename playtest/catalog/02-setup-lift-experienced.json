@@ -67,8 +67,7 @@
     },
     {
       "expect": {
-        "text": "Why we ask",
-        "inDialog": true
+        "text": "A recent set of 10 reps or fewer and how hard it felt give a starting estimate (Epley). Leave a lift blank and its first session finds the weight."
       }
     },
     {
@@ -113,7 +112,7 @@
     },
     {
       "expect": {
-        "text": "Start day A"
+        "text": "Up next"
       }
     },
     {

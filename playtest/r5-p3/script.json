@@ -3,15 +3,15 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-08",
-    "time": "20:40",
+    "date": "2026-11-10",
+    "time": "17:30",
     "zone": "America/Chicago"
   },
   "steps": [
     {
       "tap": {
-        "text": "Plans",
-        "role": "Tab"
+        "role": "Tab",
+        "text": "Plans"
       }
     },
     {
@@ -27,7 +27,8 @@
     {
       "type": {
         "text": "Name",
-        "value": "Meet block — Nov 9 to Dec 5"
+        "value": "Tuesday technique \u2014 meet block",
+        "ime": "done"
       }
     },
     {
@@ -37,8 +38,8 @@
     },
     {
       "tap": {
-        "text": "Ask",
-        "role": "RadioButton"
+        "role": "RadioButton",
+        "text": "Ask"
       }
     },
     {
@@ -52,61 +53,6 @@
       }
     },
     {
-      "checkpoint": "empty-day-editor"
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Squat (bilateral)"
-      }
-    },
-    {
-      "checkpoint": "squat-choices"
-    },
-    {
-      "tap": {
-        "text": "Barbell Back Squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "Barbell Back Squat"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "165",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "five-squat-sets-prescribed"
-    },
-    {
       "scrollTo": {
         "text": "Add exercise"
       }
@@ -117,14 +63,19 @@
       }
     },
     {
+      "scrollTo": {
+        "text": "Hinge"
+      }
+    },
+    {
       "tap": {
-        "text": "Horizontal push"
+        "text": "Hinge"
       }
     },
     {
       "type": {
         "text": "Search exercises",
-        "value": "Competition bench (paused)",
+        "value": "Paused deadlift (off floor)",
         "ime": "done"
       }
     },
@@ -136,7 +87,7 @@
     {
       "type": {
         "text": "Name",
-        "value": "Competition bench (paused)",
+        "value": "Paused deadlift (off floor)",
         "ime": "done"
       }
     },
@@ -147,118 +98,59 @@
     },
     {
       "scrollTo": {
-        "text": "Horizontal push"
+        "text": "Hinge"
       }
     },
     {
       "tap": {
-        "text": "Horizontal push"
+        "inDialog": true,
+        "role": "RadioButton",
+        "text": "Hinge"
       }
     },
     {
       "tap": {
-        "text": "Save",
-        "role": "Button"
+        "role": "Button",
+        "text": "Save"
       }
     },
     {
       "tap": {
-        "text": "Competition bench (paused)",
-        "index": 1
+        "index": 1,
+        "text": "Paused deadlift (off floor)"
       }
     },
     {
-      "expect": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "checkpoint": "custom-competition-bench-(paused)"
+      "checkpoint": "created-paused-deadlift-(off-floor)"
     },
     {
       "scrollTo": {
-        "text": "Competition bench (paused)"
+        "text": "Paused deadlift (off floor)"
       }
     },
     {
       "tap": {
-        "text": "Competition bench (paused)"
+        "text": "Paused deadlift (off floor)"
       }
     },
     {
       "type": {
         "text": "Sets",
-        "value": "5",
+        "value": "4",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "100",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Knee flexion (leg curl)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Lying Leg Curl"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Lying Leg Curl"
-      }
-    },
-    {
-      "tap": {
-        "text": "Lying Leg Curl"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
         "value": "3",
         "ime": "done"
       }
     },
     {
       "type": {
-        "text": "Reps",
-        "value": "10",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
         "text": "Weight (kg)",
-        "value": "45",
+        "value": "170",
         "ime": "done"
       }
     },
@@ -279,351 +171,41 @@
     },
     {
       "scrollTo": {
-        "text": "Core: anti-extension"
+        "text": "Horizontal pull"
       }
     },
     {
       "tap": {
-        "text": "Core: anti-extension"
+        "text": "Horizontal pull"
       }
     },
     {
       "type": {
         "text": "Search exercises",
-        "value": "Ab wheel (controlled)",
+        "value": "Chest-Supported Row",
         "ime": "done"
       }
     },
     {
       "tap": {
-        "text": "Create exercise"
-      }
-    },
-    {
-      "type": {
-        "text": "Name",
-        "value": "Ab wheel",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Movement pattern"
-      }
-    },
-    {
-      "checkpoint": "ab-wheel-movement-dialog"
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "role": "RadioButton",
-        "inDialog": true,
-        "index": 3,
-        "direction": "up"
-      }
-    },
-    {
-      "checkpoint": "ab-wheel-movement-after-swipes"
-    },
-    {
-      "tap": {
-        "text": "Core: anti-extension",
-        "inDialog": true,
-        "role": "RadioButton"
-      }
-    },
-    {
-      "checkpoint": "ab-wheel-movement-selected"
-    },
-    {
-      "tap": {
-        "text": "Reps",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "ab-wheel-created-returned-to-day"
-    },
-    {
-      "scrollTo": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
+        "index": 1,
+        "text": "Chest-Supported Row"
       }
     },
     {
       "scrollTo": {
-        "text": "Core: anti-extension"
+        "text": "Chest-Supported Row"
       }
     },
     {
       "tap": {
-        "text": "Core: anti-extension"
-      }
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "Ab wheel",
-        "ime": "done"
-      }
-    },
-    {
-      "checkpoint": "ab-wheel-exact-search"
-    },
-    {
-      "tap": {
-        "text": "Ab wheel",
-        "index": 1
-      }
-    },
-    {
-      "expect": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "checkpoint": "custom-ab-wheel"
-    },
-    {
-      "scrollTo": {
-        "text": "Ab wheel"
-      }
-    },
-    {
-      "tap": {
-        "text": "Ab wheel"
+        "text": "Chest-Supported Row"
       }
     },
     {
       "type": {
         "text": "Sets",
-        "value": "3",
+        "value": "4",
         "ime": "done"
       }
     },
@@ -631,8 +213,14 @@
       "type": {
         "text": "Reps",
         "value": "8",
-        "ime": "done",
-        "index": 1
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "65",
+        "ime": "done"
       }
     },
     {
@@ -641,7 +229,81 @@
       }
     },
     {
-      "checkpoint": "monday-whole-prescription"
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Horizontal pull"
+      }
+    },
+    {
+      "tap": {
+        "text": "Horizontal pull"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "One-arm dumbbell row (each side)",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Create exercise"
+      }
+    },
+    {
+      "type": {
+        "text": "Name",
+        "value": "One-arm dumbbell row (each side)",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Movement pattern"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Horizontal pull"
+      }
+    },
+    {
+      "tap": {
+        "inDialog": true,
+        "role": "RadioButton",
+        "text": "Horizontal pull"
+      }
+    },
+    {
+      "tap": {
+        "role": "Switch",
+        "text": "Per hand (dumbbell/unilateral)"
+      }
+    },
+    {
+      "tap": {
+        "role": "Button",
+        "text": "Save"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "created-one-arm-dumbbell-row-(each-side)"
+    },
+    {
+      "checkpoint": "tuesday-plan-before-today-only-swap"
     },
     {
       "back": true
@@ -655,7 +317,7 @@
     {
       "tap": {
         "desc": "Plan options",
-        "index": 1
+        "index": 2
       }
     },
     {
@@ -665,12 +327,9 @@
     },
     {
       "tap": {
-        "text": "Today",
-        "role": "Tab"
+        "role": "Tab",
+        "text": "Today"
       }
-    },
-    {
-      "advance": "20h50m"
     },
     {
       "tap": {
@@ -679,15 +338,168 @@
     },
     {
       "tap": {
-        "text": "Skip",
-        "role": "Button"
+        "role": "Button",
+        "text": "Skip"
       }
     },
     {
-      "note": "Twenty minutes of my normal warm-ups before the recorded work sets."
+      "advance": "20m"
     },
     {
-      "advance": "20m"
+      "checkpoint": "tuesday-main-work-start"
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "four-paused-deadlift-sets"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "role": "Button",
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap exercise"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "dumbbell row",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "One-arm dumbbell row (each side)"
+      }
+    },
+    {
+      "tap": {
+        "role": "RadioButton",
+        "text": "This workout"
+      }
+    },
+    {
+      "checkpoint": "row-swap-is-for-this-workout"
+    },
+    {
+      "tap": {
+        "role": "Button",
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "row-after-temporary-swap"
     },
     {
       "tap": {
@@ -697,14 +509,14 @@
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "190",
+        "value": "40",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Reps",
-        "value": "1",
+        "value": "8",
         "ime": "done"
       }
     },
@@ -714,9 +526,6 @@
       }
     },
     {
-      "checkpoint": "squat-single-and-four-backoffs"
-    },
-    {
       "advance": "45s"
     },
     {
@@ -735,21 +544,7 @@
       }
     },
     {
-      "checkpoint": "logged-set-1"
-    },
-    {
-      "recreate": true
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "checkpoint": "returned-from-squat-video"
-    },
-    {
-      "advance": "5m"
+      "advance": "2m"
     },
     {
       "tap": {
@@ -757,29 +552,27 @@
       }
     },
     {
-      "advance": "45s"
-    },
-    {
       "tap": {
-        "tag": "workout-action-filled"
+        "desc": "Edit set 2"
       }
     },
     {
-      "expect": {
-        "tag": "workout-set-done"
+      "type": {
+        "text": "Weight (kg)",
+        "value": "40",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
       }
     },
     {
       "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "5m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
+        "text": "Save set"
       }
     },
     {
@@ -801,11 +594,35 @@
       }
     },
     {
-      "advance": "5m"
+      "advance": "2m"
     },
     {
       "tap": {
         "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 3"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "40",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
       }
     },
     {
@@ -827,11 +644,35 @@
       }
     },
     {
-      "advance": "5m"
+      "advance": "2m"
     },
     {
       "tap": {
         "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Edit set 4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "40",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
       }
     },
     {
@@ -853,324 +694,29 @@
       }
     },
     {
-      "checkpoint": "logged-set-5"
-    },
-    {
-      "advance": "5m"
+      "checkpoint": "four-dumbbell-row-sets-each-side"
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "logged-set-10"
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "logged-set-13"
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "logged-set-16"
-    },
-    {
-      "note": "All 16 actual sets are complete, but Done then Finish day A did not save. Add one unperformed placeholder set so the separate Finish control can record the 16 real sets; explain the extra blank set in the receipt note."
-    },
-    {
-      "tap": {
-        "text": "Done",
         "role": "Button",
-        "inDialog": true
+        "inDialog": true,
+        "text": "Done"
       }
     },
     {
-      "checkpoint": "after-cooldown-done"
+      "note": "Complete the diary accessories: neutral-grip pulldown machine A 55 kg 3x10 and rear-delt cable fly station C 10 kg 3x15, around RPE8. Then bike20 minutes easy RPE3. These are recorded in the session note, not claimed as individual app sets."
+    },
+    {
+      "advance": "12m"
+    },
+    {
+      "advance": "20m"
     },
     {
       "tap": {
-        "text": "All sets",
-        "role": "Button"
+        "role": "Button",
+        "text": "All sets"
       }
-    },
-    {
-      "checkpoint": "final-ab-wheel-all-sets"
     },
     {
       "tap": {
@@ -1181,21 +727,15 @@
       "back": true
     },
     {
-      "checkpoint": "extra-unperformed-set-to-recover-finish"
-    },
-    {
       "tap": {
         "tag": "workout-finish"
       }
     },
     {
-      "checkpoint": "finish-real-work-with-placeholder-left"
-    },
-    {
       "tap": {
-        "text": "Finish",
         "role": "Button",
-        "inDialog": true
+        "inDialog": true,
+        "text": "Finish"
       }
     },
     {
@@ -1206,7 +746,7 @@
       }
     },
     {
-      "checkpoint": "monday-saved-review"
+      "checkpoint": "tuesday-saved-review"
     },
     {
       "scrollTo": {
@@ -1222,7 +762,7 @@
       "type": {
         "editable": true,
         "index": 0,
-        "value": "16 real sets; blank17 escapes stuck Finish. Sq RPE7,last7.5; bench stiff then fine; video Nov9 side; curl A45kg.",
+        "value": "Bike20m easy; pulldown A55kg3x10; rear fly C10kg3x15. Row40/side today only. DL pause rushed1. Blank9=save workaround.",
         "ime": "done"
       }
     },
@@ -1232,7 +772,7 @@
       }
     },
     {
-      "checkpoint": "monday-note-saved"
+      "checkpoint": "tuesday-note-saved"
     },
     {
       "tap": {
@@ -1246,7 +786,7 @@
       }
     },
     {
-      "checkpoint": "monday-finished-today"
+      "checkpoint": "tuesday-finished-today"
     }
   ]
 }

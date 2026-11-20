@@ -46,6 +46,7 @@ import cloud.trotter.log.strength.ui.components.LocalDistanceUnit
 import cloud.trotter.log.strength.ui.navigation.TopLevelDestination
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.day.CardioEntryDraft
+import cloud.trotter.log.strength.ui.day.receipt.legacyDistancePaceResultFixture
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import java.time.Instant
 import java.time.LocalDate
@@ -130,10 +131,10 @@ class LogScreenInteractionTest {
 
     @Test fun `a finished distance history row shows pace without GPS`() {
         val session = CardioSessionEntity(id = 8, dayId = "A", mode = "LOW_IMPACT", hard = false,
-            label = "Rower", startedAt = 1000, completedAt = 478_000, seconds = 477,
+            label = "Rower", startedAt = 1000, completedAt = 511_000, seconds = 510,
             stepsCompleted = 1, activity = CardioActivity.ROWER.name)
         val result = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(2000)),
-            CardioSetStatus.FINISHED, 477, metresAtEnd = 2000, secondsAtEnd = 477)
+            CardioSetStatus.FINISHED, 510, metresAtEnd = 2000, secondsAtEnd = 477)
         val shortened = result.copy(status = CardioSetStatus.SHORTENED, metresAtEnd = null, secondsAtEnd = null)
         val sprint = result.copy(timing = SprintTime(47000, TimingMethod.HAND, StartProtocol.STANDING))
         setContent(false, sessions = listOf(
@@ -141,6 +142,15 @@ class LogScreenInteractionTest {
             LogScreenBuilder.cardioItem(session.copy(id = 9), listOf(shortened)),
             LogScreenBuilder.cardioItem(session.copy(id = 10), listOf(sprint))))
         composeTestRule.onAllNodesWithText("Pace", substring = true).assertCountEquals(1)
+        composeTestRule.onNodeWithText("Pace 1:59 /500 m").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Pace 1 minute 59 seconds per 500 meters.").assertIsDisplayed()
+    }
+
+    @Test fun `a legacy finished distance history row shows planned distance pace`() {
+        val session = CardioSessionEntity(id = 8, dayId = "A", mode = "LOW_IMPACT", hard = false,
+            label = "Rower", startedAt = 1000, completedAt = 478_000, seconds = 477,
+            stepsCompleted = 1, activity = CardioActivity.ROWER.name)
+        setContent(false, sessions = listOf(LogScreenBuilder.cardioItem(session, listOf(legacyDistancePaceResultFixture()))))
         composeTestRule.onNodeWithText("Pace 1:59 /500 m").assertIsDisplayed()
         composeTestRule.onNodeWithContentDescription("Pace 1 minute 59 seconds per 500 meters.").assertIsDisplayed()
     }

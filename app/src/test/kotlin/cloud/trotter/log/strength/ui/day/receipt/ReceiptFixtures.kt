@@ -132,3 +132,6 @@ internal fun rowerPaceReceiptFixture(record: Boolean = false): WorkoutReceipt {
         cardioRows = ReceiptBuilder.cardio(activity, listOf(current),
             if (record) CardioBests.bests(activity, listOf(previous)) else emptyMap()))
 }
+
+internal fun legacyDistancePaceResultFixture(): CardioSetResult = CardioSetResult(
+    CardioSetSpec(CardioRole.WORK, Measure.Distance(2000)), CardioSetStatus.FINISHED, 477)

@@ -161,13 +161,40 @@ class ReceiptScreenTest {
         rule.onAllNodesWithText("Pace", substring = true, useUnmergedTree = true).assertCountEquals(0)
     }
 
-    @Test fun `a finished distance receipt shows pace without GPS or rebuilt sets`() {
+    @Test fun `a finished distance receipt shows pace once untimed sets load`() {
         val result = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(2000)),
             CardioSetStatus.FINISHED, 477, metresAtEnd = 2000, secondsAtEnd = 477)
         val receipt = rowerPaceReceiptFixture().copy(cardioRows = ReceiptBuilder.cardio(
             CardioActivity.ROWER, listOf(result), emptyMap()))
         assertNull(receipt.cardioRows.single().intervals.single().metres)
-        setReceipt(receipt)
+        val progress = mutableStateOf(ReceiptProgressState())
+        rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}, progress = progress.value) } }
+        // #531: The saved interval cannot distinguish untimed work from a timed sprint until its set loads.
+        rule.onAllNodesWithText("Pace", substring = true, useUnmergedTree = true).assertCountEquals(0)
+        rule.runOnIdle { progress.value = ReceiptProgressState(cardioSets = listOf(listOf(result))) }
+        rule.onNodeWithText("Pace 1:59 /500 m", useUnmergedTree = true).assertExists()
+        rule.onNodeWithContentDescription("2,000 meters. Time, 7 minutes 57 seconds. Pace 1 minute 59 seconds per 500 meters.").assertExists()
+    }
+
+    @Test fun `a distance receipt pairs planned meters with at end seconds`() {
+        val result = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(2000)),
+            CardioSetStatus.FINISHED, 510, metresAtEnd = 2000, secondsAtEnd = 477)
+        val receipt = rowerPaceReceiptFixture().copy(cardioRows = ReceiptBuilder.cardio(
+            CardioActivity.ROWER, listOf(result), emptyMap()))
+        rule.setContent { AppTheme {
+            SessionReceiptScreen(receipt, {}, {}, progress = ReceiptProgressState(cardioSets = listOf(listOf(result))))
+        } }
+        rule.onNodeWithText("Pace 1:59 /500 m", useUnmergedTree = true).assertExists()
+        rule.onNodeWithContentDescription("2,000 meters. Time, 8 minutes 30 seconds. Pace 1 minute 59 seconds per 500 meters.").assertExists()
+    }
+
+    @Test fun `a legacy finished distance receipt shows planned distance pace`() {
+        val result = legacyDistancePaceResultFixture()
+        val receipt = rowerPaceReceiptFixture().copy(cardioRows = ReceiptBuilder.cardio(
+            CardioActivity.ROWER, listOf(result), emptyMap()))
+        rule.setContent { AppTheme {
+            SessionReceiptScreen(receipt, {}, {}, progress = ReceiptProgressState(cardioSets = listOf(listOf(result))))
+        } }
         rule.onNodeWithText("Pace 1:59 /500 m", useUnmergedTree = true).assertExists()
         rule.onNodeWithContentDescription("2,000 meters. Time, 7 minutes 57 seconds. Pace 1 minute 59 seconds per 500 meters.").assertExists()
     }
@@ -186,9 +213,13 @@ class ReceiptScreenTest {
             timing = SprintTime(5500, TimingMethod.HAND, StartProtocol.STANDING))
         val receipt = cardioReceiptFixture().copy(cardioRows = ReceiptBuilder.cardio(
             CardioActivity.TRACK_RUN, listOf(result), emptyMap()))
+        val progress = mutableStateOf(ReceiptProgressState())
         rule.setContent { AppTheme {
-            SessionReceiptScreen(receipt, {}, {}, progress = ReceiptProgressState(cardioSets = listOf(listOf(result))))
+            SessionReceiptScreen(receipt, {}, {}, progress = progress.value)
         } }
+        rule.onAllNodesWithText("Pace", substring = true, useUnmergedTree = true).assertCountEquals(0)
+        rule.onAllNodesWithContentDescription("Pace", substring = true).assertCountEquals(0)
+        rule.runOnIdle { progress.value = ReceiptProgressState(cardioSets = listOf(listOf(result))) }
         rule.onAllNodesWithText("Pace", substring = true, useUnmergedTree = true).assertCountEquals(0)
         rule.onAllNodesWithContentDescription("Pace", substring = true).assertCountEquals(0)
     }

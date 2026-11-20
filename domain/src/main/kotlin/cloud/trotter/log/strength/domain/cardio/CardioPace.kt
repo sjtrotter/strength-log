@@ -45,9 +45,9 @@ object CardioPace {
         of(activity, results.filter {
             it.spec.role == CardioRole.WORK && it.status != CardioSetStatus.SKIPPED && it.timing == null
         }.map { result ->
-            val metres = if (result.status == CardioSetStatus.FINISHED && result.spec.end is Measure.Distance) {
-                result.metres ?: result.metresAtEnd
-            } else result.metres
-            Effort(result.elapsedSeconds, metres)
+            val end = result.spec.end
+            if (result.metres == null && result.status == CardioSetStatus.FINISHED && end is Measure.Distance) {
+                Effort(result.secondsAtEnd ?: result.elapsedSeconds, result.metresAtEnd ?: end.metres)
+            } else Effort(result.elapsedSeconds, result.metres)
         }, setting)
 }

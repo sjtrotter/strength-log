@@ -39,13 +39,14 @@ class CardioPaceTest {
         }
     }
 
-    @Test fun `work pace sums intervals and skips sets without a distance or skipped`() {
+    @Test fun `work pace sums intervals and uses planned finished distances`() {
         fun result(seconds: Int, metres: Int?, role: CardioRole = CardioRole.WORK,
             status: CardioSetStatus = CardioSetStatus.FINISHED) = CardioSetResult(
             CardioSetSpec(role, Measure.Distance(400)), status, seconds, metres, metres?.let { DistanceSource.MANUAL })
         val results = listOf(result(100, 400), result(104, 400, status = CardioSetStatus.SHORTENED),
             result(300, null), result(30, 400, status = CardioSetStatus.SKIPPED), result(90, 400, CardioRole.RECOVERY))
-        assertEquals("4:15 /km", CardioPace.ofWork(CardioActivity.TRACK_RUN, results, DistanceUnit.KM)?.text)
+        // #531: Finished distance work without meters uses its planned distance, including the 300-second set.
+        assertEquals("7:00 /km", CardioPace.ofWork(CardioActivity.TRACK_RUN, results, DistanceUnit.KM)?.text)
     }
 
     @Test fun `an hour or more per unit reads h mm ss`() {
@@ -71,6 +72,22 @@ class CardioPaceTest {
         val timed = row.copy(spec = CardioSetSpec(CardioRole.WORK, Measure.Time(477)),
             status = CardioSetStatus.FINISHED, metresAtEnd = 2000, secondsAtEnd = 477)
         assertNull(CardioPace.ofWork(CardioActivity.ROWER, listOf(timed), DistanceUnit.KM))
+    }
+
+    @Test fun `distance fallback pairs at end meters with at end seconds`() {
+        val row = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(2000)),
+            CardioSetStatus.FINISHED, 510, metresAtEnd = 2000, secondsAtEnd = 477)
+        assertEquals("1:59 /500 m", CardioPace.ofWork(CardioActivity.ROWER, listOf(row), DistanceUnit.KM)?.text)
+        val measured = row.copy(metres = 2100, distanceSource = DistanceSource.GPS)
+        assertEquals("2:01 /500 m", CardioPace.ofWork(CardioActivity.ROWER, listOf(measured), DistanceUnit.KM)?.text)
+        val noEndTime = row.copy(elapsedSeconds = 477, secondsAtEnd = null)
+        assertEquals("1:59 /500 m", CardioPace.ofWork(CardioActivity.ROWER, listOf(noEndTime), DistanceUnit.KM)?.text)
+    }
+
+    @Test fun `legacy finished distance work uses planned meters`() {
+        val row = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Distance(2000)),
+            CardioSetStatus.FINISHED, 477)
+        assertEquals("1:59 /500 m", CardioPace.ofWork(CardioActivity.ROWER, listOf(row), DistanceUnit.KM)?.text)
     }
 
     @Test fun `timed sprint reps do not contribute wall clock seconds to pace`() {

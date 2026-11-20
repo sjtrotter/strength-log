@@ -335,9 +335,11 @@ internal fun CardioReceiptRowItem(
     }
     val pace = if (activity != null && row.role == CardioRole.WORK && bestInterval(row) != null) {
         CardioPace.of(activity, row.intervals.mapIndexedNotNull { index, interval ->
-            if (interval.status == CardioSetStatus.SKIPPED || sets.getOrNull(index)?.timing != null) null
-            else CardioPace.Effort(interval.elapsedSeconds,
-                interval.metres ?: row.endMetres.takeIf { interval.status == CardioSetStatus.FINISHED })
+            val set = sets.getOrNull(index)
+            if (interval.status == CardioSetStatus.SKIPPED || set?.timing != null) null
+            else if (interval.metres == null && interval.status == CardioSetStatus.FINISHED && set != null) {
+                CardioPace.Effort(set.secondsAtEnd ?: interval.elapsedSeconds, row.endMetres)
+            } else CardioPace.Effort(interval.elapsedSeconds, interval.metres)
         }, LocalDistanceUnit.current)
     } else null
     val spoken = spokenCardioRow(row, unit, sprint, pace, lastTime) + singleLeg?.let { " ${it.at}. ${it.past}" }.orEmpty()

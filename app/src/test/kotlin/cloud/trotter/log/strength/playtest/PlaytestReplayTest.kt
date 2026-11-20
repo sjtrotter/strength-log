@@ -95,12 +95,16 @@ class PlaytestReplayTest {
         var launchAttempted = false
         var backupAttempted = false
         val watchdog = startRunWatchdog(artifacts)
-        fun writeBackup() {
+        fun writeBackup(scenario: ActivityScenario<MainActivity>? = null) {
             backupAttempted = true
             artifacts.writeSummary(if (this::time.isInitialized) time else null)
             try {
                 if (!this::backup.isInitialized) hilt.inject()
-                artifacts.writeBackup(backup)
+                val deadline = StepDeadline(60_000, operation = "Backup export")
+                deadline.run(compose) {
+                    val locks = deadline.call { scenario?.workoutMutationLocks().orEmpty() }
+                    artifacts.writeBackup(backup, deadline) { awaitWorkoutMutations(locks) }
+                }
             } catch (exportError: Throwable) {
                 artifacts.backupFailure(exportError.playtestError())
                 throw exportError
@@ -149,7 +153,7 @@ class PlaytestReplayTest {
                     } finally {
                         // Export while the foreground graph is still alive, including on a failed step.
                         try {
-                            writeBackup()
+                            writeBackup(scenario)
                         } catch (exportError: Throwable) {
                             val original = replayFailure
                             if (original != null) original.addSuppressed(exportError) else throw exportError

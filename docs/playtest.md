@@ -45,6 +45,11 @@ at 23:39 in America/Chicago exits at `2026-11-10T05:39:00Z` in UTC but
 `2026-11-09T23:39` locally. `backup.json` is the real app backup at exit, including on
 failure when export succeeds. The summary is written before export and rewritten afterward;
 an export failure is recorded in `backup_error` without replacing the step failure.
+Before export, the harness waits for pending workout mutations and for setup or
+restore writes holding the backup service's restore lock. These waits and export
+share one 60-second real-time deadline through the same storage wait used by
+restore. If the wait expires, the run fails as `timeout` with a message naming
+backup export, and no partial backup is written.
 Export and restore each have a 60-second real-time limit. Storage runs in the
 background while the calling thread idles the main looper, including storage reads
 within a step's remaining budget.
@@ -120,6 +125,10 @@ malformed payloads fail before the activity launches. For example:
 Each step has one real-time deadline, defaulting to 10,000 ms. `timeoutMs` must be
 a positive integer. Lookup, action, screen settling, and capture share that budget.
 Launch has a separate 20,000 ms budget.
+Before `tap` or `longPress` on `workout-action-filled` or `workout-action-tonal`,
+the harness advances the Compose clock by 700 ms so the 600 ms workout action
+guard can expire. This pause uses frame time and never advances `PlaytestTime`;
+rest timers, cardio timers, and the Finish window keep the same app time.
 After `tap`, `longPress`, `swipe`, `back`, and `scrollTo`, the harness advances
 the paused Compose clock one frame at a time until the merged semantics tree is
 unchanged across three consecutive frames and window transitions have finished,
@@ -154,7 +163,7 @@ the existing `stack` field still includes the exception chain.
 | `tap` | Selector. Clicks the matching visible node. Empty or entirely off-screen bounds fail with `not-visible`; use `scrollTo` first. |
 | `longPress` | Selector. Holds the matching visible node, with the same bounds check as `tap`. |
 | `type` | Selector plus `"value": "185"` and optional `"ime": "done"`. Replaces all text after requesting focus. With `"ime": "done"`, performs the field's declared IME action. A field that declares none commits as you type, so the step skips it and logs `"ime": {"declared": "Default", "performed": false}`. |
-| `scrollTo` | Selector. Scrolls the nearest scrollable ancestor until the target is in view; for one not yet drawn, pages each lazy list on screen until it appears. Each scroll runs the Compose animation clock one second. |
+| `scrollTo` | Selector. Scrolls the nearest scrollable ancestor until the target is in view; for one not yet drawn, pages lazy lists in the topmost dialog or popup, or on screen when neither is open, until it appears. Each scroll runs the Compose animation clock one second. |
 | `swipe` | Selector plus `"direction": "left"`, `"right"`, `"up"`, or `"down"`. |
 | `back` | `true`. Like the system Back key: an open sheet or dialog closes first, otherwise the screen goes back. |
 | `advance` | Positive duration in days, hours, minutes, seconds, and milliseconds, in that order, such as `"500ms"`, `"4s880ms"`, `"90s"`, `"15m"`, `"2h"`, `"2d"` or `"23h8m"`. Moves wall time, civil day, and timer clocks together. It walks through every armed timer boundary inside the advance in order. Timers read the same fake elapsed clock, so a 25:00 set saves 25:00. Runs an extra looper and recomposition settle pass before the next step, without advancing the app's fake clock. |
@@ -177,8 +186,10 @@ boolean `true`, cannot accompany `expectError`, and cannot be used on `advance`,
 `back`, `recreate`, `checkpoint`, or `note`.
 
 Use `type` for an editable text field. A second click can start a magnifier
-that Robolectric cannot draw. A read-only Material 3 exposed dropdown anchor
-allows `tap` to open its menu. Plain editable fields still refuse `tap`.
+that Robolectric cannot draw. Read-only picker fields and Material 3 exposed
+dropdown anchors take `tap`: they have a click action and no text replacement
+action. `type` on a read-only picker fails as `not-editable` with a hint to tap.
+Plain editable fields still refuse `tap`.
 Use `"ime": "done"` to commit at once in fields that commit on Done or when focus
 leaves. Fields that commit as you type do not need it. Typing also works in
 dialogs; there is no keyboard to dismiss. Advances over one hour require no

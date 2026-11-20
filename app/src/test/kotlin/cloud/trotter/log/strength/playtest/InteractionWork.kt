@@ -1,9 +1,19 @@
 package cloud.trotter.log.strength.playtest
 
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelStore
+import androidx.test.core.app.ActivityScenario
+import cloud.trotter.log.strength.MainActivity
 import cloud.trotter.log.strength.ui.day.DayViewModel
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+
+internal fun ActivityScenario<MainActivity>.workoutMutationLocks(): List<Mutex> {
+    if (state == Lifecycle.State.DESTROYED) return emptyList()
+    var pending = emptyList<Mutex>()
+    onActivity { pending = it.viewModelStore.workoutMutationLocks() }
+    return pending
+}
 
 // Navigation owns the workout ViewModel stores, and the mutation mutex has no public
 // test hook. Keep this access in the harness so production APIs stay unchanged.

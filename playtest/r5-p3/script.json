@@ -3,14 +3,11 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-19",
+    "date": "2026-11-20",
     "time": "17:30",
     "zone": "America/Chicago"
   },
   "steps": [
-    {
-      "note": "Nov17 stayed missed: late work trip, home after22:00. No paused pulls, accessories or bike; Thursday remains Nov19."
-    },
     {
       "tap": {
         "text": "Plans",
@@ -30,7 +27,7 @@
     {
       "type": {
         "text": "Name",
-        "value": "Thursday bench — meet block",
+        "value": "Friday deadlift \u2014 meet block",
         "ime": "done"
       }
     },
@@ -67,82 +64,18 @@
     },
     {
       "scrollTo": {
-        "text": "Horizontal push"
+        "text": "Hinge"
       }
     },
     {
       "tap": {
-        "text": "Horizontal push"
+        "text": "Hinge"
       }
     },
     {
       "type": {
         "text": "Search exercises",
-        "value": "Competition bench (paused)",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Competition bench (paused)",
-        "index": 1
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Competition bench (paused)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Competition bench (paused)"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "4",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "110",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Squat (bilateral)"
-      }
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "Two-second paused squat",
+        "value": "Competition deadlift (reset)",
         "ime": "done"
       }
     },
@@ -154,7 +87,7 @@
     {
       "type": {
         "text": "Name",
-        "value": "Two-second paused squat",
+        "value": "Competition deadlift (reset)",
         "ime": "done"
       }
     },
@@ -165,7 +98,7 @@
     },
     {
       "tap": {
-        "text": "Squat (bilateral)",
+        "text": "Hinge",
         "role": "RadioButton",
         "inDialog": true
       }
@@ -178,18 +111,18 @@
     },
     {
       "tap": {
-        "text": "Two-second paused squat",
+        "text": "Competition deadlift (reset)",
         "index": 1
       }
     },
     {
       "scrollTo": {
-        "text": "Two-second paused squat"
+        "text": "Competition deadlift (reset)"
       }
     },
     {
       "tap": {
-        "text": "Two-second paused squat"
+        "text": "Competition deadlift (reset)"
       }
     },
     {
@@ -209,7 +142,7 @@
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "150",
+        "value": "200",
         "ime": "done"
       }
     },
@@ -219,7 +152,310 @@
       }
     },
     {
-      "checkpoint": "thursday-prescription-110x4x5-and-paused-squat150x4x4"
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Horizontal push"
+      }
+    },
+    {
+      "tap": {
+        "text": "Horizontal push"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "Three-second paused bench",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Create exercise"
+      }
+    },
+    {
+      "type": {
+        "text": "Name",
+        "value": "Three-second paused bench",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Movement pattern"
+      }
+    },
+    {
+      "tap": {
+        "text": "Horizontal push",
+        "role": "RadioButton",
+        "inDialog": true
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Three-second paused bench",
+        "index": 1
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Three-second paused bench"
+      }
+    },
+    {
+      "tap": {
+        "text": "Three-second paused bench"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "4",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "4",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "97.5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Single-leg"
+      }
+    },
+    {
+      "tap": {
+        "text": "Single-leg"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "Bulgarian split squat (each leg)",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Create exercise"
+      }
+    },
+    {
+      "type": {
+        "text": "Name",
+        "value": "Bulgarian split squat (each leg)",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Movement pattern"
+      }
+    },
+    {
+      "tap": {
+        "text": "Single-leg",
+        "role": "RadioButton",
+        "inDialog": true
+      }
+    },
+    {
+      "tap": {
+        "text": "Per hand (dumbbell/unilateral)",
+        "role": "Switch"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bulgarian split squat (each leg)",
+        "index": 1
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Bulgarian split squat (each leg)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bulgarian split squat (each leg)"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "20",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Knee flexion (leg curl)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Knee flexion (leg curl)"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "Seated leg curl (machine B)",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Create exercise"
+      }
+    },
+    {
+      "type": {
+        "text": "Name",
+        "value": "Seated leg curl (machine B)",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Movement pattern"
+      }
+    },
+    {
+      "tap": {
+        "text": "Knee flexion (leg curl)",
+        "role": "RadioButton",
+        "inDialog": true
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated leg curl (machine B)",
+        "index": 1
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Seated leg curl (machine B)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Seated leg curl (machine B)"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "12",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "50",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "friday-full-prescription-with-five-accessory-sets"
     },
     {
       "back": true
@@ -233,7 +469,7 @@
     {
       "tap": {
         "desc": "Plan options",
-        "index": 3
+        "index": 4
       }
     },
     {
@@ -269,7 +505,7 @@
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "127.5",
+        "value": "230",
         "ime": "done"
       }
     },
@@ -286,7 +522,7 @@
       }
     },
     {
-      "checkpoint": "bench-single127-point-5-target7-point-5"
+      "checkpoint": "deadlift230-single-target7-point-5"
     },
     {
       "advance": "45s"
@@ -303,11 +539,92 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-HARD"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
-      "checkpoint": "bench-single127-point-5-completed-actual8"
+      "checkpoint": "deadlift230-single-completed-actual7-point-5-in-note"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "deadlift230x1-and200x4x3-complete"
     },
     {
       "advance": "4m"
@@ -334,98 +651,6 @@
       "tap": {
         "tag": "workout-effort-GOOD"
       }
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "desc": "One fewer rep"
-      }
-    },
-    {
-      "checkpoint": "last-bench-backoff-three-completed-before-log"
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-MAX"
-      }
-    },
-    {
-      "checkpoint": "last-bench-backoff-three-completed-not-assisted-four"
-    },
-    {
-      "note": "Fourth attempt stalled halfway; spotter took it. Three completed reps. No failed-attempt field seen; preserve the attempt and upper-back detail in receipt note."
     },
     {
       "advance": "3m"
@@ -506,68 +731,18 @@
       }
     },
     {
-      "advance": "3m"
+      "checkpoint": "eight-main-sets-complete-accessories-unperformed"
     },
     {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "thursday-nine-real-main-work-sets-complete"
-    },
-    {
-      "note": "Accessories actually done: rope pressdown cable C30kg3x12@8; Pallof cable C15kg3x10 each side@7. Record in note as with Tuesday accessories. Invented machine settings apply only to cable station C."
-    },
-    {
-      "advance": "25m15s"
-    },
-    {
-      "tap": {
-        "text": "Done",
-        "role": "Button",
-        "inDialog": true
-      }
-    },
-    {
-      "tap": {
-        "text": "All sets",
-        "role": "Button"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a set"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "blank-tenth-set-for-known-finish-recovery"
+      "advance": "4m"
     },
     {
       "tap": {
         "tag": "workout-finish"
       }
+    },
+    {
+      "checkpoint": "leave-for-pickup-finish-with-eight-of-thirteen"
     },
     {
       "tap": {
@@ -584,7 +759,7 @@
       }
     },
     {
-      "checkpoint": "thursday-saved-review"
+      "checkpoint": "friday58min-partial-saved-review"
     },
     {
       "scrollTo": {
@@ -600,7 +775,7 @@
       "type": {
         "editable": true,
         "index": 0,
-        "value": "Nov17 missed:worktrip.B127.5x1@8;110x4,4,4,3+failed4th:lost upperback.PD C30x12x3@8;Pallof C15x10x3/side@7.Blank10=fix",
+        "value": "DL230x1@7.5;200x4x3.PB97.5x4x4.Family pickup:58min.No split squats or leg curls;omitted,not failed.",
         "ime": "done"
       }
     },
@@ -610,7 +785,7 @@
       }
     },
     {
-      "checkpoint": "thursday-note-failed-fourth-and-accessories"
+      "checkpoint": "pickup-note-and-omitted-accessories-saved"
     },
     {
       "tap": {
@@ -624,7 +799,7 @@
       }
     },
     {
-      "checkpoint": "thursday-finished-tuesday-still-missed"
+      "checkpoint": "friday-finished-no-extra-set-workaround"
     }
   ]
 }

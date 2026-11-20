@@ -3,8 +3,8 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-12",
-    "time": "18:15",
+    "date": "2026-11-17",
+    "time": "07:20",
     "zone": "America/Chicago"
   },
   "steps": [
@@ -21,16 +21,16 @@
     },
     {
       "scrollTo": {
-        "desc": "Day C"
+        "desc": "Day A"
       }
     },
     {
       "tap": {
-        "desc": "Day C"
+        "desc": "Day A"
       }
     },
     {
-      "checkpoint": "nov-12-quicker-offered"
+      "checkpoint": "nov-17-morning-offered"
     },
     {
       "tap": {
@@ -53,7 +53,7 @@
     {
       "type": {
         "text": "Duration",
-        "value": "41:35",
+        "value": "43:05",
         "ime": "done"
       }
     },
@@ -67,17 +67,17 @@
     {
       "type": {
         "text": "Note",
-        "value": "Quicker: 2 km warm-up; 3 x 5 min hard / 2 min jog. Last effort 8/10, too fast. Don't chase watch pace uphill.",
+        "value": "Morning run, started 06:30. Easy 3/10. Cold: first ten minutes awkward. Postponed lift is separate this evening.",
         "ime": "done"
       }
     },
     {
       "tap": {
-        "tag": "past-cardio-effort-HARD"
+        "tag": "past-cardio-effort-EASY"
       }
     },
     {
-      "checkpoint": "nov-12-quicker-ready"
+      "checkpoint": "nov-17-morning-ready"
     },
     {
       "tap": {
@@ -95,7 +95,7 @@
       "timeoutMs": 20000
     },
     {
-      "checkpoint": "nov-12-quicker-saved"
+      "checkpoint": "nov-17-morning-saved"
     },
     {
       "tap": {
@@ -111,10 +111,10 @@
       }
     },
     {
-      "checkpoint": "nov-12-quicker-finished"
+      "checkpoint": "nov-17-morning-finished"
     },
     {
-      "advance": "2d16h"
+      "advance": "10h10m"
     },
     {
       "tap": {
@@ -129,87 +129,546 @@
     },
     {
       "scrollTo": {
-        "desc": "Day E"
+        "desc": "Day B"
       }
     },
     {
       "tap": {
-        "desc": "Day E"
+        "desc": "Day B"
       }
     },
     {
-      "checkpoint": "nov-15-long-offered"
+      "checkpoint": "nov-17-lift-offered-before-edits"
     },
     {
       "tap": {
-        "textContains": "Start day",
-        "role": "Button"
+        "text": "Edit"
       }
     },
     {
-      "expect": {
-        "text": "Log past session",
-        "role": "Button"
+      "scrollTo": {
+        "text": "Goblet Squat"
       }
     },
     {
       "tap": {
-        "text": "Log past session",
-        "role": "Button"
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "9",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "30",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "tap": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "15",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Standing DB Calf Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Standing DB Calf Raise"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "12",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "20",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Side Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Side Plank"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2",
+        "ime": "done"
       }
     },
     {
       "type": {
         "text": "Duration",
-        "value": "69:20",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Distance (km)",
-        "value": "11.00",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Long easy run. Effort 4/10. Calves stiff early. Stopped briefly at a crossing and left the timer running.",
+        "value": "0:30",
         "ime": "done"
       }
     },
     {
       "tap": {
-        "tag": "past-cardio-effort-EASY"
+        "text": "Save"
       }
     },
     {
-      "checkpoint": "nov-15-long-ready"
+      "back": true
+    },
+    {
+      "checkpoint": "nov-17-lift-prescription"
     },
     {
       "tap": {
-        "text": "Save",
+        "text": "Start day B"
+      }
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "text": "Done",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "nov-17-lift-start-previous-actuals"
+    },
+    {
+      "expect": {
+        "text": "Goblet Squat"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "DB Romanian Deadlift"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Reverse Lunge"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Standing DB Calf Raise"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "30s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Side Plank"
+      }
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
         "role": "Button",
         "inDialog": true
       }
     },
     {
       "expect": {
-        "text": "Done",
-        "role": "Button",
-        "inDialog": false
-      },
-      "timeoutMs": 20000
+        "text": "All 13 sets logged"
+      }
     },
     {
-      "checkpoint": "nov-15-long-saved"
+      "advance": "8m30s"
+    },
+    {
+      "checkpoint": "nov-17-lift-all-sets-40-min"
+    },
+    {
+      "tap": {
+        "text": "Finish day B",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "nov-17-lift-saved"
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Moved Mon lift to Tue evening. Squats better at 30. Longer rests on big lifts. Planks both rounds 30 s each side.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
     },
     {
       "tap": {
         "text": "Done",
-        "role": "Button",
-        "inDialog": false
+        "role": "Button"
       }
     },
     {
@@ -219,7 +678,7 @@
       }
     },
     {
-      "checkpoint": "nov-15-long-finished"
+      "checkpoint": "nov-17-two-separate-sessions-finished"
     }
   ]
 }

@@ -33,33 +33,23 @@
     },
     {
       "scrollTo": {
-        "desc": "More options for Chest-Supported Row"
+        "text": "Add exercise"
       }
     },
     {
       "tap": {
-        "desc": "More options for Chest-Supported Row"
+        "text": "Add exercise"
       }
-    },
-    {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "checkpoint": "row-swap-choices"
-    },
-    {
-      "back": true
     },
     {
       "scrollTo": {
-        "text": "Add exercise"
+        "text": "Horizontal push"
       }
     },
     {
-      "tap": {
-        "text": "Add exercise"
+      "swipe": {
+        "text": "Horizontal push",
+        "direction": "up"
       }
     },
     {
@@ -123,8 +113,9 @@
       "checkpoint": "rower-aim-fields"
     },
     {
-      "tap": {
-        "desc": "Aim"
+      "type": {
+        "text": "Distance (m)",
+        "value": "3400"
       }
     },
     {
@@ -138,19 +129,7 @@
       }
     },
     {
-      "checkpoint": "day-with-rower"
-    },
-    {
       "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Today",
-        "role": "Tab"
-      }
     },
     {
       "tap": {
@@ -168,12 +147,12 @@
     },
     {
       "tap": {
-        "textContains": "Day A lifts",
-        "role": "Button"
+        "role": "Button",
+        "index": 1
       }
     },
     {
-      "checkpoint": "mixed-workout-exercises"
+      "checkpoint": "mixed-workout-list"
     },
     {
       "scrollTo": {
@@ -196,7 +175,7 @@
       }
     },
     {
-      "checkpoint": "rower-past-result-form"
+      "checkpoint": "rower-result-form"
     },
     {
       "back": true
@@ -207,13 +186,10 @@
       }
     },
     {
-      "checkpoint": "rower-started"
-    },
-    {
       "advance": "15m"
     },
     {
-      "checkpoint": "rower-time-completed"
+      "checkpoint": "rower-timer-complete"
     }
   ]
 }

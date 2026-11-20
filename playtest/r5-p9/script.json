@@ -4,7 +4,7 @@
   "start": {
     "restore": "start-backup.json",
     "date": "2026-12-04",
-    "time": "10:20",
+    "time": "10:25",
     "zone": "America/Phoenix"
   },
   "steps": [
@@ -13,6 +13,47 @@
         "text": "Plans",
         "role": "Tab"
       }
+    },
+    {
+      "tap": {
+        "text": "You"
+      }
+    },
+    {
+      "type": {
+        "text": "Bodyweight (lb)",
+        "value": "148",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Age",
+        "value": "67",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "exact-profile-facts-entered"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "You"
+      }
+    },
+    {
+      "expect": {
+        "text": "Age"
+      }
+    },
+    {
+      "checkpoint": "profile-facts-reopened"
+    },
+    {
+      "back": true
     },
     {
       "tap": {
@@ -25,18 +66,13 @@
       }
     },
     {
-      "checkpoint": "month-end-progression-options"
-    },
-    {
-      "back": true
-    },
-    {
       "tap": {
-        "text": "You"
+        "text": "Ask",
+        "role": "RadioButton"
       }
     },
     {
-      "checkpoint": "month-end-profile-fields"
+      "checkpoint": "choose-ask-for-future-progression"
     },
     {
       "back": true
@@ -47,83 +83,17 @@
       }
     },
     {
-      "checkpoint": "month-end-settings-top"
-    },
-    {
       "scrollTo": {
-        "text": "Suggested cool-down"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Suggested cool-down",
-        "direction": "up"
-      }
-    },
-    {
-      "checkpoint": "month-end-settings-lower"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "History",
-        "role": "Tab"
-      }
-    },
-    {
-      "checkpoint": "month-end-history"
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "checkpoint": "month-end-history-menu"
-    },
-    {
-      "back": true
-    },
-    {
-      "scrollTo": {
-        "text": "Trends and calendar"
+        "text": "Backup and export"
       }
     },
     {
       "tap": {
-        "text": "Trends and calendar"
+        "text": "Backup and export"
       }
     },
     {
-      "checkpoint": "month-end-trends-calendar"
-    },
-    {
-      "scrollTo": {
-        "text": "Full Body",
-        "role": "Button",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "text": "Full Body",
-        "role": "Button",
-        "index": 0
-      }
-    },
-    {
-      "checkpoint": "month-end-latest-session-details"
-    },
-    {
-      "expect": {
-        "text": "History",
-        "role": "Tab"
-      }
-    },
-    {
-      "checkpoint": "month-end-review-complete"
+      "checkpoint": "backup-and-export-options"
     }
   ]
 }

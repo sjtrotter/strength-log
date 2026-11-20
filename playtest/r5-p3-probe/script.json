@@ -1,6 +1,5 @@
 {
   "seat": "r5-p3-probe",
-  "probe": true,
   "capture": "compact",
   "start": {
     "date": "2026-11-08",
@@ -8,18 +7,171 @@
     "zone": "America/Chicago"
   },
   "steps": [
-    {"tap": {"text": "Lift", "role": "RadioButton"}},
-    {"tap": {"text": "Next"}},
-    {"tap": {"text": "Strength", "role": "RadioButton"}},
-    {"tap": {"text": "Next"}},
-    {"tap": {"text": "5", "role": "Checkbox"}},
-    {"tap": {"text": "90", "role": "Checkbox"}},
-    {"tap": {"text": "Next"}},
-    {"tap": {"text": "kg", "role": "RadioButton"}},
-    {"checkpoint": "equipment-in-kilograms"},
-    {"tap": {"text": "Next"}},
-    {"tap": {"text": "A year or more", "role": "Checkbox"}},
-    {"tap": {"text": "Next"}},
-    {"checkpoint": "experienced-strength-recent-numbers"}
-  ]
+    {
+      "tap": {
+        "text": "Lift",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Strength",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "5",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "tap": {
+        "text": "90",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "kg",
+        "role": "RadioButton"
+      }
+    },
+    {
+      "checkpoint": "equipment-in-kilograms"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "A year or more",
+        "role": "Checkbox"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "tag": "setup-lift-row-1"
+      }
+    },
+    {
+      "checkpoint": "hinge-choices"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "recent-numbers-kg"
+    },
+    {
+      "type": {
+        "tag": "setup-recent-weight-bb_back_squat",
+        "value": "200"
+      }
+    },
+    {
+      "type": {
+        "tag": "setup-recent-reps-bb_back_squat",
+        "value": "3"
+      }
+    },
+    {
+      "scrollTo": {
+        "tag": "setup-recent-weight-bb_bench"
+      }
+    },
+    {
+      "type": {
+        "tag": "setup-recent-weight-bb_bench",
+        "value": "130"
+      }
+    },
+    {
+      "type": {
+        "tag": "setup-recent-reps-bb_bench",
+        "value": "3"
+      }
+    },
+    {
+      "checkpoint": "recent-squat-and-bench-entered"
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "checkpoint": "generated-strength-plan"
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "setup-finished-today"
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "plans-after-strength-setup"
+    },
+    {
+      "tap": {
+        "desc": "Plan options"
+      }
+    },
+    {
+      "checkpoint": "plan-options"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "New plan"
+      }
+    },
+    {
+      "checkpoint": "new-plan-entry"
+    }
+  ],
+  "probe": true
 }

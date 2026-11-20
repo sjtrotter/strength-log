@@ -37,6 +37,7 @@ The round-5 pilots add these checks:
 - `ladder-day` follows the run setup and finishes all twenty run/walk sets, captures the receipt, then checks Logged 25:00 in History; CI also checks the saved total is exactly 1,500 seconds.
 - `run-typed-distance` finishes a live run with GPS distance off and a typed distance.
 - `cardio-log-past` saves a past session and finds its distance in History.
+- `past-session-start-time` chooses a start time for a past session and checks it after reopening the saved session.
 - `timed-rep-count` configures reps in time and logs a count after the timer ends.
 - `test-date-picker` enters the setup event date through Material's text input mode.
 - `balance-day` accepts the 65+ balance offer during setup and checks for Balance in the saved plan.

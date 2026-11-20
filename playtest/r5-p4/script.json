@@ -799,8 +799,14 @@
       "optional": true
     },
     {
+      "tap": {
+        "text": "Finish day A",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
       "expect": {
-        "text": "Full Body, saved."
+        "desc": "Share"
       },
       "timeoutMs": 20000
     },

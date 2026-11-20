@@ -32,46 +32,6 @@
       }
     },
     {
-      "tap": {
-        "desc": "More options for Barbell Back Squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "Lift options"
-      }
-    },
-    {
-      "checkpoint": "lift-options"
-    },
-    {
-      "back": true
-    },
-    {
-      "scrollTo": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Horizontal push"
-      }
-    },
-    {
-      "checkpoint": "horizontal-push-choices"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
       "scrollTo": {
         "desc": "More options for Chest-Supported Row"
       }
@@ -88,15 +48,6 @@
     },
     {
       "checkpoint": "row-swap-choices"
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "row"
-      }
-    },
-    {
-      "checkpoint": "row-search"
     },
     {
       "back": true
@@ -118,7 +69,7 @@
       }
     },
     {
-      "checkpoint": "movement-categories-below"
+      "checkpoint": "lower-movement-categories"
     },
     {
       "back": true
@@ -169,7 +120,7 @@
       }
     },
     {
-      "checkpoint": "rower-aim"
+      "checkpoint": "rower-aim-fields"
     },
     {
       "tap": {
@@ -188,9 +139,6 @@
     },
     {
       "checkpoint": "day-with-rower"
-    },
-    {
-      "back": true
     },
     {
       "back": true
@@ -220,15 +168,17 @@
     },
     {
       "tap": {
-        "desc": "Day A lifts, 0 of 14 sets"
+        "textContains": "Day A lifts",
+        "role": "Button"
       }
     },
     {
-      "checkpoint": "mixed-session-exercise-list"
+      "checkpoint": "mixed-workout-exercises"
     },
     {
       "scrollTo": {
-        "text": "Rower"
+        "text": "Rower",
+        "inDialog": true
       }
     },
     {
@@ -246,7 +196,7 @@
       }
     },
     {
-      "checkpoint": "rower-result-form"
+      "checkpoint": "rower-past-result-form"
     },
     {
       "back": true
@@ -257,10 +207,13 @@
       }
     },
     {
+      "checkpoint": "rower-started"
+    },
+    {
       "advance": "15m"
     },
     {
-      "checkpoint": "rower-timer-finished"
+      "checkpoint": "rower-time-completed"
     }
   ]
 }

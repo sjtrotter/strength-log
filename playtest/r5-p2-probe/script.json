@@ -11,30 +11,6 @@
   "steps": [
     {
       "tap": {
-        "desc": "Settings"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Backup and export"
-      }
-    },
-    {
-      "tap": {
-        "text": "Backup and export"
-      }
-    },
-    {
-      "checkpoint": "backup-and-export-choices"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
         "desc": "Day A"
       }
     },
@@ -49,101 +25,155 @@
       }
     },
     {
-      "checkpoint": "squat-plan-options"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "checkpoint": "day-editor-menu"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Plans",
-        "role": "Tab"
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Strength, 4 days"
-      }
-    },
-    {
-      "checkpoint": "my-plan-overview"
-    },
-    {
-      "scrollTo": {
-        "textContains": "Defaults for"
-      }
-    },
-    {
-      "checkpoint": "my-plan-progression-controls"
-    },
-    {
-      "tap": {
-        "textContains": "Defaults for"
-      }
-    },
-    {
-      "checkpoint": "strength-progression-defaults"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "text": "Today",
-        "role": "Tab"
-      }
-    },
-    {
-      "tap": {
-        "text": "Start day A"
-      }
-    },
-    {
-      "tap": {
-        "text": "Skip",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "generated-squat-first-work-set"
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
       "tap": {
         "text": "Lift options"
       }
     },
     {
-      "checkpoint": "workout-lift-options"
+      "checkpoint": "plan-squat-lift-options"
+    },
+    {
+      "tap": {
+        "text": "Increase"
+      }
+    },
+    {
+      "checkpoint": "per-lift-increase-dialog"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Rest"
+      }
+    },
+    {
+      "checkpoint": "per-lift-rest-dialog"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Straight sets"
+      }
+    },
+    {
+      "checkpoint": "straight-sets-selected"
+    },
+    {
+      "scrollTo": {
+        "text": "Add superset"
+      }
+    },
+    {
+      "checkpoint": "lift-options-bottom"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "after-options-back"
+    },
+    {
+      "tap": {
+        "text": "Barbell Back Squat"
+      }
+    },
+    {
+      "checkpoint": "straight-squat-prescription"
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "after-straight-prescription-save"
+    },
+    {
+      "tap": {
+        "desc": "More options for Bulgarian Split Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "lunge"
+      }
+    },
+    {
+      "checkpoint": "lunge-swap-results"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "after-lunge-search-back"
+    },
+    {
+      "tap": {
+        "desc": "More options for Swiss Ball Leg Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "hanging"
+      }
+    },
+    {
+      "checkpoint": "hanging-raise-swap-results"
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "after-hanging-search-back"
+    },
+    {
+      "tap": {
+        "desc": "More options for Conventional Deadlift"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "Romanian"
+      }
+    },
+    {
+      "checkpoint": "rdl-swap-results"
+    },
+    {
+      "tap": {
+        "text": "Romanian Deadlift"
+      }
+    },
+    {
+      "checkpoint": "rdl-plan-swap-choice"
     }
   ]
 }

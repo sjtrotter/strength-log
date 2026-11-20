@@ -377,6 +377,11 @@
       }
     },
     {
+      "scrollTo": {
+        "text": "Create exercise"
+      }
+    },
+    {
       "tap": {
         "text": "Create exercise"
       }

@@ -22,6 +22,156 @@
     },
     {
       "tap": {
+        "desc": "Day B"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Farmer's Carry"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "remove-carry-for-counter-only-session"
+    },
+    {
+      "tap": {
+        "textContains": "Single-Leg Stance"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:10"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Each side",
+        "role": "Switch"
+      }
+    },
+    {
+      "checkpoint": "three-ten-second-holds-each-side"
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "customized-home-day"
+    },
+    {
+      "tap": {
+        "text": "Start day B",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "each-side-first-hold"
+    },
+    {
+      "advance": "10s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "each-side-first-log"
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "checkpoint": "each-side-after-rest"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "each-side-all-sets"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "checkpoint": "home-finish-dialog"
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "home-finish-result"
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "home-receipt-after-cooldown"
+    },
+    {
+      "tap": {
+        "text": "Done",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "home-back-on-solid-ground"
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "General fitness, 2 days"
+      }
+    },
+    {
+      "tap": {
         "desc": "Day A"
       }
     },
@@ -36,116 +186,37 @@
       }
     },
     {
-      "checkpoint": "permanent-exercise-options"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
-    },
-    {
       "tap": {
-        "desc": "Day B"
+        "text": "Swap"
       }
     },
     {
-      "checkpoint": "home-balance-detail"
+      "checkpoint": "permanent-swap-picker"
     },
     {
       "tap": {
-        "text": "Edit"
+        "text": "Leg Press"
       }
     },
     {
-      "checkpoint": "home-balance-editor"
+      "checkpoint": "permanent-leg-press-choice"
     },
     {
       "tap": {
-        "textContains": "Single-Leg Stance"
-      }
-    },
-    {
-      "checkpoint": "balance-side-and-hold-prescription"
-    },
-    {
-      "tap": {
-        "text": "Cancel",
+        "text": "Swap",
         "role": "Button"
       }
     },
     {
-      "back": true
+      "checkpoint": "permanent-leg-press-result"
     },
     {
       "tap": {
-        "text": "Start day B",
-        "role": "Button"
+        "textContains": "Leg Press"
       }
     },
     {
-      "checkpoint": "balance-session-start"
-    },
-    {
-      "tap": {
-        "text": "Skip",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "balance-first-hold"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "checkpoint": "balance-hold-edit"
-    },
-    {
-      "back": true
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "balance-hold-running-or-logged"
-    },
-    {
-      "advance": "10s"
-    },
-    {
-      "checkpoint": "balance-after-ten-seconds"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-tonal"
-      }
-    },
-    {
-      "checkpoint": "balance-after-stop"
-    },
-    {
-      "tap": {
-        "text": "All sets"
-      }
-    },
-    {
-      "checkpoint": "balance-all-sets"
-    },
-    {
-      "tap": {
-        "desc": "More"
-      }
-    },
-    {
-      "checkpoint": "balance-workout-options"
+      "checkpoint": "leg-press-prescription"
     }
   ]
 }

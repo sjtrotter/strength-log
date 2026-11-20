@@ -1157,9 +1157,33 @@
       }
     },
     {
-      "tap": {
-        "tag": "workout-action-filled"
+      "advance": "1s"
+    },
+    {
+      "checkpoint": "after-cooldown-dismissed"
+    },
+    {
+      "note": "Finish did not open a receipt on the prior replay. Reopen the app after dismissing cool-down, keeping this same session."
+    },
+    {
+      "recreate": true
+    },
+    {
+      "expect": {
+        "desc": "Day A lifts, 16 of 16 sets"
       }
+    },
+    {
+      "checkpoint": "reopened-completed-workout"
+    },
+    {
+      "tap": {
+        "text": "Finish day A",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "after-finish-day-tap"
     },
     {
       "expect": {

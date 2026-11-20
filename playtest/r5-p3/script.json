@@ -27,7 +27,7 @@
     {
       "type": {
         "text": "Name",
-        "value": "Meet block \u2014 Nov 9 to Dec 5"
+        "value": "Meet block — Nov 9 to Dec 5"
       }
     },
     {
@@ -162,6 +162,12 @@
       }
     },
     {
+      "tap": {
+        "text": "Competition bench (paused)",
+        "index": 1
+      }
+    },
+    {
       "expect": {
         "text": "Add exercise"
       }
@@ -272,8 +278,13 @@
       }
     },
     {
+      "scrollTo": {
+        "text": "Core: anti-extension"
+      }
+    },
+    {
       "tap": {
-        "text": "Horizontal push"
+        "text": "Core: anti-extension"
       }
     },
     {
@@ -320,6 +331,20 @@
       "tap": {
         "text": "Save",
         "role": "Button"
+      }
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "Ab wheel",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Ab wheel",
+        "index": 1
       }
     },
     {

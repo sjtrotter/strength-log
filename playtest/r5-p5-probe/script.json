@@ -107,6 +107,30 @@
     },
     {
       "expect": {
+        "text": "Recent numbers"
+      }
+    },
+    {
+      "tap": {
+        "text": "Why we ask"
+      }
+    },
+    {
+      "checkpoint": "recent-lift-fields-do-not-match-my-lifts"
+    },
+    {
+      "back": true
+    },
+    {
+      "note": "My recent sets were goblet squat and dumbbell RDL. These fields are for other lifts, so leave them blank."
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
         "text": "Longest run in the past 30 days"
       }
     },
@@ -176,7 +200,52 @@
       }
     },
     {
-      "checkpoint": "distance-unit-choices"
+      "checkpoint": "actual-settings-distance-unit-choices"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "plans-list-from-my-setup"
+    },
+    {
+      "tap": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day A"
+      }
+    },
+    {
+      "checkpoint": "my-first-day-details"
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "checkpoint": "my-first-day-editor"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "day-editor-menu"
     }
   ],
   "probe": true

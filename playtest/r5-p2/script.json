@@ -826,18 +826,18 @@
       }
     },
     {
+      "advance": "1s"
+    },
+    {
       "tap": {
-        "tag": "lift-check-main-2"
+        "tag": "workout-action-filled"
       }
     },
     {
       "checkpoint": "plank-45-45-40"
     },
     {
-      "back": true
-    },
-    {
-      "advance": "1705s"
+      "advance": "1704s"
     },
     {
       "tap": {

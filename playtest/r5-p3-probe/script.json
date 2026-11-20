@@ -118,23 +118,6 @@
       }
     },
     {
-      "type": {
-        "text": "Search exercises",
-        "value": "Competition bench (paused)",
-        "ime": "done"
-      }
-    },
-    {
-      "checkpoint": "search-own-exact-variation"
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "",
-        "ime": "done"
-      }
-    },
-    {
       "tap": {
         "text": "Barbell Bench Press"
       }
@@ -184,15 +167,10 @@
       }
     },
     {
-      "checkpoint": "actual-leg-curl-picker"
+      "checkpoint": "actual-leg-curl-choices"
     },
     {
       "back": true
-    },
-    {
-      "expect": {
-        "text": "Add exercise"
-      }
     },
     {
       "tap": {
@@ -200,24 +178,43 @@
       }
     },
     {
-      "swipe": {
-        "text": "Horizontal push",
-        "direction": "up"
+      "scrollTo": {
+        "text": "Plank"
       }
     },
     {
-      "checkpoint": "actual-lower-movement-list"
+      "checkpoint": "movement-list-bottom-after-search"
     },
     {
       "back": true
     },
     {
       "tap": {
-        "text": "Add cardio"
+        "text": "Add exercise"
       }
     },
     {
-      "checkpoint": "indoor-cardio-picker"
+      "tap": {
+        "text": "Horizontal push"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "Competition bench (paused)",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Create exercise"
+      }
+    },
+    {
+      "checkpoint": "custom-variation-create-form"
+    },
+    {
+      "back": true
     },
     {
       "back": true
@@ -255,9 +252,6 @@
     },
     {
       "advance": "20h50m"
-    },
-    {
-      "checkpoint": "monday-two-lifts-ready"
     },
     {
       "tap": {
@@ -313,13 +307,7 @@
       }
     },
     {
-      "checkpoint": "main-work-set-1-logged-with-effort"
-    },
-    {
-      "recreate": true
-    },
-    {
-      "checkpoint": "single-retained-after-video-return"
+      "checkpoint": "logged-work-set-1"
     },
     {
       "advance": "5m"
@@ -351,7 +339,7 @@
       }
     },
     {
-      "checkpoint": "main-work-set-2-logged-with-effort"
+      "checkpoint": "logged-work-set-2"
     },
     {
       "advance": "5m"
@@ -383,7 +371,7 @@
       }
     },
     {
-      "checkpoint": "main-work-set-3-logged-with-effort"
+      "checkpoint": "logged-work-set-3"
     },
     {
       "advance": "5m"
@@ -415,7 +403,7 @@
       }
     },
     {
-      "checkpoint": "main-work-set-4-logged-with-effort"
+      "checkpoint": "logged-work-set-4"
     },
     {
       "advance": "5m"
@@ -447,7 +435,7 @@
       }
     },
     {
-      "checkpoint": "main-work-set-5-logged-with-effort"
+      "checkpoint": "logged-work-set-5"
     },
     {
       "advance": "5m"
@@ -479,7 +467,7 @@
       }
     },
     {
-      "checkpoint": "main-work-set-6-logged-with-effort"
+      "checkpoint": "logged-work-set-6"
     },
     {
       "advance": "3m"
@@ -511,7 +499,7 @@
       }
     },
     {
-      "checkpoint": "main-work-set-7-logged-with-effort"
+      "checkpoint": "logged-work-set-7"
     },
     {
       "advance": "3m"
@@ -543,7 +531,7 @@
       }
     },
     {
-      "checkpoint": "main-work-set-8-logged-with-effort"
+      "checkpoint": "logged-work-set-8"
     },
     {
       "advance": "3m"
@@ -575,7 +563,7 @@
       }
     },
     {
-      "checkpoint": "main-work-set-9-logged-with-effort"
+      "checkpoint": "logged-work-set-9"
     },
     {
       "advance": "3m"
@@ -607,33 +595,81 @@
       }
     },
     {
-      "checkpoint": "main-work-set-10-logged-with-effort"
+      "checkpoint": "logged-work-set-10"
     },
     {
       "tap": {
-        "tag": "workout-finish"
+        "tag": "workout-action-filled"
       }
     },
     {
-      "checkpoint": "main-work-finish-state"
+      "checkpoint": "two-lift-receipt"
     },
     {
       "tap": {
-        "text": "Finish",
-        "inDialog": true
+        "text": "Add a note"
       }
     },
     {
-      "checkpoint": "main-work-receipt-or-cooldown"
+      "checkpoint": "session-note-editor"
+    },
+    {
+      "type": {
+        "editable": true,
+        "index": 0,
+        "value": "Squat single RPE7; last backoff7.5. Bench set1 stiff, then fine. Squat side video: depth good.",
+        "ime": "done"
+      }
     },
     {
       "tap": {
-        "text": "Skip",
-        "inDialog": true
+        "text": "Save note"
       }
     },
     {
-      "checkpoint": "main-work-summary"
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "expect": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "text": "Meet block — Nov 9 to Dec 5"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit day"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Activity"
+      }
+    },
+    {
+      "checkpoint": "cardio-activity-choices"
     }
   ]
 }

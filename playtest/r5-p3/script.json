@@ -32,7 +32,8 @@
     },
     {
       "tap": {
-        "text": "Edit day"
+        "text": "Edit",
+        "role": "Button"
       }
     },
     {

@@ -3,137 +3,876 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-11",
-    "time": "09:30",
+    "date": "2026-11-12",
+    "time": "06:00",
     "zone": "America/Chicago"
   },
   "steps": [
     {
       "tap": {
-        "text": "Plans",
-        "role": "Tab"
+        "desc": "Day C"
+      }
+    },
+    {
+      "checkpoint": "generated-lower-b"
+    },
+    {
+      "tap": {
+        "text": "Edit"
       }
     },
     {
       "tap": {
-        "textContains": "Strength, 4 days"
+        "text": "Conventional Deadlift"
+      }
+    },
+    {
+      "checkpoint": "deadlift-ramp-top-prescription"
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "275",
+        "ime": "done"
       }
     },
     {
       "tap": {
-        "text": "Add day"
+        "text": "Save"
       }
     },
     {
-      "checkpoint": "added-cardio-day-f"
-    },
-    {
-      "scrollTo": {
-        "desc": "Day F"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Day F"
-      }
-    },
-    {
-      "tap": {
-        "text": "Edit day",
-        "role": "Button"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add cardio"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add cardio"
-      }
-    },
-    {
-      "checkpoint": "easy-road-run-editor"
-    },
-    {
-      "tap": {
-        "text": "Easy 25:00"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "saved-easy-road-run-plan"
+      "checkpoint": "deadlift-top-275"
     },
     {
       "back": true
     },
     {
-      "checkpoint": "cardio-day-detail"
-    },
-    {
       "tap": {
-        "text": "Start day F",
-        "role": "Button"
+        "text": "Edit"
       }
     },
     {
-      "checkpoint": "road-run-ready-for-past-entry"
-    },
-    {
-      "tap": {
-        "text": "Log past session"
+      "scrollTo": {
+        "desc": "More options for Conventional Deadlift"
       }
     },
     {
-      "checkpoint": "past-run-form-default-date-time"
+      "tap": {
+        "desc": "More options for Conventional Deadlift"
+      }
     },
     {
-      "note": "Nov11 easy run was 28min, about2.9mi. Assumed actual start09:00, logging09:30. Harness cannot edit Date or Start time; leave both shown values, inspect saved artifact. No GPS or watch test."
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "tap": {
+        "text": "Rest"
+      }
+    },
+    {
+      "type": {
+        "text": "Minutes",
+        "value": "4",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Seconds",
+        "value": "0",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "rest-conventional-deadlift"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Back Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Front Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Front Squat"
+      }
+    },
+    {
+      "checkpoint": "swapped-front-squat"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Front Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Front Squat"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "6",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "165",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "front-squat-165-3x6"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Bulgarian Split Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Bulgarian Split Squat"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "2",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "8",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "35",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "split-squat-35-2x8"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Swiss Ball Leg Curl"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Swiss Ball Leg Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "checkpoint": "removed-leg-curl"
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Hanging Leg Raise"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Hanging Leg Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "plank",
+        "ime": "done"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plank"
+      }
+    },
+    {
+      "checkpoint": "swapped-plank"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plank"
+      }
+    },
+    {
+      "checkpoint": "plank-prescription"
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
     },
     {
       "type": {
         "text": "Duration",
-        "value": "28:00",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Distance (mi)",
-        "value": "2.9",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Veterans Day, off work. Easy run, about 2.9 miles. Actual start 09:00.",
+        "value": "0:45",
         "ime": "done"
       }
     },
     {
       "tap": {
-        "tag": "past-cardio-effort-EASY"
+        "text": "Save"
       }
     },
     {
-      "checkpoint": "past-run-28min-2point9mi-easy"
+      "checkpoint": "plank-3x45"
+    },
+    {
+      "back": true
     },
     {
       "tap": {
-        "text": "Save",
+        "text": "Edit"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Front Squat"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Front Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "tap": {
+        "text": "Rest"
+      }
+    },
+    {
+      "type": {
+        "text": "Minutes",
+        "value": "2",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Seconds",
+        "value": "0",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "rest-front-squat"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Bulgarian Split Squat"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Bulgarian Split Squat"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "tap": {
+        "text": "Rest"
+      }
+    },
+    {
+      "type": {
+        "text": "Minutes",
+        "value": "2",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Seconds",
+        "value": "0",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "rest-bulgarian-split-squat"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "my-lower-b"
+    },
+    {
+      "tap": {
+        "text": "Start day C"
+      }
+    },
+    {
+      "tap": {
         "role": "Button",
-        "inDialog": true
+        "text": "Skip"
       }
     },
     {
-      "checkpoint": "past-run-save-result"
+      "checkpoint": "deadlift-first-ramp-set"
+    },
+    {
+      "note": "Keep native ramp/top/two back-offs. The inspected options cannot express fixed minus30lb: change only back-off sets to245. Suggested ramp warm-ups are additional to the three diary work sets; inspect their kinds in backup."
+    },
+    {
+      "advance": "8m"
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "240s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "240s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-HARD"
+      }
+    },
+    {
+      "checkpoint": "deadlift-275x5-top-mixed-grip-last-rep"
+    },
+    {
+      "advance": "240s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 4"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "245",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "240s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "desc": "Edit set 5"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "245",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "deadlift-275-top-245-backoffs"
+    },
+    {
+      "advance": "240s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Front Squat",
+        "inDialog": false
+      }
+    },
+    {
+      "checkpoint": "starting-front-squat"
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "front-squat-165-6-6-6"
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Bulgarian Split Squat",
+        "inDialog": false
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "split-squat-35-8-8"
+    },
+    {
+      "advance": "120s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Plank",
+        "inDialog": false
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "checkpoint": "plank-all-sets"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-0"
+      }
+    },
+    {
+      "advance": "105s"
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-1"
+      }
+    },
+    {
+      "advance": "100s"
+    },
+    {
+      "tap": {
+        "tag": "lift-set-2"
+      }
+    },
+    {
+      "checkpoint": "plank-third-set-editor"
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:40",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "tap": {
+        "tag": "lift-check-main-2"
+      }
+    },
+    {
+      "checkpoint": "plank-45-45-40"
+    },
+    {
+      "back": true
+    },
+    {
+      "advance": "1223s"
     },
     {
       "tap": {
@@ -144,13 +883,42 @@
       "optional": true
     },
     {
-      "checkpoint": "nov11-run-receipt"
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "lower-b-receipt"
+    },
+    {
+      "scrollTo": {
+        "text": "Add a note"
+      }
     },
     {
       "tap": {
-        "text": "Done",
+        "text": "Add a note"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "DL275x5: mixed grip for rep5; backoffs245x5/5. Front165x6/6/6, wrists sore. Split35s2x8. Plank45/45/40.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save note"
+      }
+    },
+    {
+      "checkpoint": "deadlift-grip-wrist-note-saved"
+    },
+    {
+      "tap": {
         "role": "Button",
-        "inDialog": false
+        "text": "Done"
       }
     },
     {
@@ -160,7 +928,7 @@
       }
     },
     {
-      "checkpoint": "nov11-run-finished"
+      "checkpoint": "nov12-finished-today"
     }
   ]
 }

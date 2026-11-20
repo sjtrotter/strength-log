@@ -28,7 +28,7 @@
     {
       "type": {
         "text": "Name",
-        "value": "Meet block \u2014 Nov 9 to Dec 5"
+        "value": "Meet block — Nov 9 to Dec 5"
       }
     },
     {
@@ -118,13 +118,60 @@
       }
     },
     {
-      "checkpoint": "bench-exercise-choices"
+      "type": {
+        "text": "Search exercises",
+        "value": "Competition bench (paused)",
+        "ime": "done"
+      }
     },
     {
-      "back": true
+      "checkpoint": "search-own-exact-variation"
     },
     {
-      "back": true
+      "type": {
+        "text": "Search exercises",
+        "value": "",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "100",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "squat-and-bench-prescribed"
     },
     {
       "tap": {
@@ -137,13 +184,15 @@
       }
     },
     {
-      "checkpoint": "leg-curl-choices"
+      "checkpoint": "actual-leg-curl-picker"
     },
     {
       "back": true
     },
     {
-      "back": true
+      "expect": {
+        "text": "Add exercise"
+      }
     },
     {
       "tap": {
@@ -152,15 +201,31 @@
     },
     {
       "swipe": {
-        "text": "Knee flexion (leg curl)",
+        "text": "Horizontal push",
         "direction": "up"
       }
     },
     {
-      "checkpoint": "movement-list-lower"
+      "checkpoint": "actual-lower-movement-list"
     },
     {
       "back": true
+    },
+    {
+      "tap": {
+        "text": "Add cardio"
+      }
+    },
+    {
+      "checkpoint": "indoor-cardio-picker"
+    },
+    {
+      "back": true
+    },
+    {
+      "expect": {
+        "text": "Add exercise"
+      }
     },
     {
       "back": true
@@ -192,7 +257,7 @@
       "advance": "20h50m"
     },
     {
-      "checkpoint": "monday-ready"
+      "checkpoint": "monday-two-lifts-ready"
     },
     {
       "tap": {
@@ -230,7 +295,7 @@
       }
     },
     {
-      "checkpoint": "single-before-log"
+      "advance": "45s"
     },
     {
       "tap": {
@@ -238,7 +303,9 @@
       }
     },
     {
-      "checkpoint": "single-logged-effort-controls"
+      "expect": {
+        "tag": "workout-set-done"
+      }
     },
     {
       "tap": {
@@ -246,22 +313,16 @@
       }
     },
     {
+      "checkpoint": "main-work-set-1-logged-with-effort"
+    },
+    {
       "recreate": true
     },
     {
-      "checkpoint": "single-after-recreate"
+      "checkpoint": "single-retained-after-video-return"
     },
     {
       "advance": "5m"
-    },
-    {
-      "tap": {
-        "text": "Next set",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "first-backoff"
     },
     {
       "tap": {
@@ -269,16 +330,10 @@
       }
     },
     {
-      "checkpoint": "squat-set-2-logged"
+      "checkpoint": "next-after-set-1"
     },
     {
-      "advance": "5m"
-    },
-    {
-      "tap": {
-        "text": "Next set",
-        "role": "Button"
-      }
+      "advance": "45s"
     },
     {
       "tap": {
@@ -286,16 +341,20 @@
       }
     },
     {
-      "checkpoint": "squat-set-3-logged"
-    },
-    {
-      "advance": "5m"
+      "expect": {
+        "tag": "workout-set-done"
+      }
     },
     {
       "tap": {
-        "text": "Next set",
-        "role": "Button"
+        "tag": "workout-effort-GOOD"
       }
+    },
+    {
+      "checkpoint": "main-work-set-2-logged-with-effort"
+    },
+    {
+      "advance": "5m"
     },
     {
       "tap": {
@@ -303,16 +362,10 @@
       }
     },
     {
-      "checkpoint": "squat-set-4-logged"
+      "checkpoint": "next-after-set-2"
     },
     {
-      "advance": "5m"
-    },
-    {
-      "tap": {
-        "text": "Next set",
-        "role": "Button"
-      }
+      "advance": "45s"
     },
     {
       "tap": {
@@ -320,7 +373,241 @@
       }
     },
     {
-      "checkpoint": "squat-set-5-logged"
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "main-work-set-3-logged-with-effort"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "next-after-set-3"
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "main-work-set-4-logged-with-effort"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "next-after-set-4"
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "main-work-set-5-logged-with-effort"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "next-after-set-5"
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "main-work-set-6-logged-with-effort"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "next-after-set-6"
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "main-work-set-7-logged-with-effort"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "next-after-set-7"
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "main-work-set-8-logged-with-effort"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "next-after-set-8"
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "main-work-set-9-logged-with-effort"
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "next-after-set-9"
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "main-work-set-10-logged-with-effort"
     },
     {
       "tap": {
@@ -328,7 +615,7 @@
       }
     },
     {
-      "checkpoint": "finish-after-five-squats"
+      "checkpoint": "main-work-finish-state"
     },
     {
       "tap": {
@@ -337,7 +624,16 @@
       }
     },
     {
-      "checkpoint": "squat-only-probe-summary"
+      "checkpoint": "main-work-receipt-or-cooldown"
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "inDialog": true
+      }
+    },
+    {
+      "checkpoint": "main-work-summary"
     }
   ]
 }

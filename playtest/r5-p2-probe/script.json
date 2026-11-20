@@ -15,15 +15,156 @@
       }
     },
     {
-      "checkpoint": "upper-a-generated-detail"
-    },
-    {
       "tap": {
         "text": "Edit"
       }
     },
     {
-      "checkpoint": "upper-a-generated-editor"
+      "checkpoint": "upper-a-editor"
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Overhead Press (Barbell)"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Overhead Press (Barbell)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "press-swap-list"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "press",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "press-search-results"
+    },
+    {
+      "back": true
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Barbell Row"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Barbell Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "row-swap-list"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "row",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "row-search-results"
+    },
+    {
+      "back": true
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Incline DB Curl"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Incline DB Curl"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "curl-swap-list"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "curl",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "curl-search-results"
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Pull-Up / Chin-Up"
+      }
+    },
+    {
+      "checkpoint": "pullup-prescription"
+    },
+    {
+      "tap": {
+        "text": "Tracking"
+      }
+    },
+    {
+      "checkpoint": "pullup-tracking-choices"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "after-pullup-prescription-back"
+    },
+    {
+      "tap": {
+        "desc": "More options for Pull-Up / Chin-Up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "checkpoint": "pullup-swap-list"
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "pull",
+        "ime": "done"
+      }
+    },
+    {
+      "checkpoint": "pullup-search-results"
+    },
+    {
+      "back": true
     },
     {
       "scrollTo": {
@@ -31,15 +172,23 @@
       }
     },
     {
-      "checkpoint": "upper-a-editor-all-exercises"
-    },
-    {
       "tap": {
         "text": "Add cardio"
       }
     },
     {
-      "checkpoint": "add-cardio-choices"
+      "checkpoint": "cardio-editor"
+    },
+    {
+      "tap": {
+        "text": "Activity"
+      }
+    },
+    {
+      "checkpoint": "cardio-activity-choices"
+    },
+    {
+      "back": true
     },
     {
       "back": true
@@ -65,15 +214,12 @@
       }
     },
     {
-      "checkpoint": "all-plan-days"
-    },
-    {
       "tap": {
-        "desc": "Day C"
+        "desc": "Day E"
       }
     },
     {
-      "checkpoint": "lower-b-generated-detail"
+      "checkpoint": "upper-b-detail"
     },
     {
       "tap": {
@@ -81,96 +227,31 @@
       }
     },
     {
-      "checkpoint": "lower-b-generated-editor"
+      "checkpoint": "upper-b-editor"
     },
     {
-      "tap": {
-        "desc": "More options for Conventional Deadlift"
+      "scrollTo": {
+        "text": "Add cardio"
       }
     },
     {
-      "tap": {
-        "text": "Swap"
-      }
-    },
-    {
-      "checkpoint": "deadlift-swap-picker"
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "pull",
-        "ime": "done"
-      }
-    },
-    {
-      "checkpoint": "exercise-search-pull"
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "press",
-        "ime": "done"
-      }
-    },
-    {
-      "checkpoint": "exercise-search-press"
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "row",
-        "ime": "done"
-      }
-    },
-    {
-      "checkpoint": "exercise-search-row"
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "curl",
-        "ime": "done"
-      }
-    },
-    {
-      "checkpoint": "exercise-search-curl"
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "goblet",
-        "ime": "done"
-      }
-    },
-    {
-      "checkpoint": "exercise-search-goblet"
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "chin",
-        "ime": "done"
-      }
-    },
-    {
-      "checkpoint": "exercise-search-chin"
-    },
-    {
-      "type": {
-        "text": "Search exercises",
-        "value": "rear",
-        "ime": "done"
-      }
-    },
-    {
-      "checkpoint": "exercise-search-rear"
+      "checkpoint": "upper-b-editor-bottom"
     },
     {
       "back": true
     },
     {
-      "checkpoint": "after-search-back"
+      "back": true
+    },
+    {
+      "tap": {
+        "desc": "Day C"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
     },
     {
       "tap": {
@@ -183,15 +264,67 @@
       }
     },
     {
-      "checkpoint": "deadlift-options"
-    },
-    {
-      "tap": {
-        "text": "Ramp, top set, back-off"
+      "scrollTo": {
+        "text": "Prescription"
       }
     },
     {
-      "checkpoint": "deadlift-top-backoff-form"
+      "checkpoint": "deadlift-options-bottom"
+    },
+    {
+      "tap": {
+        "text": "Prescription"
+      }
+    },
+    {
+      "checkpoint": "deadlift-ramp-prescription"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "after-deadlift-prescription-back"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "plan-after-lower-b"
+    },
+    {
+      "tap": {
+        "text": "Add day"
+      }
+    },
+    {
+      "checkpoint": "add-day-result"
+    },
+    {
+      "scrollTo": {
+        "text": "Add cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add cardio"
+      }
+    },
+    {
+      "checkpoint": "new-day-cardio-editor"
+    },
+    {
+      "tap": {
+        "text": "Activity"
+      }
+    },
+    {
+      "checkpoint": "new-day-cardio-activity-list"
     }
   ]
 }

@@ -21,6 +21,22 @@
     },
     {
       "scrollTo": {
+        "text": "Light week"
+      }
+    },
+    {
+      "checkpoint": "nov30-plan-light-week-before"
+    },
+    {
+      "tap": {
+        "text": "Light week"
+      }
+    },
+    {
+      "checkpoint": "nov30-plan-light-week-after"
+    },
+    {
+      "scrollTo": {
         "desc": "Day A"
       }
     },

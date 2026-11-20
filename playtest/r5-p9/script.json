@@ -4,7 +4,7 @@
   "start": {
     "restore": "start-backup.json",
     "date": "2026-12-04",
-    "time": "09:30",
+    "time": "10:20",
     "zone": "America/Phoenix"
   },
   "steps": [
@@ -20,520 +20,110 @@
       }
     },
     {
-      "tap": {
-        "desc": "Day A"
+      "scrollTo": {
+        "text": "Ask"
       }
     },
     {
-      "checkpoint": "dec4-plan-and-last-session"
+      "checkpoint": "month-end-progression-options"
     },
     {
-      "tap": {
-        "text": "Start day A"
-      }
-    },
-    {
-      "note": "Friday Dec4: a good day. Chest press 45 lb for both sets of 10, proud of that. Other machines as on trainer card; five-minute bike and three balance pairs."
-    },
-    {
-      "advance": "5m"
+      "back": true
     },
     {
       "tap": {
-        "text": "Skip",
-        "role": "Button"
+        "text": "You"
       }
     },
     {
-      "checkpoint": "dec4-balance-start"
+      "checkpoint": "month-end-profile-fields"
     },
     {
-      "note": "Rail-supported left 10 seconds, right 10 seconds, pair 1. I time the holds myself."
-    },
-    {
-      "advance": "20s"
+      "back": true
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
+        "desc": "Settings"
       }
     },
     {
-      "advance": "2m"
-    },
-    {
-      "note": "Rail-supported left 10 seconds, right 10 seconds, pair 2. I time the holds myself."
-    },
-    {
-      "advance": "20s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "note": "Rail-supported left 10 seconds, right 10 seconds, pair 3. I time the holds myself."
-    },
-    {
-      "advance": "20s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "expect": {
-        "text": "Leg Press"
-      }
-    },
-    {
-      "checkpoint": "dec4-leg-press-offer-after-rough-day"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "110"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "40s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "dec4-leg-press-set-1-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "110"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "40s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "dec4-leg-press-set-2-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "dec4-chest-press-offered"
-    },
-    {
-      "expect": {
-        "text": "seat on 5"
-      }
-    },
-    {
-      "expect": {
-        "text": "seat on 5"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "45"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "40s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "dec4-chest-press-set-1-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "45"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "40s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "dec4-chest-press-set-2-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "dec4-row-offered"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "50"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "40s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "dec4-row-set-1-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "50"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "40s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "dec4-row-set-2-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "dec4-shoulder-press-offered"
-    },
-    {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "10"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "40s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "dec4-shoulder-press-set-1-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "10"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "40s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "dec4-shoulder-press-set-2-logged"
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "note": "Pulldown 50 lb 2x10 and rail calf raises done from trainer card; still in session note rather than separate entries. Ten minutes includes rests and moving around the gym."
-    },
-    {
-      "advance": "10m"
-    },
-    {
-      "tap": {
-        "text": "Skip",
-        "role": "Button"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "checkpoint": "dec4-full-body-summary"
+      "checkpoint": "month-end-settings-top"
     },
     {
       "scrollTo": {
-        "text": "Add a note"
+        "text": "Suggested cool-down"
       }
+    },
+    {
+      "swipe": {
+        "text": "Suggested cool-down",
+        "direction": "up"
+      }
+    },
+    {
+      "checkpoint": "month-end-settings-lower"
+    },
+    {
+      "back": true
     },
     {
       "tap": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "type": {
-        "textContains": "Note",
-        "value": "Good day. Chest 45 lb 2x10, proud! Bike 5m; pulldown 50 lb 2x10; calf raises; balance 3 pairs left/right 10s."
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "tap": {
-        "text": "Done",
-        "role": "Button"
-      }
-    },
-    {
-      "expect": {
-        "text": "Today",
+        "text": "History",
         "role": "Tab"
       }
     },
     {
-      "checkpoint": "dec4-gym-saved"
+      "checkpoint": "month-end-history"
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "checkpoint": "month-end-history-menu"
+    },
+    {
+      "back": true
+    },
+    {
+      "scrollTo": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "tap": {
+        "text": "Trends and calendar"
+      }
+    },
+    {
+      "checkpoint": "month-end-trends-calendar"
+    },
+    {
+      "scrollTo": {
+        "text": "Full Body",
+        "role": "Button",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "text": "Full Body",
+        "role": "Button",
+        "index": 0
+      }
+    },
+    {
+      "checkpoint": "month-end-latest-session-details"
+    },
+    {
+      "expect": {
+        "text": "History",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "month-end-review-complete"
     }
   ]
 }

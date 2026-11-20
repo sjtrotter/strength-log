@@ -118,8 +118,7 @@
     },
     {
       "tap": {
-        "textContains": "Curl",
-        "index": 1
+        "text": "Incline DB Curl"
       }
     },
     {
@@ -1674,6 +1673,29 @@
     },
     {
       "checkpoint": "wednesday-rows-done"
+    },
+    {
+      "tap": {
+        "desc": "All sets, Rope Pushdown"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip for this workout"
+      }
+    },
+    {
+      "expect": {
+        "text": "Incline DB Curl"
+      }
+    },
+    {
+      "checkpoint": "pushdown-skipped-curls-remain"
     },
     {
       "advance": "35s"

@@ -3,7 +3,7 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-30",
+    "date": "2026-12-01",
     "time": "17:30",
     "zone": "America/Chicago"
   },
@@ -16,12 +16,12 @@
     },
     {
       "scrollTo": {
-        "text": "Meet block — Nov 9 to Dec 5"
+        "text": "Tuesday technique — meet block"
       }
     },
     {
       "tap": {
-        "text": "Meet block — Nov 9 to Dec 5"
+        "text": "Tuesday technique — meet block"
       }
     },
     {
@@ -43,48 +43,12 @@
     },
     {
       "scrollTo": {
-        "text": "Barbell Back Squat"
+        "text": "Paused deadlift (off floor)"
       }
     },
     {
       "tap": {
-        "text": "Barbell Back Squat"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "4",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "4",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "145",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Competition bench (paused)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Competition bench (paused)"
+        "text": "Paused deadlift (off floor)"
       }
     },
     {
@@ -97,14 +61,14 @@
     {
       "type": {
         "text": "Reps",
-        "value": "5",
+        "value": "3",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "90",
+        "value": "150",
         "ime": "done"
       }
     },
@@ -115,48 +79,12 @@
     },
     {
       "scrollTo": {
-        "text": "Lying Leg Curl"
+        "text": "Chest-Supported Row"
       }
     },
     {
       "tap": {
-        "text": "Lying Leg Curl"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "2",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "10",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "40",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Ab wheel"
-      }
-    },
-    {
-      "tap": {
-        "text": "Ab wheel"
+        "text": "Chest-Supported Row"
       }
     },
     {
@@ -170,8 +98,14 @@
       "type": {
         "text": "Reps",
         "value": "8",
-        "ime": "done",
-        "index": 1
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "55",
+        "ime": "done"
       }
     },
     {
@@ -180,7 +114,7 @@
       }
     },
     {
-      "checkpoint": "lighter-week4-four-squat-three-bench-two-accessory-sets"
+      "checkpoint": "dec1-light-paused150x3x3-rowA55x8x2"
     },
     {
       "back": true
@@ -194,7 +128,7 @@
     {
       "tap": {
         "desc": "Plan options",
-        "index": 1
+        "index": 2
       }
     },
     {
@@ -220,141 +154,13 @@
       }
     },
     {
+      "note": "Diary context: gym Wi-Fi down/no useful signal. Replay has no network-toggle action; do not claim verified offline access. Row machine A55kg2x8; remaining accessories and bike saved as note only, not native sets/cardio."
+    },
+    {
       "advance": "25m"
     },
     {
-      "tap": {
-        "desc": "Edit set 1"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "175",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "1",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "checkpoint": "lighter-single175x1-backoffs145x4"
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-EASY"
-      }
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-EASY"
-      }
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-EASY"
-      }
-    },
-    {
-      "advance": "4m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-EASY"
-      }
-    },
-    {
-      "checkpoint": "squat-lighter-work-complete"
-    },
-    {
-      "advance": "5m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
+      "checkpoint": "dec1-workout-in-front-of-me"
     },
     {
       "advance": "45s"
@@ -427,36 +233,10 @@
       }
     },
     {
-      "checkpoint": "bench-lighter-work-complete"
+      "checkpoint": "three-light-paused-deadlift-sets-complete"
     },
     {
-      "advance": "5m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-EASY"
-      }
-    },
-    {
-      "advance": "90s"
+      "advance": "3m"
     },
     {
       "tap": {
@@ -482,10 +262,7 @@
       }
     },
     {
-      "checkpoint": "curl-lighter-work-complete"
-    },
-    {
-      "advance": "5m"
+      "advance": "2m"
     },
     {
       "tap": {
@@ -511,39 +288,7 @@
       }
     },
     {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-EASY"
-      }
-    },
-    {
-      "checkpoint": "ab-wheel-lighter-work-complete"
-    },
-    {
-      "advance": "5m45s"
-    },
-    {
-      "note": "All11realsets complete. Known full-finish workaround: add one unperformed EXTRA ab-wheel set to expose working partial Finish; never log it."
+      "checkpoint": "two-chest-supported-rows-original-exercise-returned"
     },
     {
       "tap": {
@@ -551,6 +296,21 @@
         "role": "Button",
         "inDialog": true
       }
+    },
+    {
+      "note": "Complete pulldown machine A45kg2x10 and rear-delt fly station C7.5kg2x15, both around RPE6; mobility and transitions in this interval. Then bike15min easy RPE3. Native cardio entry remains untested."
+    },
+    {
+      "advance": "20m15s"
+    },
+    {
+      "advance": "15m"
+    },
+    {
+      "checkpoint": "dec1-bike15min-easy-complete"
+    },
+    {
+      "note": "All5native worksets complete; same known full-finish workaround adds one unperformed EXTRA row set, never logged."
     },
     {
       "tap": {
@@ -565,9 +325,6 @@
     },
     {
       "back": true
-    },
-    {
-      "checkpoint": "eleven-real-sets-and-one-unperformed-save-placeholder"
     },
     {
       "tap": {
@@ -589,7 +346,7 @@
       }
     },
     {
-      "checkpoint": "nov30-lighter-monday75min-saved-review"
+      "checkpoint": "dec1-tuesday75min-saved-review"
     },
     {
       "scrollTo": {
@@ -605,7 +362,7 @@
       "type": {
         "editable": true,
         "index": 0,
-        "value": "Intentional light wk:RPE6.Sq175x1,145x4x3;BP90x5x3.CurlA40x10x2;ab8x2.All easy,no extra work.Blank12=save fix.",
+        "value": "Light wk.DL150x3x3.RowA55x8x2;PD A45x10x2;flyC7.5x15x2(accRPE6).Bike15mRPE3.No gym signal.Blank6=save fix.",
         "ime": "done"
       }
     },
@@ -615,7 +372,7 @@
       }
     },
     {
-      "checkpoint": "lighter-week-intent-and-rpe-note-saved"
+      "checkpoint": "dec1-note-with-bike-and-machines-saved"
     },
     {
       "tap": {
@@ -629,7 +386,7 @@
       }
     },
     {
-      "checkpoint": "nov30-monday-finished"
+      "checkpoint": "dec1-finished"
     }
   ]
 }

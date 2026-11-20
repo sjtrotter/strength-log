@@ -34,6 +34,18 @@ import org.robolectric.annotation.GraphicsMode
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class TodayScreenTest {
+    @Test fun `a run day names its activity`() {
+        val day = first.copy(title = "Easy", cardioOnly = true,
+            cardioActivity = cloud.trotter.log.strength.domain.model.CardioActivity.ROAD_RUN)
+        val state = mutableStateOf(TodayUiState(hasProgram = true, upNext = listOf(day)))
+        rule.setContent { AppTheme { TodayScreen(state.value, actions()) } }
+        rule.onNodeWithText("Easy, road run").assertIsDisplayed()
+        rule.runOnIdle { state.value = state.value.copy(upNext = listOf(day.copy(liftCount = 2))) }
+        rule.onNodeWithText("Easy, road run and 2 lifts").assertIsDisplayed()
+        rule.runOnIdle { state.value = state.value.copy(upNext = listOf(day.copy(liftCount = 1))) }
+        rule.onNodeWithText("Easy, road run and 1 lift").assertIsDisplayed()
+    }
+
     @Test fun lighterTodayStartsTheSelectedDayAndHidesForResumeRestAndCardio() {
         val next = first.copy(lighterAvailable = true)
         val state = mutableStateOf(TodayUiState(hasProgram = true, upNext = listOf(next)))

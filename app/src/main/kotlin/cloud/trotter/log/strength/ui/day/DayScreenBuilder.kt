@@ -126,8 +126,14 @@ object DayScreenBuilder {
 
     fun allDone(done: Int, available: Int): Boolean = available > 0 && done >= available
 
-    fun currentPage(pageKeys: List<String>, selectedKey: String?, exercises: List<ExerciseCardState>): Int {
+    fun currentPage(
+        pageKeys: List<String>, selectedKey: String?, exercises: List<ExerciseCardState>,
+        cardioLeads: Boolean = false, cardioDone: Boolean = false,
+    ): Int {
         if (selectedKey != null) pageKeys.indexOf(selectedKey).takeIf { it >= 0 }?.let { return it }
+        if (selectedKey == null && cardioLeads && !cardioDone) {
+            pageKeys.indexOf("cardio").takeIf { it >= 0 }?.let { return it }
+        }
         val firstUndone = exercises.firstOrNull { it.rows.any { row -> !row.complete } }
         if (firstUndone == null && exercises.all { it.rows.isEmpty() }) return 0
         val fallback = firstUndone ?: exercises.lastOrNull()

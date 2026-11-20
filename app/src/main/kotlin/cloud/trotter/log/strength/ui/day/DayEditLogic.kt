@@ -17,6 +17,13 @@ import cloud.trotter.log.strength.domain.model.Equipment
  */
 object ExercisePicker {
 
+    /** Library matches for [query] when the pattern list has none: blank for a blank query or any pattern match. */
+    fun fallback(
+        candidates: List<ExerciseEntry>, all: List<ExerciseEntry>, query: String, equipment: Set<Equipment>,
+    ): List<ExerciseEntry> =
+        if (query.isBlank() || filter(candidates, query, equipment).isNotEmpty()) emptyList<ExerciseEntry>()
+        else filter(all, query, equipment).filterNot { entry -> candidates.any { it.id == entry.id } }
+
     /**
      * Every [query] word matches a name word or its catalog expansion, in any
      * order (blank query matches everything). [equipment] uses [availableWith].

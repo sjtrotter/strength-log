@@ -22,6 +22,7 @@ import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
+import cloud.trotter.log.strength.data.prefs.WorkoutRecord
 import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.domain.cardio.CardioBlocks
 import cloud.trotter.log.strength.domain.model.CardioActivity
@@ -31,6 +32,7 @@ import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
+import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
@@ -206,6 +208,77 @@ class DayViewModelWorkoutTest {
         }
         vm.continueWorkout()
         runCurrent()
+    }
+
+    @Test fun `Start on a run day with a strength block shows the run first`() = test {
+        prepare(cardio = true)
+        val program = repo.plans.programFlow.first()
+        repo.replaceProgram(Program(program.days.map { it.copy(kind = cloud.trotter.log.strength.domain.model.ProgramDayKind.CARDIO) }))
+        val vm = readyVm()
+        assertTrue(vm.uiState.value.cardioLeads)
+        assertEquals("cardio", vm.uiState.value.pages.first().key)
+        assertEquals(0, vm.uiState.value.currentPage)
+        vm.startWorkout()
+        runCurrent()
+        assertEquals(WorkoutSelection.Shown.Group("cardio", false), vm.uiState.value.workout?.shown)
+        assertNull(vm.uiState.value.cardio?.run)
+        assertTrue(vm.uiState.value.cardioStartEnabled)
+    }
+
+    @Test fun `a cardio day whose run is logged opens on the first undone lift`() = test {
+        clock.now = Instant.parse("2026-11-20T18:00:00Z").toEpochMilli()
+        prepare(listOf(bench(), ProgramExercise("bb_back_squat")), cardio = true)
+        val program = repo.plans.programFlow.first()
+        repo.replaceProgram(Program(program.days.map { it.copy(kind = ProgramDayKind.CARDIO) }))
+        val vm = readyVm()
+        vm.openPastCardio()
+        assertNotNull(vm.pastCardio.value)
+        vm.savePastCardio()
+        runCurrent()
+        val session = repo.history.cardioSessionsFlow.first().single()
+        assertNotNull(vm.finisher.receipt.value)
+        assertTrue(vm.finisher.dismissReceipt())
+        vm.viewModelScope.cancel()
+
+        val reopened = readyVm()
+        val state = reopened.uiState.value
+        val liftKey = "exercise:${state.exercises.first().programExerciseId}"
+        assertEquals(session.seconds, state.cardio?.loggedSeconds)
+        assertEquals(listOf("cardio", liftKey, "exercise:${state.exercises.last().programExerciseId}"), state.pages.map { it.key })
+        assertEquals(liftKey, state.selectedPageKey)
+        assertEquals(1, state.currentPage)
+        reopened.startWorkout()
+        runCurrent()
+        assertEquals(WorkoutSelection.Shown.Group(liftKey, false), reopened.uiState.value.workout?.shown)
+    }
+
+    @Test fun `a cardio workout without a selected group follows the pager order`() = test {
+        prepare(cardio = true)
+        val program = repo.plans.programFlow.first()
+        repo.replaceProgram(Program(program.days.map { it.copy(kind = ProgramDayKind.CARDIO) }))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        settings.setWorkoutRecord(WorkoutRecord(requireNotNull(vm.uiState.value.runId), selectedKey = null))
+        runCurrent()
+        assertEquals("cardio", vm.uiState.value.pages.first().key)
+        assertEquals(WorkoutSelection.Shown.Group("cardio", false), vm.uiState.value.workout?.shown)
+    }
+
+    @Test fun `All sets keeps the planned target after a lighter set is logged`() = test {
+        prepare(listOf(bench().copy(prescription = Prescription(PrescribedTarget.LoadReps(35.0, 8)))))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val card = vm.uiState.value.exercises.single()
+        val rows = track(vm, card.programExerciseId).mapIndexed { index, row ->
+            row.copy(weightLb = if (index == 2) 30.0 else 35.0, reps = if (index == 1) 6 else 8, done = true)
+        }
+        repo.writeTestRows(requireNotNull(vm.uiState.value.runId), "A", card.programExerciseId, Slot.MAIN, rows)
+        runCurrent()
+        val logged = vm.uiState.value.exercises.single()
+        assertEquals(listOf(8, 6, 8), logged.rows.map { it.reps })
+        assertEquals("3 × 8 · 35 lb", logged.workingHeading)
     }
 
     @Test fun `★ a button log holds the set for effort and refuses a second log`() = test {

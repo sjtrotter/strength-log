@@ -72,12 +72,12 @@
     },
     {
       "scrollTo": {
-        "text": "Track run"
+        "textContains": "0 of 8"
       }
     },
     {
       "tap": {
-        "text": "Track run"
+        "textContains": "0 of 8"
       }
     },
     {

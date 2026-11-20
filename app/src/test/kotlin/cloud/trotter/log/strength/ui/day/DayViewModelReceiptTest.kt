@@ -44,6 +44,7 @@ import cloud.trotter.log.strength.ui.day.receipt.ReceiptRow
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptNextTime
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptNextTimes
 import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
+import cloud.trotter.log.strength.ui.day.receipt.CardioRecordMark
 import cloud.trotter.log.strength.ui.day.receipt.isPartial
 import cloud.trotter.log.strength.ui.day.receipt.loggedSetCount
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -74,6 +75,8 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -1255,6 +1258,95 @@ class DayViewModelReceiptTest {
         advanceUntilIdle()
 
         assertNull(vm.finisher.pendingShare.value)
+    }
+
+    @Test fun `a live receipt counts an earlier overrun session at its reading`() = runVmTest {
+        assertLiveStandingReceipt(oldBundle = false)
+    }
+
+    @Test fun `an old standing bests bundle still restores`() = runVmTest {
+        assertLiveStandingReceipt(oldBundle = true)
+    }
+
+    private suspend fun TestScope.assertLiveStandingReceipt(oldBundle: Boolean) {
+        settings.setDistanceUnit(cloud.trotter.log.strength.domain.units.DistanceUnit.KM)
+        val spec = CardioSetSpec(CardioRole.WORK, Measure.Time(900))
+        val block = CardioBlock(CardioActivity.ROAD_RUN, listOf(spec))
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Run", "", listOf(ProgramExercise("bb_bench")), cardioBlock = block))))
+        val plan = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        var wall = 1_800_000_000_000L
+        val clock = object : CardioClock {
+            override fun wallMillis() = wall
+            override fun elapsedRealtimeMillis() = wall - 1_799_000_000_000L
+            override fun bootCount() = 7
+        }
+        if (!oldBundle) {
+            val earlier = CardioSetResult(spec, CardioSetStatus.FINISHED, 903, 3430, DistanceSource.MANUAL,
+                metresAtEnd = 3412, secondsAtEnd = 900, readingSource = ReadingSource.TYPED)
+            repo.logCardioSession(CardioSessionEntity(planId = plan, dayId = "A", mode = "OUTDOOR_RUN", hard = false,
+                label = "Run", startedAt = wall - 86_400_000L, completedAt = wall - 86_400_000L + 903_000L,
+                seconds = 903, stepsCompleted = 1, activity = block.activity.name), listOf(earlier))
+        }
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle, clock)
+        backgroundScope.launch { vm.uiState.collect {} }
+        runCurrent()
+        vm.setCardioScreenLive(true)
+        vm.startCardio()
+        runCurrent()
+        val run = requireNotNull(vm.uiState.value.cardio?.run)
+        if (oldBundle) handle["day_cardio_standing_bests:${run.runId}"] = arrayListOf(
+            SavedCardioBest.from(CardioSetResult(spec, CardioSetStatus.FINISHED, 900, 3412, DistanceSource.MANUAL)))
+        wall += 900_000L
+        advanceTimeBy(1_001)
+        runCurrent()
+        assertEquals(900, vm.uiState.value.cardio?.elapsedSeconds)
+        wall += 4_000L
+        // The restored meter draft retains an exact total beyond the display field's two decimal places.
+        handle["day_cardio_run_distance"] = CardioRunDistance(run.runId, 0, "3485")
+        vm.stopCardio(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        val standing = requireNotNull(handle.get<ArrayList<SavedCardioStanding>>("day_cardio_standing_readings:${run.runId}")).single()
+        assertEquals(3412, standing.toDomain().let { if (oldBundle) it.metres else it.metresAtEnd })
+        if (!oldBundle) {
+            assertEquals(903, standing.elapsedSeconds)
+            assertEquals(3430, standing.metres)
+            assertEquals(900, standing.secondsAtEnd)
+            assertEquals("TYPED", standing.readingSource)
+        }
+        vm.setCardioScreenLive(false)
+        vm.viewModelScope.cancel()
+        if (oldBundle) handle.remove<ArrayList<SavedCardioStanding>>("day_cardio_standing_readings:${run.runId}")
+        val parcel = Parcel.obtain()
+        val restoredHandle = try {
+            parcel.writeBundle(handle.savedStateProvider().saveState())
+            parcel.setDataPosition(0)
+            SavedStateHandle.createHandle(parcel.readBundle(CardioRun::class.java.classLoader), null)
+        } finally {
+            parcel.recycle()
+        }
+        if (!oldBundle) assertEquals(standing,
+            restoredHandle.get<ArrayList<SavedCardioStanding>>("day_cardio_standing_readings:${run.runId}")?.single())
+        val restored = newViewModel(restoredHandle, clock)
+        backgroundScope.launch { restored.uiState.collect {} }
+        runCurrent()
+        restored.openCardioDistance()
+        runCurrent()
+        restored.changeCardioReading("3.47")
+        val sheet = requireNotNull(restored.uiState.value.openSheet)
+        restored.saveCardioDistance(CardioSetAction(sheet.dayId, sheet.cardioRunId, sheet.setIndex))
+        runCurrent()
+        val receipt = requireNotNull(restored.finisher.receipt.value)
+        val result = repo.history.cardioSetsFor(receipt.sessionId).single()
+        assertEquals(904, result.elapsedSeconds)
+        assertEquals(3485, result.metres)
+        assertEquals(3470, result.metresAtEnd)
+        assertEquals(900, result.secondsAtEnd)
+        assertEquals(ReadingSource.TYPED, result.readingSource)
+        assertEquals(CardioRecordMark(PrKind.FARTHER, 0, null, 3412), receipt.cardioRows.single().record)
+        assertFalse(restoredHandle.keys().any {
+            it == "day_cardio_standing_readings:${run.runId}" || it == "day_cardio_standing_bests:${run.runId}"
+        })
     }
 
     // --- fixtures ------------------------------------------------------------

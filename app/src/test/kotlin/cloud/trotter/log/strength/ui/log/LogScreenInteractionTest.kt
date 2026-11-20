@@ -316,10 +316,14 @@ class LogScreenInteractionTest {
         } }
 
         composeTestRule.onNodeWithText("Save").assertIsNotEnabled()
-        composeTestRule.onNodeWithText("Ends after now").performScrollTo().assertIsDisplayed()
+        val endTime = java.time.Instant.ofEpochMilli(now + 1_800_000).atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm", java.util.Locale.US))
+        // #536: History's elapsed end is shown beside Start time with its clock reading.
+        composeTestRule.onNodeWithText("Ends at $endTime, after now").assertIsDisplayed()
         composeTestRule.runOnIdle { state.value = state.value.copy(cardioEditCompletedAt = now - 1_000) }
         composeTestRule.onNodeWithText("Save").assertIsEnabled()
-        composeTestRule.onNodeWithText("Ends after now").assertDoesNotExist()
+        // #536: the formatted end-time reason clears when completion is no longer in the future.
+        composeTestRule.onNodeWithText("Ends at $endTime, after now").assertDoesNotExist()
     }
 
     @Test

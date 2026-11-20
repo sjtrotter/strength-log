@@ -32,6 +32,23 @@ class CardioSetStateTest {
             nowElapsedMillis = elapsed, nowWallMillis = wall, cardioSets = run, bootCount = 4))
     private fun texts(ui: DialUiState) = ui.disc.lines.flatMap { it.spans }.map { it.text }
 
+    @Test fun `resume past a recovery starts the next timed work`() {
+        val state = run(time, recovery, time).start(100_000, 10_000, 4).resume(281_000, 191_000, 4)
+        assertEquals(2, state.position)
+        val active = assertNotNull(state.active)
+        assertEquals(280_000L, active.startedAtWallMillis)
+        assertEquals(190_000L, active.startedAtElapsedMillis)
+        assertEquals(310_000L, state.deadline(191_000, 281_000, 4))
+    }
+
+    @Test fun `resume long after a recovery leaves the work waiting`() {
+        val state = run(time, recovery, time).start(100_000, 10_000, 4).resume(900_000, 810_000, 4)
+        assertEquals(2, state.position)
+        assertNull(state.active)
+        assertEquals(2, state.results.size)
+        assertNull(state.deadline(810_000, 900_000, 4))
+    }
+
     @Test fun `active and between-set cardio controls survive a blank-day snapshot`() {
         val active = run(time, time).start(100_000, 10_000, 4)
         val blank = snapshot(active.block).copy(planId = null, cardioBlock = null,
@@ -71,7 +88,7 @@ class CardioSetStateTest {
         assertTrue("Tap to retry" in texts(failed))
     }
 
-    @Test fun `legacy eleven sets wait for work starts and auto-start each recovery including the last`() {
+    @Test fun `legacy eleven sets wait after warmup then chain every timed round`() {
         val legacy = CardioBlocks.fromLegacy(CardioSuggestion("Intervals", "", true), true, CardioActivity.TRACK_RUN).toWatch()
         var state = CardioSetState(9, "A", legacy)
         assertEquals(11, state.block.sets.size)
@@ -84,9 +101,10 @@ class CardioSetStateTest {
         assertEquals(1, state.position)
         assertNull(state.active)
         repeat(5) { index ->
-            // Waiting between work sets never contributes to elapsed duration.
-            wall += 5_000; elapsed += 5_000
-            state = state.start(wall, elapsed, 4)
+            if (index == 0) {
+                wall += 5_000; elapsed += 5_000
+                state = state.start(wall, elapsed, 4)
+            }
             assertEquals(state, state.tap(wall + 1_000, elapsed + 1_000, 4))
             assertEquals(state, state.turn(3))
             wall += 120_000; elapsed += 120_000
@@ -95,7 +113,8 @@ class CardioSetStateTest {
             assertNotNull(state.active)
             wall += 120_000; elapsed += 120_000
             state = state.resume(wall, elapsed, 4)
-            if (index < 4) assertNull(state.active)
+            // #536: recovery now starts the next timed work instead of leaving it waiting.
+            if (index < 4) assertNotNull(state.active)
         }
         assertTrue(state.complete)
         assertNull(state.active)

@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.SnackbarResult
 import cloud.trotter.log.strength.run.GpsNotice
 import cloud.trotter.log.strength.domain.model.CardioFamily
+import cloud.trotter.log.strength.domain.cardio.startsOnItsOwn
 import cloud.trotter.log.strength.domain.model.CardioRole
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -537,7 +538,14 @@ private fun WorkoutCardio(state: DayUiState, actions: DayActions) {
                     WorkoutHeroText(formatCardioTime(if (run?.running == true) cardio.stepSecondsLeft else end.seconds))
                     Text(stringResource(R.string.workout_clock_remaining), style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (run?.running == true) WorkoutClockProgress(cardio.stepSecondsLeft.toFloat() / end.seconds)
+                    if (run?.running == true) {
+                        WorkoutClockProgress(cardio.stepSecondsLeft.toFloat() / end.seconds)
+                        val next = block.sets.getOrNull(cardio.position + 1)
+                        if (spec.role == CardioRole.RECOVERY && next?.role == CardioRole.WORK && startsOnItsOwn(spec, next)) {
+                            Text(stringResource(R.string.workout_cardio_next_starts), style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
                 }
                 is Measure.Distance -> if (run?.running == true) {
                     if (sprintRep?.armed == true) WorkoutSprintTimer(sprintRep)

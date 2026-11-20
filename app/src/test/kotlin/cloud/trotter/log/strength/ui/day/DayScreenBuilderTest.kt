@@ -53,6 +53,29 @@ import kotlin.test.assertTrue
 
 class DayScreenBuilderTest {
 
+    @Test fun `a cardio day with lifts opens on its cardio`() {
+        val state = workoutDayFixture().copy(cardioLeads = true, selectedPageKey = null,
+            cardio = CardioCardState("Road run", "", false))
+        assertEquals("cardio", state.pages.first().key)
+        assertEquals(0, state.currentPage)
+        assertEquals(state.exercises.map { "exercise:${it.programExerciseId}" }, state.pages.drop(1).map { it.key })
+        assertEquals(2, DayScreenBuilder.currentPage(state.pages.map { it.key }, "exercise:2", state.exercises, true, false))
+    }
+
+    @Test fun `after the cardio is logged it opens on the first undone lift`() {
+        val state = workoutDayFixture().copy(cardioLeads = true, selectedPageKey = null,
+            cardio = CardioCardState("Road run", "", false, loggedSeconds = 1500))
+        assertEquals("exercise:2", state.pages[state.currentPage].key)
+    }
+
+    @Test fun `a strength day with cardio keeps lifts first`() {
+        val state = workoutDayFixture().copy(cardioLeads = false, selectedPageKey = null,
+            cardio = CardioCardState("Road run", "", false))
+        assertEquals("exercise:1", state.pages.first().key)
+        assertEquals("exercise:2", state.pages[state.currentPage].key)
+        assertEquals("cardio", state.pages.last().key)
+    }
+
     @Test fun `ruled run days read the Finish result`() {
         val opening = RunWalkLadder.block(1, CardioActivity.ROAD_RUN)
         val offered = RunWalkLadder.block(2, CardioActivity.ROAD_RUN)

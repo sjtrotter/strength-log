@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -185,9 +186,11 @@ class LiftSwapScreenTest {
         composeTestRule.onNodeWithText("All sets").performClick()
         composeTestRule.onNodeWithContentDescription("More").performClick()
         composeTestRule.onNodeWithText("Swap exercise").performClick()
-        composeTestRule.onNode(hasSetTextAction()).performTextInput(query)
+        // #535: a pattern miss now lists library matches, so an unmatched query reaches the empty state first.
+        composeTestRule.onNode(hasSetTextAction()).performTextInput("zzzz-no-such-exercise")
         composeTestRule.onNodeWithText("No matching exercises").assertIsDisplayed()
         composeTestRule.onNodeWithText("Search all exercises").performClick()
+        composeTestRule.onNode(hasSetTextAction()).performTextReplacement(query)
         composeTestRule.onNode(hasSetTextAction()).assertTextContains(query)
         composeTestRule.onNodeWithText(target.name).performClick()
         composeTestRule.onNodeWithText("The plan").performClick()

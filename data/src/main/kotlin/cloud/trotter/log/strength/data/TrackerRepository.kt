@@ -791,7 +791,7 @@ class TrackerRepository(
     ) { open, days, logs, slots ->
         if (open?.planId == planId && open.dayId == dayId) {
             DayTracks(open.id, true, open.tracks.filter { !it.retired }.mapNotNull { track ->
-                track.programExerciseId?.let { LoggedSlot(it, track.slot, track.sets, track.exerciseId, track.note, track.opening) }
+                track.programExerciseId?.let { LoggedSlot(it, track.slot, track.sets, track.exerciseId, track.note, track.opening, track.planned) }
             }, retired = open.tracks.filter { it.retired && (!it.dropped || it.sets.any { set -> set.done }) },
                 droppedPartners = open.tracks.mapNotNull { it.programExerciseId }.filterTo(mutableSetOf()) { id ->
                     open.isPartnerDropped(id)

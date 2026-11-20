@@ -713,6 +713,52 @@ class DayViewModelCardioExecutionTest {
     private fun time(role: CardioRole, seconds: Int = 10, aim: Int? = null) =
         CardioSetSpec(role, Measure.Time(seconds), aim?.let { Measure.Distance(it) }, hard = role == CardioRole.WORK)
 
+    @Test fun `ladder rounds chain through boundary alarms`() = test {
+        prepareBlock(time(CardioRole.WORK, 60), time(CardioRole.RECOVERY, 90),
+            time(CardioRole.WORK, 60), time(CardioRole.RECOVERY, 90))
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        vm.setCardioScreenLive(false)
+        val started = requireNotNull(vm.uiState.value.cardio?.run)
+        val firstIdentity = alarm.identity
+        listOf(60_000L, 90_000L, 60_000L, 90_000L).forEachIndexed { index, millis ->
+            clock.advance(millis)
+            alarm.fire()
+            runCurrent()
+            assertEquals(index + 1, alarm.buzzes)
+            if (index == 1) {
+                val work = requireNotNull(vm.uiState.value.cardio?.run)
+                assertEquals(2, work.position)
+                assertTrue(work.running)
+                assertEquals(requireNotNull(started.startedAt) + 150_000L, work.wallStart)
+                assertEquals(clock.elapsed + 60_000L, alarm.deadline)
+                assertEquals("cardio:${work.startedAt}:2:${work.wallStart}", alarm.identity)
+                assertFalse(firstIdentity == alarm.identity)
+            }
+        }
+        val session = repo.history.cardioSessionsFlow.first().single()
+        val rows = repo.history.cardioSetsFor(session.id)
+        assertEquals(listOf(60, 90, 60, 90), rows.map { it.elapsedSeconds })
+        assertTrue(rows.all { it.status == CardioSetStatus.FINISHED })
+        assertNull(alarm.deadline)
+    }
+
+    @Test fun `distance work after recovery waits for Start on the phone`() = test {
+        prepareBlock(distance(), time(CardioRole.RECOVERY, 90), distance())
+        val vm = readyVm()
+        vm.startCardio()
+        runCurrent()
+        tick(105_000)
+        vm.reachCardioTarget(requireNotNull(vm.uiState.value.cardio?.run).action())
+        runCurrent()
+        tick(90_000)
+        val work = requireNotNull(vm.uiState.value.cardio?.run)
+        assertEquals(2, work.position)
+        assertFalse(work.running)
+        assertNull(alarm.deadline)
+    }
+
     @Test
     fun screenOffIntervalBuzzesAtEachBoundaryAndArmsTheNext() = test {
         prepareBlock(time(CardioRole.WORK), time(CardioRole.RECOVERY))
@@ -1556,7 +1602,8 @@ class DayViewModelCardioExecutionTest {
         val receipt = requireNotNull(vm.finisher.receipt.value)
         assertEquals(400, receipt.cardioRows.single().endMetres)
         assertEquals(98, receipt.cardioRows.single().intervals.single().elapsedSeconds)
-        assertFalse(handle.keys().any { it.startsWith("day_cardio_standing_bests:") })
+        // #526: new standing snapshots retain at-end readings under a separate key.
+        assertFalse(handle.keys().any { it.startsWith("day_cardio_standing_readings:") })
         assertEquals(listOf(CardioRecordMark(PrKind.FASTER, 0, 102, null)), vm.finisher.receipt.value?.cardioRows?.mapNotNull { it.record })
         assertEquals(2, repo.history.cardioSessionsFlow.first().size)
         repo.history.deleteCardioSession(standingId)
@@ -1581,7 +1628,8 @@ class DayViewModelCardioExecutionTest {
         runCurrent()
         assertNull(restored.finisher.receipt.value)
         assertFalse(restoredHandle.keys().any {
-            it.startsWith("day_cardio_standing_bests:") || it.startsWith("day_cardio_receipt_records:")
+            // #526: new standing snapshots retain at-end readings under a separate key.
+            it.startsWith("day_cardio_standing_readings:") || it.startsWith("day_cardio_receipt_records:")
         })
     }
 
@@ -1649,7 +1697,8 @@ class DayViewModelCardioExecutionTest {
         runCurrent()
         assertNull(vm.finisher.receipt.value)
         val pending = vm.uiState.value.cardio!!.distanceRuns.single()
-        assertEquals(4980, handle.get<ArrayList<SavedCardioBest>>("day_cardio_standing_bests:${pending.runId}")?.single()?.metres)
+        // #526: new standing snapshots retain at-end readings under a separate key.
+        assertEquals(4980, handle.get<ArrayList<SavedCardioStanding>>("day_cardio_standing_readings:${pending.runId}")?.single()?.metres)
         val sessionId = requireNotNull(pending.sessionId)
         assertNull(repo.history.cardioSetsFor(sessionId).single().metres)
 
@@ -1668,7 +1717,8 @@ class DayViewModelCardioExecutionTest {
         assertEquals(sessionId, receipt.sessionId)
         assertEquals(1800, receipt.cardioRows.single().endSeconds)
         assertEquals(5210, receipt.cardioRows.single().intervals.single().metres)
-        assertFalse(restoredHandle.keys().any { it.startsWith("day_cardio_standing_bests:") })
+        // #526: new standing snapshots retain at-end readings under a separate key.
+        assertFalse(restoredHandle.keys().any { it.startsWith("day_cardio_standing_readings:") })
         assertEquals(listOf(CardioRecordMark(PrKind.FARTHER, 0, null, 4980)), restored.finisher.receipt.value?.cardioRows?.mapNotNull { it.record })
         assertEquals(5210, repo.history.cardioSetsFor(sessionId).single().metres)
         assertEquals(5400, repo.history.cardioBestsFor(activity).values.single().metres)
@@ -1711,8 +1761,10 @@ class DayViewModelCardioExecutionTest {
 
         val restoredHandle = parcelHandle(handle)
         val restored = readyVm(restoredHandle)
-        assertEquals(4980, restoredHandle.get<ArrayList<SavedCardioBest>>("day_cardio_standing_bests:${first.runId}")?.single()?.metres)
-        assertEquals(5400, restoredHandle.get<ArrayList<SavedCardioBest>>("day_cardio_standing_bests:${second.runId}")?.single()?.metres)
+        // #526: new standing snapshots retain at-end readings under a separate key.
+        assertEquals(4980, restoredHandle.get<ArrayList<SavedCardioStanding>>("day_cardio_standing_readings:${first.runId}")?.single()?.metres)
+        // #526: new standing snapshots retain at-end readings under a separate key.
+        assertEquals(5400, restoredHandle.get<ArrayList<SavedCardioStanding>>("day_cardio_standing_readings:${second.runId}")?.single()?.metres)
         restored.requestCardioDistance(first.action(0))
         restored.openCardioDistance()
         runCurrent()
@@ -1723,11 +1775,13 @@ class DayViewModelCardioExecutionTest {
 
         assertEquals(first.sessionId, restored.finisher.receipt.value?.sessionId)
         assertEquals(listOf(CardioRecordMark(PrKind.FARTHER, 0, null, 4980)), restored.finisher.receipt.value?.cardioRows?.mapNotNull { it.record })
-        assertNull(restoredHandle.get<ArrayList<SavedCardioBest>>("day_cardio_standing_bests:${first.runId}"))
+        // #526: new standing snapshots retain at-end readings under a separate key.
+        assertNull(restoredHandle.get<ArrayList<SavedCardioStanding>>("day_cardio_standing_readings:${first.runId}"))
         assertTrue(restored.finisher.dismissReceipt())
         runCurrent()
         assertNull(restoredHandle.get<ArrayList<CardioReceiptRecord>>("day_cardio_receipt_records:${first.runId}"))
-        assertEquals(5400, restoredHandle.get<ArrayList<SavedCardioBest>>("day_cardio_standing_bests:${second.runId}")?.single()?.metres)
+        // #526: new standing snapshots retain at-end readings under a separate key.
+        assertEquals(5400, restoredHandle.get<ArrayList<SavedCardioStanding>>("day_cardio_standing_readings:${second.runId}")?.single()?.metres)
 
         restored.selectDay(second.dayId)
         runCurrent()
@@ -1744,7 +1798,8 @@ class DayViewModelCardioExecutionTest {
         assertTrue(restored.finisher.dismissReceipt())
         runCurrent()
         assertFalse(restoredHandle.keys().any {
-            it.startsWith("day_cardio_standing_bests:") || it.startsWith("day_cardio_receipt_records:")
+            // #526: new standing snapshots retain at-end readings under a separate key.
+            it.startsWith("day_cardio_standing_readings:") || it.startsWith("day_cardio_receipt_records:")
         })
     }
 
@@ -1763,7 +1818,8 @@ class DayViewModelCardioExecutionTest {
         runCurrent()
         val failed = requireNotNull(vm.uiState.value.cardio?.run)
         assertTrue(failed.saveFailed)
-        assertEquals(102, handle.get<ArrayList<SavedCardioBest>>("day_cardio_standing_bests:${failed.runId}")?.single()?.elapsedSeconds)
+        // #526: new standing snapshots retain at-end readings under a separate key.
+        assertEquals(102, handle.get<ArrayList<SavedCardioStanding>>("day_cardio_standing_readings:${failed.runId}")?.single()?.elapsedSeconds)
         assertNull(vm.finisher.receipt.value)
 
         vm.setCardioScreenLive(false)
@@ -1806,7 +1862,8 @@ class DayViewModelCardioExecutionTest {
             stepsCompleted = summary.stepsCompleted, planId = completed.planId,
             planName = completed.planName, activity = completed.block.activity.name,
         ), completed.resultSets, finishDay = true)
-        assertFalse(handle.keys().any { it.startsWith("day_cardio_standing_bests:") })
+        // #526: new standing snapshots retain at-end readings under a separate key.
+        assertFalse(handle.keys().any { it.startsWith("day_cardio_standing_readings:") })
         assertEquals(98, repo.history.cardioBestsFor(CardioActivity.TRACK_RUN).values.single().elapsedSeconds)
 
         val restoredHandle = parcelHandle(handle)
@@ -1817,7 +1874,8 @@ class DayViewModelCardioExecutionTest {
             restored.finisher.receipt.value?.cardioRows?.mapNotNull { it.record })
         assertEquals(2, repo.history.cardioSessionsFlow.first().size)
         assertEquals("B", repo.plans.suggestedDayFlow.first())
-        assertFalse(restoredHandle.keys().any { it.startsWith("day_cardio_standing_bests:") })
+        // #526: new standing snapshots retain at-end readings under a separate key.
+        assertFalse(restoredHandle.keys().any { it.startsWith("day_cardio_standing_readings:") })
         assertTrue(restored.finisher.dismissReceipt())
         runCurrent()
         assertFalse(restoredHandle.keys().any { it.startsWith("day_cardio_receipt_records:") })
@@ -1853,7 +1911,8 @@ class DayViewModelCardioExecutionTest {
         assertEquals(400, rows[1].endMetres)
         assertEquals(listOf(101, 98), rows[1].intervals.map { it.elapsedSeconds })
         assertEquals(CardioRecordMark(PrKind.FASTER, 1, 102, null), rows[1].record)
-        assertFalse(handle.keys().any { it.startsWith("day_cardio_standing_bests:") })
+        // #526: new standing snapshots retain at-end readings under a separate key.
+        assertFalse(handle.keys().any { it.startsWith("day_cardio_standing_readings:") })
     }
 
     @Test
@@ -2308,7 +2367,7 @@ class DayViewModelCardioExecutionTest {
     }
 
     @Test
-    fun legacyHardFiveKWaitsForWorkAndLogsElevenSetsIncludingFinalRecovery() = test {
+    fun legacyHardFiveKWaitsAfterWarmupThenChainsAllTimedRounds() = test {
         prepare()
         val vm = readyVm()
         val block = requireNotNull(vm.uiState.value.cardio?.block)
@@ -2322,9 +2381,12 @@ class DayViewModelCardioExecutionTest {
         assertEquals(1, vm.uiState.value.cardio?.run?.position)
         assertFalse(vm.uiState.value.cardio!!.run!!.running)
         repeat(5) { index ->
-            tick(20_000) // Waiting never becomes elapsed work.
-            vm.startCardio()
-            runCurrent()
+            // #536: only the first work set waits; subsequent timed rounds start at recovery end.
+            if (index == 0) {
+                tick(20_000) // Waiting never becomes elapsed work.
+                vm.startCardio()
+                runCurrent()
+            }
             tick(120_000)
             assertEquals(2 + index * 2, vm.uiState.value.cardio?.run?.position)
             assertTrue(vm.uiState.value.cardio!!.run!!.running)

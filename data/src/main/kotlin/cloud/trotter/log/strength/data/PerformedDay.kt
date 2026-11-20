@@ -23,6 +23,7 @@ data class PerformedTrack(
     /** The rows Start would open this track with, when it has an opening, a Hold with unchanged rows included (spec W2b-3c decision 4); null in a run. */
     val opening: List<LoggedSet>? = null,
     val openingInfo: OpeningDto? = null,
+    val planned: List<LoggedSet>? = null,
 ) {
     val tracking: TrackingType get() = performed.tracking
     /** The stored rows (the run's own during a run), else the seed: what a next-time offer describes. */
@@ -77,7 +78,7 @@ data class PerformedDay(
                 val key = slot.programExerciseId to trackSlot
                 val performed = performedExercise(slot, stored[key]?.exerciseId, catalog, trackSlot)
                 return PerformedTrack(performed, performed.goal(settings.goalsLb), stored[key]?.sets, seeds[key],
-                    note = stored[key]?.note.orEmpty(), opening = openings[key], openingInfo = stored[key]?.opening ?: openingInfo[key])
+                    note = stored[key]?.note.orEmpty(), planned = stored[key]?.planned, opening = openings[key], openingInfo = stored[key]?.opening ?: openingInfo[key])
             }
             return PerformedDay(
                 planId, dayId, program, program.days.firstOrNull { it.id == dayId },

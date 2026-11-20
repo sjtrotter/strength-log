@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.progression.restBeforeSprint
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.rest.PhoneRestController
@@ -69,6 +70,8 @@ class TodayViewModel @Inject constructor(
                         Program.accentIndex(day.id), day.title,
                         cardioOnly = day.kind == ProgramDayKind.CARDIO ||
                             (day.exercises.isEmpty() && day.cardioBlock != null),
+                        cardioActivity = day.cardioBlock?.activity.takeIf { day.kind == ProgramDayKind.CARDIO },
+                        liftCount = day.cardioLiftCount,
                         rest = day.kind == ProgramDayKind.REST,
                         beforeSprint = restBeforeSprint(program, day.id),
                         trainDayId = trainDayId.takeIf { day.kind == ProgramDayKind.REST },
@@ -79,9 +82,12 @@ class TodayViewModel @Inject constructor(
                 }
             }
             val openDay = run?.takeIf { it.planId != null && it.dayId != null }?.let { open ->
+                val day = byPlan[open.planId]?.days?.firstOrNull { it.id == open.dayId }
                 TodayDay(requireNotNull(open.planId), open.planName.orEmpty(), requireNotNull(open.dayId),
                     Program.accentIndex(requireNotNull(open.dayId)),
-                    open.dayTitle)
+                    open.dayTitle,
+                    cardioActivity = day?.cardioBlock?.activity.takeIf { day?.kind == ProgramDayKind.CARDIO },
+                    liftCount = day?.cardioLiftCount ?: 0)
             }
             TodayUiState(
                 loading = target == null,
@@ -107,3 +113,6 @@ class TodayViewModel @Inject constructor(
 
     fun toggleOtherDays() { savedState["today_other_days"] = !expanded.value }
 }
+
+private val ProgramDay.cardioLiftCount: Int
+    get() = if (kind == ProgramDayKind.CARDIO) exercises.sumOf { if (it.superset != null) 2 else 1 } else 0

@@ -97,6 +97,8 @@ internal fun CardioEntrySheet(
         ((unchangedReading || readingText.isBlank() || readingValue != null) && CardioEdit.apply(gps.row, draft.seconds, draft.metres, readingValue) != null)
     val zone = ZoneId.systemDefault()
     val start = Instant.ofEpochMilli(draft.startedAt).atZone(zone)
+    val endsLater = completedAt > nowMillis()
+    val endTime = Instant.ofEpochMilli(completedAt).atZone(zone).format(DateTimeFormatter.ofPattern("HH:mm", Locale.US))
     val today = Instant.ofEpochMilli(nowMillis()).atZone(zone).toLocalDate()
     val dateInteraction = remember { MutableInteractionSource() }
     val timeInteraction = remember { MutableInteractionSource() }
@@ -109,6 +111,8 @@ internal fun CardioEntrySheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = { !currentSaving }),
         title = { Text(title, style = MaterialTheme.typography.titleLarge) },
         footer = {
+            if (saveFailed) Text(stringResource(if (collision) R.string.cardio_entry_collision else R.string.cardio_entry_save_failed),
+                color = MaterialTheme.colorScheme.error)
             if (onEffort != null) CardioEffortRow(effort, { if (!saving) onEffort(it) }, "past-cardio-effort")
             SheetCommitButton(stringResource(R.string.plans_save), onSave, enabled = !saving && draft.valid(nowMillis(), completedAt) && readingValid,
                 cancelLabel = if (saving) null else stringResource(R.string.day_cancel_button), onCancel = onDismiss)
@@ -129,6 +133,8 @@ internal fun CardioEntrySheet(
                     onValueChange = {}, readOnly = true,
                     enabled = !saving,
                     label = { Text(stringResource(R.string.cardio_entry_start)) },
+                    isError = endsLater,
+                    supportingText = if (endsLater) { { Text(stringResource(R.string.cardio_entry_ends_later, endTime)) } } else null,
                     interactionSource = timeInteraction,
                     modifier = Modifier.fillMaxWidth().then(if (saving) Modifier else Modifier.semantics { onClick { timeOpen = true; true } }),
                 )
@@ -140,6 +146,9 @@ internal fun CardioEntrySheet(
                 ListItem(
                     overlineContent = { Text(stringResource(R.string.cardio_entry_start)) },
                     headlineContent = { Text(start.format(DateTimeFormatter.ofPattern("HH:mm", Locale.US))) },
+                    supportingContent = if (endsLater) { {
+                        Text(stringResource(R.string.cardio_entry_ends_later, endTime), color = MaterialTheme.colorScheme.error)
+                    } } else null,
                 )
             }
             if (draft.measuresEditable) {
@@ -202,11 +211,6 @@ internal fun CardioEntrySheet(
                 minLines = 1, maxLines = 3, keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = Modifier.fillMaxWidth(),
             )
-            if (completedAt > nowMillis()) {
-                Text(stringResource(R.string.cardio_entry_ends_later), color = MaterialTheme.colorScheme.error)
-            }
-            if (saveFailed) Text(stringResource(if (collision) R.string.cardio_entry_collision else R.string.cardio_entry_save_failed),
-                color = MaterialTheme.colorScheme.error)
         },
     )
     if (dateOpen && !saving && startEditable) {

@@ -59,6 +59,27 @@
       "checkpoint": "nov16-leg-offered"
     },
     {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "nov16-leg-third-set-added"
+    },
+    {
       "advance": "1m"
     },
     {
@@ -206,6 +227,27 @@
       "checkpoint": "nov16-chest-offered"
     },
     {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "nov16-chest-third-set-added"
+    },
+    {
       "advance": "1m"
     },
     {
@@ -351,6 +393,27 @@
     },
     {
       "checkpoint": "nov16-row-offered"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "nov16-row-third-set-added"
     },
     {
       "advance": "1m"

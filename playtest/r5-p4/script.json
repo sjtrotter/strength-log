@@ -3,7 +3,7 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-20",
+    "date": "2026-11-23",
     "time": "17:30",
     "zone": "America/Chicago"
   },
@@ -22,11 +22,11 @@
     },
     {
       "tap": {
-        "desc": "Day C"
+        "desc": "Day A"
       }
     },
     {
-      "checkpoint": "nov20-offered-day-c"
+      "checkpoint": "nov23-offered-day-a"
     },
     {
       "tap": {
@@ -34,7 +34,7 @@
       }
     },
     {
-      "checkpoint": "nov20-base-prescriptions"
+      "checkpoint": "nov23-base-prescriptions"
     },
     {
       "scrollTo": {
@@ -58,14 +58,14 @@
     {
       "type": {
         "text": "Reps",
-        "value": "8",
+        "value": "5",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "175",
+        "value": "205",
         "ime": "done"
       }
     },
@@ -76,13 +76,51 @@
     },
     {
       "scrollTo": {
-        "textContains": "Incline DB Press",
+        "textContains": "Barbell Bench Press",
         "index": 0
       }
     },
     {
       "tap": {
-        "textContains": "Incline DB Press",
+        "textContains": "Barbell Bench Press",
+        "index": 0
+      }
+    },
+    {
+      "type": {
+        "text": "Sets",
+        "value": "3",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "5",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "160",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Lat Pulldown (wide)",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Lat Pulldown (wide)",
         "index": 0
       }
     },
@@ -103,7 +141,7 @@
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "50",
+        "value": "130",
         "ime": "done"
       }
     },
@@ -114,13 +152,13 @@
     },
     {
       "scrollTo": {
-        "textContains": "Romanian Deadlift",
+        "textContains": "One-Arm DB Row",
         "index": 0
       }
     },
     {
       "tap": {
-        "textContains": "Romanian Deadlift",
+        "textContains": "One-Arm DB Row",
         "index": 0
       }
     },
@@ -134,47 +172,15 @@
     {
       "type": {
         "text": "Reps",
-        "value": "8",
+        "value": "10",
         "ime": "done"
       }
     },
     {
       "type": {
         "text": "Weight (lb)",
-        "value": "165",
+        "value": "60",
         "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Pull-Up",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Pull-Up",
-        "index": 0
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "3",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "6",
-        "ime": "done",
-        "index": 1
       }
     },
     {
@@ -193,22 +199,46 @@
       }
     },
     {
-      "checkpoint": "nov20-offered-2k-target"
+      "checkpoint": "nov23-offered-row-target"
     },
     {
       "tap": {
-        "text": "Cancel"
+        "text": "Set 1 \u00b7 Work"
       }
     },
     {
-      "checkpoint": "nov20-corrected-lifting-plan"
+      "type": {
+        "text": "Duration",
+        "value": "15:00",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Distance (m)",
+        "value": "3571",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save"
+      }
+    },
+    {
+      "checkpoint": "nov23-corrected-prescriptions"
     },
     {
       "back": true
     },
     {
       "tap": {
-        "text": "Start day C"
+        "text": "Start day A"
       }
     },
     {
@@ -218,7 +248,7 @@
       }
     },
     {
-      "checkpoint": "nov20-first-squat"
+      "checkpoint": "nov23-first-squat"
     },
     {
       "advance": "35s"
@@ -284,7 +314,7 @@
       }
     },
     {
-      "checkpoint": "nov20-squat-done"
+      "checkpoint": "nov23-squat-done"
     },
     {
       "advance": "35s"
@@ -350,7 +380,7 @@
       }
     },
     {
-      "checkpoint": "nov20-incline-done"
+      "checkpoint": "nov23-bench-done"
     },
     {
       "advance": "35s"
@@ -404,7 +434,7 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-HARD"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
@@ -416,7 +446,7 @@
       }
     },
     {
-      "checkpoint": "nov20-rdl-done"
+      "checkpoint": "nov23-pulldown-done"
     },
     {
       "advance": "35s"
@@ -428,7 +458,7 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-HARD"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
@@ -437,37 +467,6 @@
     {
       "tap": {
         "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "35s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-HARD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "desc": "One fewer rep"
-      }
-    },
-    {
-      "tap": {
-        "desc": "One fewer rep"
       }
     },
     {
@@ -480,7 +479,7 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-HARD"
+        "tag": "workout-effort-GOOD"
       }
     },
     {
@@ -492,7 +491,88 @@
       }
     },
     {
-      "checkpoint": "nov20-pullups-done"
+      "advance": "35s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "nov23-row-done"
+    },
+    {
+      "expect": {
+        "text": "Plank"
+      }
+    },
+    {
+      "checkpoint": "nov23-first-plank"
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Set 2 of 3"
+      }
+    },
+    {
+      "checkpoint": "nov23-plank-one-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Set 3 of 3"
+      }
+    },
+    {
+      "checkpoint": "nov23-plank-two-logged"
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "advance": "45s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "2m"
+    },
+    {
+      "checkpoint": "nov23-plank-done"
     },
     {
       "expect": {
@@ -500,24 +580,21 @@
       }
     },
     {
-      "checkpoint": "nov20-2k-start"
-    },
-    {
       "tap": {
         "tag": "workout-action-filled"
       }
     },
     {
-      "advance": "8m2s"
+      "advance": "15m"
     },
     {
       "type": {
         "tag": "workout-cardio-distance",
-        "value": "2000"
+        "value": "3500"
       }
     },
     {
-      "checkpoint": "nov20-2k-8m02"
+      "checkpoint": "nov23-steady-row"
     },
     {
       "tap": {
@@ -534,7 +611,7 @@
     },
     {
       "tap": {
-        "text": "Finish day C",
+        "text": "Finish day A",
         "tag": "workout-action-filled"
       }
     },
@@ -545,32 +622,7 @@
       "timeoutMs": 20000
     },
     {
-      "checkpoint": "nov20-summary"
-    },
-    {
-      "scrollTo": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "8:02 PR!! RDL grip was the limit. Face pulls 30 lb x 15/15/15.",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
-    },
-    {
-      "checkpoint": "nov20-pr-note-saved"
+      "checkpoint": "nov23-summary"
     },
     {
       "tap": {
@@ -585,7 +637,7 @@
       }
     },
     {
-      "checkpoint": "nov20-finished"
+      "checkpoint": "nov23-finished"
     }
   ]
 }

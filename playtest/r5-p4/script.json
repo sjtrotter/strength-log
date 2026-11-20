@@ -119,15 +119,161 @@
       }
     },
     {
+      "checkpoint": "friday-one-original-lift-remains"
+    },
+    {
       "scrollTo": {
-        "role": "Button",
-        "index": 1
+        "text": "Add exercise"
       }
     },
     {
       "tap": {
-        "role": "Button",
-        "index": 1
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Squat (bilateral)"
+      }
+    },
+    {
+      "tap": {
+        "text": "Squat (bilateral)"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Barbell Back Squat",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Barbell Back Squat",
+        "index": 0
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Horizontal push"
+      }
+    },
+    {
+      "tap": {
+        "text": "Horizontal push"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Incline DB Press",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Incline DB Press",
+        "index": 0
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Hinge"
+      }
+    },
+    {
+      "tap": {
+        "text": "Hinge"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Romanian Deadlift",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Romanian Deadlift",
+        "index": 0
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Horizontal push"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Horizontal push",
+        "direction": "up"
+      }
+    },
+    {
+      "swipe": {
+        "text": "Horizontal push",
+        "direction": "up"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Vertical pull"
+      }
+    },
+    {
+      "tap": {
+        "text": "Vertical pull"
+      }
+    },
+    {
+      "scrollTo": {
+        "textContains": "Pull-Up",
+        "index": 0
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Pull-Up",
+        "index": 0
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Cable Crunch"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Cable Crunch"
       }
     },
     {
@@ -136,152 +282,7 @@
       }
     },
     {
-      "checkpoint": "friday-empty-day"
-    },
-    {
-      "scrollTo": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Squat (bilateral)"
-      }
-    },
-    {
-      "tap": {
-        "text": "Squat (bilateral)"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Barbell Back Squat",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Barbell Back Squat",
-        "index": 0
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Horizontal push"
-      }
-    },
-    {
-      "tap": {
-        "text": "Horizontal push"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Incline DB Press",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Incline DB Press",
-        "index": 0
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Hinge"
-      }
-    },
-    {
-      "tap": {
-        "text": "Hinge"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Romanian Deadlift",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Romanian Deadlift",
-        "index": 0
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add exercise"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Horizontal push"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Horizontal push",
-        "direction": "up"
-      }
-    },
-    {
-      "swipe": {
-        "text": "Horizontal push",
-        "direction": "up"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Vertical pull"
-      }
-    },
-    {
-      "tap": {
-        "text": "Vertical pull"
-      }
-    },
-    {
-      "scrollTo": {
-        "textContains": "Pull-Up",
-        "index": 0
-      }
-    },
-    {
-      "tap": {
-        "textContains": "Pull-Up",
-        "index": 0
-      }
+      "checkpoint": "friday-original-lifts-replaced"
     },
     {
       "scrollTo": {

@@ -1,210 +1,37 @@
 {
   "seat": "r5-p2-probe",
   "capture": "compact",
+  "probe": true,
   "start": {
-    "date": "2026-11-08",
-    "time": "20:30",
+    "restore": "start-backup.json",
+    "date": "2026-11-09",
+    "time": "06:00",
     "zone": "America/Chicago"
   },
   "steps": [
     {
       "tap": {
-        "text": "Lift",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Strength",
-        "role": "RadioButton"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "4",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Home barbell",
-        "role": "Checkbox"
-      }
-    },
-    {
-      "tap": {
-        "text": "Choose exactly"
-      }
-    },
-    {
-      "tap": {
-        "tag": "setup-equipment-DUMBBELL"
-      }
-    },
-    {
-      "checkpoint": "my-garage-equipment"
-    },
-    {
-      "scrollTo": {
-        "text": "1 lb"
-      }
-    },
-    {
-      "checkpoint": "pounds-and-five-pound-steps"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "A year or more"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "my-lift-choices"
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "checkpoint": "recent-numbers-before-entry"
-    },
-    {
-      "type": {
-        "tag": "setup-recent-weight-bb_back_squat",
-        "value": "225",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "tag": "setup-recent-reps-bb_back_squat",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "index": 1,
-        "value": "275",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "index": 1,
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Hard",
-        "index": 1
+        "desc": "Settings"
       }
     },
     {
       "scrollTo": {
-        "tag": "setup-recent-weight-bb_bench"
+        "text": "Backup and export"
       }
-    },
-    {
-      "type": {
-        "tag": "setup-recent-weight-bb_bench",
-        "value": "175",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "tag": "setup-recent-reps-bb_bench",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "scrollTo": {
-        "tag": "setup-recent-weight-ohp"
-      }
-    },
-    {
-      "type": {
-        "tag": "setup-recent-weight-ohp",
-        "value": "115",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "tag": "setup-recent-reps-ohp",
-        "value": "5",
-        "ime": "done"
-      }
-    },
-    {
-      "checkpoint": "recent-lifts-entered"
-    },
-    {
-      "note": "No recent barbell-row fact supplied. Leave it blank rather than invent a lift. My RDL and weighted pull-up numbers are known but not requested in these defaults."
     },
     {
       "tap": {
-        "text": "Next"
+        "text": "Backup and export"
       }
     },
     {
-      "checkpoint": "generated-four-day-plan"
-    },
-    {
-      "tap": {
-        "text": "Why this plan"
-      }
-    },
-    {
-      "checkpoint": "why-this-starting-plan"
+      "checkpoint": "backup-and-export-choices"
     },
     {
       "back": true
     },
     {
-      "tap": {
-        "text": "Start"
-      }
-    },
-    {
-      "expect": {
-        "text": "Today",
-        "role": "Tab"
-      }
-    },
-    {
-      "checkpoint": "setup-saved-today"
+      "back": true
     },
     {
       "tap": {
@@ -217,55 +44,106 @@
       }
     },
     {
-      "checkpoint": "strength-day-a-editor"
-    },
-    {
       "tap": {
-        "textContains": "Barbell Back Squat"
+        "desc": "More options for Barbell Back Squat"
       }
     },
     {
-      "checkpoint": "squat-prescription-top"
-    },
-    {
-      "scrollTo": {
-        "text": "Save"
-      }
-    },
-    {
-      "checkpoint": "squat-prescription-bottom"
-    },
-    {
-      "back": true
-    },
-    {
-      "back": true
+      "checkpoint": "squat-plan-options"
     },
     {
       "back": true
     },
     {
       "tap": {
-        "desc": "Settings"
+        "desc": "More"
       }
+    },
+    {
+      "checkpoint": "day-editor-menu"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "Strength, 4 days"
+      }
+    },
+    {
+      "checkpoint": "my-plan-overview"
     },
     {
       "scrollTo": {
-        "text": "Suggested cool-down"
+        "textContains": "Defaults for"
       }
     },
     {
-      "checkpoint": "settings-lower"
+      "checkpoint": "my-plan-progression-controls"
     },
     {
-      "swipe": {
-        "text": "Suggested cool-down",
-        "direction": "up"
+      "tap": {
+        "textContains": "Defaults for"
       }
     },
     {
-      "checkpoint": "settings-further-down"
+      "checkpoint": "strength-progression-defaults"
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "generated-squat-first-work-set"
+    },
+    {
+      "tap": {
+        "text": "All sets"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lift options"
+      }
+    },
+    {
+      "checkpoint": "workout-lift-options"
     }
-  ],
-  "probe": true
+  ]
 }

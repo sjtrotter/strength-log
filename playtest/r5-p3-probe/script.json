@@ -1,0 +1,25 @@
+{
+  "seat": "r5-p3-probe",
+  "probe": true,
+  "capture": "compact",
+  "start": {
+    "date": "2026-11-08",
+    "time": "20:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {"tap": {"text": "Lift", "role": "RadioButton"}},
+    {"tap": {"text": "Next"}},
+    {"tap": {"text": "Strength", "role": "RadioButton"}},
+    {"tap": {"text": "Next"}},
+    {"tap": {"text": "5", "role": "Checkbox"}},
+    {"tap": {"text": "90", "role": "Checkbox"}},
+    {"tap": {"text": "Next"}},
+    {"tap": {"text": "kg", "role": "RadioButton"}},
+    {"checkpoint": "equipment-in-kilograms"},
+    {"tap": {"text": "Next"}},
+    {"tap": {"text": "A year or more", "role": "Checkbox"}},
+    {"tap": {"text": "Next"}},
+    {"checkpoint": "experienced-strength-recent-numbers"}
+  ]
+}

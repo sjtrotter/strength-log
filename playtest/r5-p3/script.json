@@ -3,8 +3,8 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-26",
-    "time": "07:30",
+    "date": "2026-11-27",
+    "time": "17:30",
     "zone": "America/Chicago"
   },
   "steps": [
@@ -16,12 +16,12 @@
     },
     {
       "scrollTo": {
-        "text": "Thursday bench — meet block"
+        "text": "Friday deadlift \u2014 meet block"
       }
     },
     {
       "tap": {
-        "text": "Thursday bench — meet block"
+        "text": "Friday deadlift \u2014 meet block"
       }
     },
     {
@@ -43,18 +43,18 @@
     },
     {
       "scrollTo": {
-        "text": "Competition bench (paused)"
+        "text": "Competition deadlift (reset)"
       }
     },
     {
       "tap": {
-        "text": "Competition bench (paused)"
+        "text": "Competition deadlift (reset)"
       }
     },
     {
       "type": {
         "text": "Sets",
-        "value": "5",
+        "value": "4",
         "ime": "done"
       }
     },
@@ -68,7 +68,7 @@
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "112.5",
+        "value": "205",
         "ime": "done"
       }
     },
@@ -79,12 +79,12 @@
     },
     {
       "scrollTo": {
-        "text": "Two-second paused squat"
+        "text": "Three-second paused bench"
       }
     },
     {
       "tap": {
-        "text": "Two-second paused squat"
+        "text": "Three-second paused bench"
       }
     },
     {
@@ -104,7 +104,7 @@
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "155",
+        "value": "100",
         "ime": "done"
       }
     },
@@ -114,7 +114,7 @@
       }
     },
     {
-      "checkpoint": "week3-targets-bench112-point-5-pausedsquat155"
+      "checkpoint": "friday-week3-targets205-backoffs-and100-pausedbench"
     },
     {
       "back": true
@@ -128,7 +128,7 @@
     {
       "tap": {
         "desc": "Plan options",
-        "index": 3
+        "index": 4
       }
     },
     {
@@ -154,7 +154,7 @@
       }
     },
     {
-      "advance": "20m"
+      "advance": "25m"
     },
     {
       "tap": {
@@ -164,7 +164,7 @@
     {
       "type": {
         "text": "Weight (kg)",
-        "value": "130",
+        "value": "235",
         "ime": "done"
       }
     },
@@ -181,10 +181,7 @@
       }
     },
     {
-      "checkpoint": "thanksgiving-single130-target8"
-    },
-    {
-      "advance": "30s"
+      "advance": "1m"
     },
     {
       "tap": {
@@ -202,13 +199,10 @@
       }
     },
     {
-      "checkpoint": "single130-complete-actual8-point-5"
+      "checkpoint": "deadlift235-single-actual8-point-5-target8"
     },
     {
-      "note": "Thanksgiving hard stop. Single130x1 was8.5 versus target8, plus last week bench miss: lower only today backoffs112.5 to110. No extra single."
-    },
-    {
-      "advance": "4m"
+      "advance": "5m"
     },
     {
       "tap": {
@@ -216,31 +210,7 @@
       }
     },
     {
-      "tap": {
-        "desc": "Edit set 2"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "110",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "4",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "30s"
+      "advance": "1m"
     },
     {
       "tap": {
@@ -258,7 +228,7 @@
       }
     },
     {
-      "advance": "4m"
+      "advance": "5m"
     },
     {
       "tap": {
@@ -266,31 +236,7 @@
       }
     },
     {
-      "tap": {
-        "desc": "Edit set 3"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "110",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "4",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "30s"
+      "advance": "1m"
     },
     {
       "tap": {
@@ -308,7 +254,7 @@
       }
     },
     {
-      "advance": "4m"
+      "advance": "5m"
     },
     {
       "tap": {
@@ -317,30 +263,14 @@
     },
     {
       "tap": {
-        "desc": "Edit set 4"
+        "desc": "One fewer rep"
       }
     },
     {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "110",
-        "ime": "done"
-      }
+      "checkpoint": "third-backoff-three-completed-not-four"
     },
     {
-      "type": {
-        "text": "Reps",
-        "value": "4",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "30s"
+      "advance": "1m"
     },
     {
       "tap": {
@@ -354,11 +284,17 @@
     },
     {
       "tap": {
-        "tag": "workout-effort-GOOD"
+        "tag": "workout-effort-MAX"
       }
     },
     {
-      "advance": "4m"
+      "checkpoint": "deadlift235x1-and205x4-4-3-failed-fourth-in-note"
+    },
+    {
+      "note": "Third205 backoff: attempted fourth barely left floor. Three completed; failed attempt must stay in note. Late night and poor sleep, not a technical crisis."
+    },
+    {
+      "advance": "5m"
     },
     {
       "tap": {
@@ -366,60 +302,7 @@
       }
     },
     {
-      "tap": {
-        "desc": "Edit set 5"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (kg)",
-        "value": "110",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "4",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save set"
-      }
-    },
-    {
-      "advance": "30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "tag": "workout-set-done"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "checkpoint": "four-bench-backoffs110x4-no-misses"
-    },
-    {
-      "advance": "3m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "30s"
+      "advance": "1m"
     },
     {
       "tap": {
@@ -445,7 +328,7 @@
       }
     },
     {
-      "advance": "30s"
+      "advance": "1m"
     },
     {
       "tap": {
@@ -463,13 +346,192 @@
       }
     },
     {
-      "checkpoint": "two-pausedsquat155x4-complete-two-remaining-omitted"
+      "advance": "3m"
     },
     {
-      "advance": "1m30s"
+      "tap": {
+        "tag": "workout-action-filled"
+      }
     },
     {
-      "note": "47-minute hard stop: two remaining paused squat sets, pressdowns and Pallof presses omitted, not failed. No accessories completed."
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "3m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "four-pausedbench100x4-sets-complete"
+    },
+    {
+      "advance": "5m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "text": "Bulgarian split squat (each leg)"
+      }
+    },
+    {
+      "tap": {
+        "text": "All sets",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip for this workout"
+      }
+    },
+    {
+      "checkpoint": "split-squats-skipped-for-fatigue"
+    },
+    {
+      "expect": {
+        "text": "Seated leg curl (machine B)"
+      }
+    },
+    {
+      "note": "Catalog-only discovery: skip an entire lift at All sets > More > Skip for this workout. Curls are still performed, split squats omitted."
+    },
+    {
+      "tap": {
+        "text": "All sets",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add a set"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "checkpoint": "curl-three-prescribed-plus-one-blank-save-workaround"
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "advance": "90s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "1m"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "expect": {
+        "tag": "workout-set-done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "seatedcurl-machineB50x12x3-complete-no-split-squats"
+    },
+    {
+      "advance": "2m"
     },
     {
       "tap": {
@@ -477,7 +539,7 @@
       }
     },
     {
-      "checkpoint": "finish-seven-of-nine-mainsets-hardstop"
+      "checkpoint": "friday-finish-with-skipped-split-squats-and-blank-curl"
     },
     {
       "tap": {
@@ -494,7 +556,7 @@
       }
     },
     {
-      "checkpoint": "thanksgiving47min-saved-review"
+      "checkpoint": "friday-fatigue-session-saved-review"
     },
     {
       "scrollTo": {
@@ -510,7 +572,7 @@
       "type": {
         "editable": true,
         "index": 0,
-        "value": "Thanksgiving47m.B130x1 target8 actual8.5;112.5->110x4x4 today.PSq155x4x2/4.No pressdowns/Pallof:hard stop,not failed.",
+        "value": "DL235x1@8.5(target8);205x4,4,3+failed4(offfloor).PB100x4x4.CurlB50x12x3.No splitSQ.Poor sleep,late night.blank=save",
         "ime": "done"
       }
     },
@@ -520,7 +582,7 @@
       }
     },
     {
-      "checkpoint": "thanksgiving-reductions-and-omissions-note-saved"
+      "checkpoint": "failed-fourth-and-poor-sleep-note-saved"
     },
     {
       "tap": {
@@ -534,7 +596,7 @@
       }
     },
     {
-      "checkpoint": "thanksgiving-session-finished"
+      "checkpoint": "friday-nov27-session-finished"
     }
   ]
 }

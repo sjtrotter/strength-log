@@ -27,11 +27,16 @@
       }
     },
     {
-      "type": {
+      "tap": {
         "text": "Start time",
-        "value": "17:30",
-        "ime": "done"
+        "inDialog": true
       }
+    },
+    {
+      "checkpoint": "past-run-start-time-picker"
+    },
+    {
+      "back": true
     },
     {
       "type": {
@@ -50,7 +55,7 @@
     {
       "type": {
         "text": "Note",
-        "value": "Effort 3/10. Quads noticeable for the first kilometer, then fine.",
+        "value": "Started 17:30. Effort 3/10. Quads noticeable for the first kilometer, then fine.",
         "ime": "done"
       }
     },

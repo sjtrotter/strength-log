@@ -311,4 +311,16 @@ class PlannerBothTest {
             }
         }
     }
+
+    @Test fun `Both passes the bout to the short gate`() {
+        for (answers in listOf(answers(days = 3),
+            answers(days = 4, cardioFirst = true, together = BothAnswers.Together.SEPARATE_DAYS))) {
+            val run = RunAnswers(RunGoal.FITNESS_TEST, RunExperience.SOME, longest = Measure.Time(1200))
+            val past = plan(answers.copy(run = run), KnownLoads.NONE)
+            assertNull(past.phase)
+            assertFalse(RunSession.LADDER in past.sessions.values)
+            assertEquals(RunPhase.LADDER, plan(answers.copy(run = run.copy(longest = Measure.Time(1199))), KnownLoads.NONE).phase)
+        }
+    }
+
 }

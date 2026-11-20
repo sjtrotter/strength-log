@@ -56,6 +56,7 @@ import cloud.trotter.log.strength.domain.planner.EquipmentPreset
 import cloud.trotter.log.strength.domain.planner.BothAnswers
 import cloud.trotter.log.strength.domain.planner.FitnessTest
 import cloud.trotter.log.strength.domain.planner.RunEvent
+import cloud.trotter.log.strength.domain.planner.RunExperience
 import cloud.trotter.log.strength.domain.planner.RunGoal
 import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.progression.LiftGoal
@@ -539,7 +540,8 @@ class SetupFlowScreenTest {
     @Test fun `running experience Why describes the ladder gate`() {
         show(state(SetupStep.ABOUT, SetupFlowFixtures.run))
         rule.onNodeWithText("Why we ask").performClick()
-        rule.onNodeWithText("Experience sets where lifting and running start. A runner whose longest recent run is under 30 minutes and under 5 km starts on a run/walk ladder, as does a New runner who leaves it blank; Racing runners skip it. A past running injury starts it one level lower. Nothing here is stored as a profile.").assertExists()
+        // ladder-date: the Why sheet states the continuous short gate and keeps the New gate.
+        rule.onNodeWithText("Experience sets where lifting and running start. A runner whose longest recent run is under 30 minutes and under 5 km starts on a run/walk ladder, as does a New runner who leaves it blank; Racing runners skip it. For a fitness test or a race up to 3000 m, a Some runner skips it after 20 minutes or 2 miles without walk breaks; a New runner still needs 30 minutes or 5 km. A past running injury starts it one level lower. Nothing here is stored as a profile.").assertExists()
     }
 
     @Test fun `Where Why describes the cap after the ladder and seed expiry`() {
@@ -659,6 +661,21 @@ class SetupFlowScreenTest {
         rule.onNodeWithText("A sprint plan needs one leg lift. Choose a squat or a hinge.").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Start").assertIsNotEnabled()
         rule.onNodeWithText("Review answers").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun `ladder rows read their weeks`() {
+        show(state(SetupStep.PLAN, SetupFlowFixtures.run))
+        rule.onNodeWithText("Why this plan").performClick()
+        rule.onNodeWithText("Run/walk ladder first: at least 8 weeks. Two Easy runs finish each level, and up to three a week count.")
+            .performScrollTo().assertExists()
+    }
+
+    @Test fun `a Some tester is asked for a run without walk breaks`() {
+        show(state(SetupStep.WHERE, SetupFlowFixtures.test.copy(runExperience = RunExperience.SOME)))
+        rule.onNodeWithText("Longest run without walk breaks in the past 30 days").assertExists()
+        rule.runOnIdle { shown = state(SetupStep.WHERE, SetupFlowFixtures.test.copy(runExperience = RunExperience.NEW)) }
+        rule.onNodeWithText("Longest run in the past 30 days").assertExists()
+        rule.onNodeWithText("Longest run without walk breaks in the past 30 days").assertDoesNotExist()
     }
 
 }

@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.ui.plan
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.data.serialization.setupAnswers
 import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.RunPhase
 import cloud.trotter.log.strength.domain.planner.RunEvent
 import cloud.trotter.log.strength.domain.progression.Riegel
 import cloud.trotter.log.strength.domain.progression.Taper
@@ -49,9 +50,10 @@ object PlanScreenBuilder {
         val answers = plan?.setupAnswers(unit)
         val run = answers?.takeIf { it.branch == PlanBranch.RUN || (it.branch == PlanBranch.BOTH && !it.both.sprint) }
         val goal = PlanGoalJson.decode(plan?.goalJson)
+        val runPhase = run?.let { plan?.recipeJson?.let(SetupRecipeJson::phase) }
         return PlanUiState(
-            runPhase = run?.let { plan?.recipeJson?.let(SetupRecipeJson::phase) },
-            taper = run != null && Taper.factor(goal, todayEpochDay) != null,
+            runPhase = runPhase,
+            taper = run != null && runPhase != RunPhase.LADDER && Taper.factor(goal, todayEpochDay) != null,
             goal = goal?.let { goal ->
                 when (goal) {
                     is PlanGoal.Sprint -> null

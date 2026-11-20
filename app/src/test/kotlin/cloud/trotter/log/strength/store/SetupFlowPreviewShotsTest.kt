@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.store
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.assertIsNotEnabled
+import cloud.trotter.log.strength.domain.planner.RunExperience
 import cloud.trotter.log.strength.domain.planner.FitnessTest
 
 import androidx.compose.runtime.Composable
@@ -250,6 +251,27 @@ class SetupFlowPreviewShotsTest {
     @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
     fun aboutBothSprintLargeFont() = shot("s70-setup-about-both-sprint-2x.png",
         state(SetupStep.ABOUT, SetupFlowFixtures.bothSprint.copy(olderAdult = true, fortyOrOlder = true)), scale = 2f)
+
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun whereTestNonstop() = shot("s71-setup-where-test-nonstop.png",
+        state(SetupStep.WHERE, SetupFlowFixtures.test.copy(runExperience = RunExperience.SOME)))
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun whereTestNonstopLargeFont() = shot("s72-setup-where-test-nonstop-2x.png",
+        state(SetupStep.WHERE, SetupFlowFixtures.test.copy(runExperience = RunExperience.SOME)), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun planLadderDate() = ladderDateShot("s73-setup-plan-ladder-date.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun planLadderDateLargeFont() = ladderDateShot("s74-setup-plan-ladder-date-2x.png", 2f)
+
+    private fun ladderDateShot(name: String, scale: Float) {
+        render(scale) { SetupFlowScreen(state(SetupStep.PLAN,
+            SetupFlowFixtures.test.copy(eventDate = SetupFlowFixtures.TODAY + 56)), SetupFlowActions()) }
+        rule.onNodeWithText("Why this plan").performClick()
+        rule.onNodeWithText("After the run/walk ladder, the date leaves less than 4 weeks of test training.").assertExists()
+        rule.onNodeWithText("Run/walk ladder first: at least 8 weeks. Two Easy runs finish each level, and up to three a week count.")
+            .performScrollTo().assertExists()
+        capture(name, true)
+    }
 
     private fun invalidTestTarget(name: String, scale: Float) {
         val shown = mutableStateOf(state(SetupStep.EVENT,

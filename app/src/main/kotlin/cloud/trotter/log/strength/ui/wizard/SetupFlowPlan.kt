@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+import cloud.trotter.log.strength.domain.planner.EVENT_WEEKS_AFTER_LADDER
 import cloud.trotter.log.strength.domain.planner.PlanBranch
 import cloud.trotter.log.strength.domain.planner.BothAnswers
 import cloud.trotter.log.strength.domain.units.ClockText
@@ -194,7 +195,10 @@ private fun whyLine(why: PlanWhy): String = when (why) {
     is PlanWhy.RunCapped -> stringResource(R.string.setup_flow_why_run_capped, why.dayId)
     PlanWhy.DateTooClose -> stringResource(R.string.setup_flow_why_date_too_close)
     is PlanWhy.GoalCheck -> stringResource(R.string.setup_flow_why_goal_check, ClockText.duration(why.predictedSeconds))
-    PlanWhy.Ladder -> stringResource(R.string.setup_flow_why_ladder)
+    is PlanWhy.Ladder -> pluralStringResource(R.plurals.setup_flow_why_ladder_weeks, why.weeks, why.weeks)
+    is PlanWhy.LadderDateTooClose -> pluralStringResource(
+        if (why.fitnessTest) R.plurals.setup_flow_why_ladder_date_test else R.plurals.setup_flow_why_ladder_date_race,
+        EVENT_WEEKS_AFTER_LADDER, EVENT_WEEKS_AFTER_LADDER)
     is PlanWhy.NoRun -> stringResource(R.string.setup_flow_no_run, why.minutes)
     PlanWhy.Minutes -> stringResource(R.string.setup_flow_why_minutes)
 }

@@ -12,6 +12,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.domain.planner.PlanBranch
 import cloud.trotter.log.strength.domain.planner.RunAnswers
+import cloud.trotter.log.strength.domain.planner.RunExperience
 import cloud.trotter.log.strength.domain.planner.RunGoal
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.progression.Taper
@@ -307,8 +308,9 @@ class PlanViewModelTest {
         assertNull(Taper.factor(goal, dayOne.toEpochDay()))
         assertEquals(0.5, Taper.factor(goal, dayTwo.toEpochDay()))
         val today = MutableStateFlow(dayOne)
+        // ladder-date: a New plan starts on the ladder, which never shows Taper
         val viewed = repo.plans.createPlannedPlan("Run", SetupAnswers(branch = PlanBranch.RUN,
-            run = RunAnswers(goal = RunGoal.FIVE_TO_TEN_K)))
+            run = RunAnswers(goal = RunGoal.FIVE_TO_TEN_K, experience = RunExperience.SOME)))
         repo.plans.setGoal(viewed, goal)
         val handle = SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString()))
         val vm = PlanViewModel(repo, handle, context, settings = settings, plans = repo.plans,

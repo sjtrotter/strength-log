@@ -97,7 +97,8 @@ internal fun runDraft(
 ): PlanDraft {
     val run = answers.run
     val anchor = runAnchor(run, known)
-    val phase = startPhase(run, anchor, runWeek(run, known), runningSeconds(run, known), runningMetres(run, known), atLeast)
+    val phase = startPhase(run, anchor, runWeek(run, known), runningSeconds(run, known), runningMetres(run, known),
+        runningBout(run, known), atLeast)
     val entries = runEntries(answers, phase, todayEpochDay)
     val lone = entries.none { it.session == RunSession.VO2MAX }
     val level = ladderStart(runningSeconds(run, known), run.runningInjury)
@@ -164,6 +165,7 @@ internal fun runReasons(run: RunAnswers, phase: RunPhase?, todayEpochDay: Long?,
         val weeks = weeksNeeded(run.goal, phase, ladderWeeks)
         if (weeks == null || run.dateEpochDay - requireNotNull(todayEpochDay) < 7L * weeks) add(PlanReason.DateTooClose)
     }
+    if (phase == RunPhase.LADDER && ladderWeeks != null) add(PlanReason.LadderWeeks(ladderWeeks))
     val event = run.resolvedEvent
     if (event != null && event.metres <= RunEvent.MARATHON.metres && run.goalSeconds != null && run.recent != null) {
         val predicted = Riegel.goalCheckSeconds(run.recent.metres.toDouble(), run.recent.seconds.toDouble(), event.metres.toDouble())

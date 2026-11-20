@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.domain.progression
 
+import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
@@ -91,6 +92,51 @@ class CardioHistoryOfTest {
         assertEquals(mapOf(CardioFamily.RUN to 1000), known.longestRunning)
         assertEquals(mapOf(CardioFamily.RUN to 3000), known.longestRunningMetres)
         assertEquals(KnownLoads.NONE, CardioHistory.known(CardioFamily.RUN, emptyList(), asOf))
+    }
+
+    @Test fun `the longest bout is one work set`() {
+        val results = RunWalkLadder.block(8, CardioActivity.ROAD_RUN).sets.map {
+            CardioSetResult(it, CardioSetStatus.FINISHED, (it.end as Measure.Time).seconds)
+        }
+        val log = listOf(LoggedCardio(asOf - day, results))
+        assertEquals(RecentMaxima(null, 300), CardioHistory.longestBout(log, asOf))
+        assertEquals(1200, CardioHistory.longestRunning(log, asOf))
+    }
+
+    @Test fun `a single run is one bout with its at end reading`() {
+        val row = result(time(1500), 1530, 4100).copy(metresAtEnd = 4000)
+        assertEquals(1500, row.secondsAtEnd)
+        assertEquals(RecentMaxima(4000, 1500), CardioHistory.longestBout(
+            listOf(LoggedCardio(asOf - day, listOf(row))), asOf))
+    }
+
+    @Test fun `bout seconds and meters are each their own maximum`() {
+        val sessions = listOf(
+            LoggedCardio(asOf - 2 * day, listOf(result(time(1300), 1300))),
+            LoggedCardio(asOf - day, listOf(result(distance(3300), 900))),
+        )
+        assertEquals(RecentMaxima(3300, 1300), CardioHistory.longestBout(sessions, asOf))
+    }
+
+    @Test fun `back to back work sets are separate bouts`() {
+        val session = LoggedCardio(asOf - day, List(2) { result(time(600), 600) })
+        assertEquals(RecentMaxima(null, 600), CardioHistory.longestBout(listOf(session), asOf))
+    }
+
+    @Test fun `unfinished and old sessions give no bout`() {
+        val unfinished = LoggedCardio(asOf - day, listOf(result(time(600), 500, status = CardioSetStatus.SHORTENED)))
+        val old = LoggedCardio(asOf - 30 * day, listOf(result(time(600), 600)))
+        assertNull(CardioHistory.longestBout(listOf(unfinished), asOf))
+        assertNull(CardioHistory.longestBout(listOf(old), asOf))
+        assertNull(CardioHistory.longestBout(listOf(unfinished, old), asOf))
+    }
+
+    @Test fun `known carries the longest bout`() {
+        val results = RunWalkLadder.block(10, CardioActivity.ROAD_RUN).sets.map {
+            CardioSetResult(it, CardioSetStatus.FINISHED, (it.end as Measure.Time).seconds)
+        }
+        val known = CardioHistory.known(CardioFamily.RUN, listOf(LoggedCardio(asOf - day, results)), asOf)
+        assertEquals(mapOf(CardioFamily.RUN to RecentMaxima(null, 720)), known.longestBout)
     }
 
 }

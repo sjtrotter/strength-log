@@ -47,7 +47,8 @@ sealed interface PlanWhy {
     data class RunCapped(val dayId: String) : PlanWhy
     data object DateTooClose : PlanWhy
     data class GoalCheck(val predictedSeconds: Int) : PlanWhy
-    data object Ladder : PlanWhy
+    data class Ladder(val weeks: Int) : PlanWhy
+    data class LadderDateTooClose(val fitnessTest: Boolean) : PlanWhy
     data class NoRun(val minutes: Int) : PlanWhy
     data object Minutes : PlanWhy
 }

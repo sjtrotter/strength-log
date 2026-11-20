@@ -225,7 +225,8 @@ private fun SetupEventDate(date: Long?, onChange: (Long?) -> Unit) {
 @Composable
 internal fun WhereStep(state: SetupFlowUiState, actions: SetupFlowActions) {
     val draft = state.draft
-    val activity = SetupFlowStateBuilder.answers(draft).run.activity
+    val run = SetupFlowStateBuilder.answers(draft).run
+    val activity = run.activity
     if (draft.runGoal == RunGoal.CARDIO_FITNESS) {
         SetupLabel(stringResource(R.string.setup_flow_activity_label))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -238,8 +239,8 @@ internal fun WhereStep(state: SetupFlowUiState, actions: SetupFlowActions) {
             }
         }
     }
-    SetupLabel(stringResource(if (CardioFamily.of(activity) == CardioFamily.RUN) R.string.setup_flow_longest_run
-        else R.string.setup_flow_longest_session))
+    SetupLabel(stringResource(if (CardioFamily.of(run.activity) != CardioFamily.RUN) R.string.setup_flow_longest_session
+        else if (run.shortLadderGate) R.string.setup_flow_longest_run_nonstop else R.string.setup_flow_longest_run))
     SetupSegments(listOf(stringResource(R.string.setup_flow_longest_minutes), stringResource(R.string.setup_flow_longest_distance)),
         if (draft.longestByDistance) 1 else 0) { actions.onLongestByDistance(it == 1) }
     if (draft.longestByDistance) SetupDistance(draft.longestMetres, activity, actions.onLongest)

@@ -26,6 +26,8 @@ data class KnownLoads(
     val longestRunning: Map<CardioFamily, Int> = emptyMap(),
     /** Per family, [CardioHistory.longestRunningMetres]; the ladder gate's distance arm. */
     val longestRunningMetres: Map<CardioFamily, Int> = emptyMap(),
+    /** Per family, [CardioHistory.longestBout]; the short ladder gate reads it. */
+    val longestBout: Map<CardioFamily, RecentMaxima> = emptyMap(),
 ) {
     companion object { val NONE = KnownLoads(emptyMap()) }
 }

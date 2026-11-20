@@ -238,9 +238,12 @@ object SetupFlowStateBuilder {
             draft.reasons.filterIsInstance<PlanReason.RunCapped>().forEach { add(PlanWhy.RunCapped(it.dayId)) }
             val noRun = !sprintPlan && answers.branch in listOf(PlanBranch.RUN, PlanBranch.BOTH) && draft.sessions.isEmpty()
             if (noRun) add(PlanWhy.NoRun(answers.minutes))
-            else if (PlanReason.DateTooClose in draft.reasons) add(PlanWhy.DateTooClose)
+            else if (PlanReason.DateTooClose in draft.reasons) add(
+                if (draft.phase == RunPhase.LADDER && answers.run.goal in listOf(RunGoal.FITNESS_TEST, RunGoal.MIDDLE_DISTANCE))
+                    PlanWhy.LadderDateTooClose(answers.run.goal == RunGoal.FITNESS_TEST)
+                else PlanWhy.DateTooClose)
             draft.reasons.filterIsInstance<PlanReason.GoalCheck>().forEach { add(PlanWhy.GoalCheck(it.predictedSeconds)) }
-            if (draft.phase == RunPhase.LADDER) add(PlanWhy.Ladder)
+            draft.reasons.filterIsInstance<PlanReason.LadderWeeks>().forEach { add(PlanWhy.Ladder(it.weeks)) }
             if (sprintPlan) {
                 if (answers.days == 2 && days.count { it.kind != ProgramDayKind.REST } == 2 && answers.minutes == 30) add(PlanWhy.ShortTwoDaySprint)
                 add(PlanWhy.SplitDay)

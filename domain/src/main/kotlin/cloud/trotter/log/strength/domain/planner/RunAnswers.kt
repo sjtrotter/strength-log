@@ -86,6 +86,12 @@ data class RunAnswers(
         return if (experience == RunExperience.RACING) path - RunPhase.LADDER else path
     }
 
+    /** Owner, ladder-date design §5 (practice): a runner who is not New, aiming at a field test or a race up to 3000 m,
+     *  also leaves the ladder after one continuous run of 20 minutes or two miles. New runners keep the 5K gate: running
+     *  history is an independent injury risk (Kluitenberg 2015). Racing never enters the ladder. */
+    val shortLadderGate: Boolean get() = experience != RunExperience.NEW &&
+        (goal == RunGoal.FITNESS_TEST || goal == RunGoal.MIDDLE_DISTANCE)
+
     /** This answer stands in until there's a log; PR 7 also passes it as CardioHistory.seed. */
     fun seed(): RecentMaxima? = when (val longest = longest) {
         is Measure.Distance -> RecentMaxima(longest.metres, null)

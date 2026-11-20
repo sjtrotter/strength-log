@@ -31,6 +31,9 @@ sealed interface PlanReason {
     data class RunCapped(val dayId: String) : PlanReason
     /** The date is closer than the remaining phases need; the plan still generates (§3.1.2). */
     data object DateTooClose : PlanReason
+    /** The plan starts on the run/walk ladder, about [weeks] weeks at one rotation a week if every run counts
+     *  ([ladderWeeks]). Plan-level. */
+    data class LadderWeeks(val weeks: Int) : PlanReason
     /** Riegel predicts slower than the goal. */
     data class GoalCheck(val predictedSeconds: Int) : PlanReason
     /** A 65+ lifter with fewer than three lifting days got balance-only entries, so balance work reaches three days
@@ -106,7 +109,7 @@ object Planner {
                     is PlanReason.ShortSession -> reason.dayId == dayId
                     is PlanReason.OverBudget -> reason.dayId == dayId
                     is PlanReason.RunCapped -> reason.dayId == dayId
-                    PlanReason.DateTooClose, is PlanReason.GoalCheck, PlanReason.BalanceDays, PlanReason.BalanceDaysOffered -> false
+                    PlanReason.DateTooClose, is PlanReason.LadderWeeks, is PlanReason.GoalCheck, PlanReason.BalanceDays, PlanReason.BalanceDaysOffered -> false
                 }
             })
     }

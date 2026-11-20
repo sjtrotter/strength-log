@@ -538,8 +538,8 @@
       }
     },
     {
-      "tap": {
-        "tag": "workout-effort-GOOD"
+      "expect": {
+        "text": "Set 2 of 3"
       }
     },
     {
@@ -549,9 +549,23 @@
       "advance": "2m"
     },
     {
+      "advance": "45s"
+    },
+    {
       "tap": {
         "tag": "workout-action-filled"
       }
+    },
+    {
+      "expect": {
+        "text": "Set 3 of 3"
+      }
+    },
+    {
+      "checkpoint": "nov16-plank-two-logged"
+    },
+    {
+      "advance": "2m"
     },
     {
       "advance": "45s"
@@ -562,38 +576,7 @@
       }
     },
     {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
       "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "45s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "2m"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
     },
     {
       "checkpoint": "nov16-plank-done"

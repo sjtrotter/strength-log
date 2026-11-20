@@ -3,8 +3,8 @@
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
-    "date": "2026-11-30",
-    "time": "17:30",
+    "date": "2026-12-01",
+    "time": "18:15",
     "zone": "America/Chicago"
   },
   "steps": [
@@ -21,511 +21,87 @@
     },
     {
       "scrollTo": {
-        "desc": "Day B"
+        "desc": "Day A"
       }
     },
     {
       "tap": {
-        "desc": "Day B"
+        "desc": "Day A"
       }
     },
     {
-      "checkpoint": "nov-30-lift-offered-before-edits"
+      "checkpoint": "dec-01-easy-offered"
     },
     {
       "tap": {
-        "text": "Edit"
+        "textContains": "Start day",
+        "role": "Button"
       }
     },
     {
-      "scrollTo": {
-        "text": "Goblet Squat"
-      }
-    },
-    {
-      "tap": {
-        "text": "Goblet Squat"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "2",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "8",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "30",
-        "ime": "done"
+      "expect": {
+        "text": "Log past session",
+        "role": "Button"
       }
     },
     {
       "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "DB Romanian Deadlift"
-      }
-    },
-    {
-      "tap": {
-        "text": "DB Romanian Deadlift"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "2",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "8",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "30",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Reverse Lunge"
-      }
-    },
-    {
-      "tap": {
-        "text": "Reverse Lunge"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "2",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "8",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "15",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Standing DB Calf Raise"
-      }
-    },
-    {
-      "tap": {
-        "text": "Standing DB Calf Raise"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "2",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Reps",
-        "value": "12",
-        "ime": "done"
-      }
-    },
-    {
-      "type": {
-        "text": "Weight (lb)",
-        "value": "20",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "scrollTo": {
-        "text": "Side Plank"
-      }
-    },
-    {
-      "tap": {
-        "text": "Side Plank"
-      }
-    },
-    {
-      "type": {
-        "text": "Sets",
-        "value": "2",
-        "ime": "done"
+        "text": "Log past session",
+        "role": "Button"
       }
     },
     {
       "type": {
         "text": "Duration",
-        "value": "0:30",
+        "value": "37:05",
         "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save"
-      }
-    },
-    {
-      "back": true
-    },
-    {
-      "checkpoint": "nov-30-lift-prescription"
-    },
-    {
-      "tap": {
-        "text": "Start day B"
-      }
-    },
-    {
-      "advance": "5m"
-    },
-    {
-      "tap": {
-        "text": "Done",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "nov-30-lift-start-previous-actuals"
-    },
-    {
-      "expect": {
-        "text": "Goblet Squat"
-      }
-    },
-    {
-      "advance": "30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "DB Romanian Deadlift"
-      }
-    },
-    {
-      "advance": "30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "Reverse Lunge"
-      }
-    },
-    {
-      "advance": "60s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "desc": "Edit set 2"
       }
     },
     {
       "type": {
-        "text": "Weight (lb)",
-        "value": "10",
+        "text": "Distance (km)",
+        "value": "6.00",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Easy 3/10. First kilometer sluggish, then settled in.",
         "ime": "done"
       }
     },
     {
       "tap": {
-        "text": "Save set"
+        "tag": "past-cardio-effort-EASY"
       }
     },
     {
-      "checkpoint": "nov-30-second-lunge-lighter"
-    },
-    {
-      "advance": "60s"
+      "checkpoint": "dec-01-easy-ready"
     },
     {
       "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "Standing DB Calf Raise"
-      }
-    },
-    {
-      "advance": "30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "30s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "tag": "workout-effort-GOOD"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "expect": {
-        "text": "Side Plank"
-      }
-    },
-    {
-      "advance": "60s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "advance": "90s"
-    },
-    {
-      "advance": "60s"
-    },
-    {
-      "tap": {
-        "tag": "workout-action-filled"
-      }
-    },
-    {
-      "tap": {
-        "text": "Skip",
+        "text": "Save",
         "role": "Button",
         "inDialog": true
       }
     },
     {
       "expect": {
-        "text": "Finish day B",
-        "role": "Button"
-      }
-    },
-    {
-      "advance": "3m30s"
-    },
-    {
-      "checkpoint": "nov-30-ten-sets-29-min"
-    },
-    {
-      "tap": {
-        "text": "Finish day B",
-        "role": "Button"
-      }
-    },
-    {
-      "expect": {
         "text": "Done",
-        "role": "Button"
+        "role": "Button",
+        "inDialog": false
       },
       "timeoutMs": 20000
     },
     {
-      "checkpoint": "nov-30-easier-strength-a-saved"
-    },
-    {
-      "scrollTo": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "tap": {
-        "text": "Add a note"
-      }
-    },
-    {
-      "type": {
-        "text": "Note",
-        "value": "Easier week: two sets each. Lunges 15 then 10 each hand: clumsy and harder than wanted. Planks 30 each side.",
-        "ime": "done"
-      }
-    },
-    {
-      "tap": {
-        "text": "Save note"
-      }
+      "checkpoint": "dec-01-easy-saved"
     },
     {
       "tap": {
         "text": "Done",
-        "role": "Button"
+        "role": "Button",
+        "inDialog": false
       }
     },
     {
@@ -535,7 +111,223 @@
       }
     },
     {
-      "checkpoint": "nov-30-easier-strength-a-finished"
+      "checkpoint": "dec-01-easy-finished"
+    },
+    {
+      "advance": "2d"
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lifting and Just cardio fitness, 5 days"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "Day C"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day C"
+      }
+    },
+    {
+      "checkpoint": "dec-03-quicker-offered"
+    },
+    {
+      "tap": {
+        "textContains": "Start day",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Log past session",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log past session",
+        "role": "Button"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "35:55",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Distance (km)",
+        "value": "6.00",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "2 x 5-min efforts, 2-min jogs each; easy before/after. Controlled 6/10. Better than Nov19; no third effort.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "past-cardio-effort-GOOD"
+      }
+    },
+    {
+      "checkpoint": "dec-03-quicker-ready"
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button",
+        "inDialog": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Done",
+        "role": "Button",
+        "inDialog": false
+      },
+      "timeoutMs": 20000
+    },
+    {
+      "checkpoint": "dec-03-quicker-saved"
+    },
+    {
+      "tap": {
+        "text": "Done",
+        "role": "Button",
+        "inDialog": false
+      }
+    },
+    {
+      "expect": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "dec-03-quicker-finished"
+    },
+    {
+      "advance": "2d16h"
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "text": "Lifting and Just cardio fitness, 5 days"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "Day E"
+      }
+    },
+    {
+      "tap": {
+        "desc": "Day E"
+      }
+    },
+    {
+      "checkpoint": "dec-06-long-offered"
+    },
+    {
+      "tap": {
+        "textContains": "Start day",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "Log past session",
+        "role": "Button"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log past session",
+        "role": "Button"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "62:15",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Distance (km)",
+        "value": "10.00",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Note",
+        "value": "Long easy 3/10. Finished feeling I could keep going: exactly what I wanted.",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "tag": "past-cardio-effort-EASY"
+      }
+    },
+    {
+      "checkpoint": "dec-06-long-ready"
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button",
+        "inDialog": true
+      }
+    },
+    {
+      "expect": {
+        "text": "Done",
+        "role": "Button",
+        "inDialog": false
+      },
+      "timeoutMs": 20000
+    },
+    {
+      "checkpoint": "dec-06-long-saved"
+    },
+    {
+      "tap": {
+        "text": "Done",
+        "role": "Button",
+        "inDialog": false
+      }
+    },
+    {
+      "expect": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "dec-06-long-finished"
     }
   ]
 }

@@ -306,7 +306,8 @@ private fun WorkoutSetContent(
                     val focus = workout.focus
                     val card = state.workoutCard
                     val event = state.timedRep?.takeIf { it.event.programExerciseId == card?.programExerciseId }
-                    val index = event?.event?.setIndex ?: focus?.index ?: -1
+                    val hold = state.hold?.takeIf { it.event.programExerciseId == card?.programExerciseId }
+                    val index = event?.event?.setIndex ?: hold?.event?.setIndex ?: focus?.index ?: -1
                     val slot = if (event != null) Slot.MAIN else focus?.slot ?: Slot.MAIN
                     val values = card?.rows?.getOrNull(index)?.values(slot)
                     val cardio = state.cardio
@@ -375,6 +376,18 @@ private fun WorkoutSetContent(
                                     { actions.onStartTimedRep(card.programExerciseId, index) })
                             }
                         }
+                        card != null && slot == Slot.MAIN && (hold != null || card.holdTargetSeconds(index) > 0) -> {
+                            val guardKey = hold?.event?.let { Triple(it.wallStart, it.running, it.heldSeconds.size) }
+                            when {
+                                hold?.event?.running == true -> WorkoutActionSpec(stringResource(R.string.day_cardio_stop_button), true, true,
+                                    actions.onStopHold, guardKey = guardKey)
+                                hold != null -> WorkoutActionSpec(stringResource(R.string.day_cardio_start_button), false, true,
+                                    { actions.onStartHold(card.programExerciseId, index) }, guardKey = guardKey)
+                                resting -> WorkoutActionSpec(stringResource(R.string.workout_end_rest), true, true, actions.onContinueWorkout)
+                                else -> WorkoutActionSpec(stringResource(R.string.day_cardio_start_button), false,
+                                    !state.executionBusy && state.timedRep == null, { actions.onStartHold(card.programExerciseId, index) })
+                            }
+                        }
                         values != null && card != null -> if (resting) WorkoutActionSpec(
                             stringResource(R.string.workout_end_rest), true, true, actions.onContinueWorkout,
                         ) else WorkoutActionSpec(
@@ -395,7 +408,7 @@ private fun WorkoutSetContent(
                         if (!action.enabled && (review == null || allLogged)) WorkoutBlockedReasonText(when {
                             allLogged -> state.finishBlockedReason
                             cardioShown -> state.cardioStartBlockedReason
-                            state.timedRepRunning || state.cardioRunning -> WorkoutBlockedReason.TIMER_RUNNING
+                            state.timedRepRunning || state.hold != null || state.cardioRunning -> WorkoutBlockedReason.TIMER_RUNNING
                             else -> null
                         })
                     }
@@ -482,6 +495,20 @@ private fun WorkoutTimedRepHero(card: ExerciseCardState, timed: TimedRepState?, 
         Text(stringResource(R.string.workout_timed_rep_target, it, formatCardioTime(duration)), style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
+}
+
+@Composable
+private fun WorkoutHoldHero(hold: HoldState, maxFontSize: TextUnit) {
+    val event = hold.event
+    WorkoutHeroText(formatCardioTime(hold.heldSeconds), maxFontSize = maxFontSize)
+    Text(stringResource(R.string.workout_hold_held), style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant)
+    WorkoutClockProgress(hold.fraction)
+    Text(stringResource(R.string.workout_hold_target, formatCardioTime(event.targetSeconds)),
+        style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    if (event.sides > 1) Text(stringResource(R.string.workout_hold_side, event.sideNumber, event.sides),
+        style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
 }
 
 @Composable
@@ -785,10 +812,12 @@ private fun WorkoutLift(
     val card = state.workoutCard ?: return
     val focus = workout.focus
     val event = state.timedRep?.takeIf { it.event.programExerciseId == card.programExerciseId }
-    val index = event?.event?.setIndex ?: focus?.index ?: card.rows.lastIndex
+    val hold = state.hold?.takeIf { it.event.programExerciseId == card.programExerciseId }
+    val index = event?.event?.setIndex ?: hold?.event?.setIndex ?: focus?.index ?: card.rows.lastIndex
     val row = card.rows.getOrNull(index)
     val slot = if (event != null) Slot.MAIN else focus?.slot ?: Slot.MAIN
     val timed = (card.timedRepDurationSeconds ?: 0) > 0 && slot == Slot.MAIN && !workout.completedView
+    val clocked = timed || hold != null
     val title = if (slot == Slot.SS) card.partnerTitle.orEmpty() else card.title
     if (card.isSuperset) {
         WorkoutSuperset(state, actions, catalog, reducedMotion, onNote)
@@ -799,12 +828,12 @@ private fun WorkoutLift(
         else -> stringResource(R.string.workout_announce_set, title, index + 1, card.rows.size)
     }
     Column(
-        Modifier.fillMaxWidth().then(if (timed) Modifier else Modifier.semantics {
+        Modifier.fillMaxWidth().then(if (clocked) Modifier else Modifier.semantics {
             liveRegion = LiveRegionMode.Polite; contentDescription = announcement
         }),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        WorkoutLiftHeader(card, actions, onNote, if (timed) Modifier.semantics {
+        WorkoutLiftHeader(card, actions, onNote, if (clocked) Modifier.semantics {
             liveRegion = LiveRegionMode.Polite; contentDescription = announcement
         } else Modifier)
         if (workout.completedView) {
@@ -897,8 +926,13 @@ private fun WorkoutSetCard(
             } else {
                 val timed = (card.timedRepDurationSeconds ?: 0) > 0 && slot == Slot.MAIN
                 val event = state.timedRep?.takeIf { it.event.programExerciseId == card.programExerciseId }
+                val hold = state.hold?.takeIf {
+                    it.event.programExerciseId == card.programExerciseId && it.event.setIndex == index && slot == Slot.MAIN
+                }
                 val hero: @Composable () -> Unit = {
-                    if (timed) WorkoutTimedRepHero(card, event, index, actions, if (compact) 56.sp else SetNumerals.fontSize) else {
+                    if (timed) WorkoutTimedRepHero(card, event, index, actions, if (compact) 56.sp else SetNumerals.fontSize)
+                    else if (hold != null) WorkoutHoldHero(hold, if (compact) 56.sp else SetNumerals.fontSize)
+                    else {
                         WorkoutEditableHero(card, slot, index, actions) {
                             Crossfade(values to tracking,
                                 animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS), label = "workoutHero") {
@@ -1142,7 +1176,7 @@ private fun WorkoutHeroText(primary: String, secondary: String? = null, modifier
 private fun workoutDetail(card: ExerciseCardState, slot: String, index: Int, unit: WeightUnit, catalog: ExerciseCatalog): String? {
     if (slot == Slot.MAIN) {
         val target = card.headerTarget as? HeaderTarget.Prescribed
-        val eachSide = if (target?.eachSide == true) stringResource(R.string.day_target_each_side) else null
+        val eachSide = if (card.headerTarget.eachSide) stringResource(R.string.day_target_each_side) else null
         val resistance = target?.resistance?.takeIf { it.isNotBlank() }
         val detail = when {
             eachSide != null && resistance != null -> stringResource(R.string.set_edit_partner_field, eachSide, resistance)

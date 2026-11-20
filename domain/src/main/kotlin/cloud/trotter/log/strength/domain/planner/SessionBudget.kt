@@ -3,6 +3,7 @@ package cloud.trotter.log.strength.domain.planner
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.library.eachSideOf
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -48,7 +49,7 @@ object SessionBudget {
     private fun workSeconds(slot: ProgramExercise): List<Int> {
         val kinds = setKinds(slot)
         val entry = ExerciseLibrary.find(slot.exerciseId)
-        val sides = if (entry?.eachSide == true || slot.prescription?.eachSide == true) 2 else 1
+        val sides = if (eachSideOf(entry, slot.prescription)) 2 else 1
         fun timed(seconds: Int) = SET_SETUP_SECONDS + seconds * sides
         fun reps(count: Int) = timed(count * SECONDS_PER_REP)
         slot.prescription?.let { prescription ->

@@ -626,6 +626,8 @@ internal fun DayRoute(
         onCardioScreenLive = viewModel::setCardioScreenLive,
         onStartTimedRep = viewModel::startTimedRep,
         onStopTimedRep = viewModel::stopTimedRep,
+        onStartHold = viewModel::startHold,
+        onStopHold = viewModel::stopHold,
         onRequestTimedRepCount = viewModel::requestTimedRepCount,
         onOpenTimedRepCount = viewModel::openTimedRepCount,
         onTimedRepDraftChange = viewModel::changeTimedRepDraft,

@@ -1107,7 +1107,7 @@ class WorkoutSetScreenTest {
         rule.runOnIdle { assertEquals(2, finishes) }
     }
 
-    @Test fun loadedHoldShowsSecondsAndLoadAndLogsSeconds() {
+    @Test fun loadedHoldShowsSecondsAndLoadAndStarts() {
         val state = workoutSetSingleFixture()
         val card = state.exercises.single().copy(
             title = "Weighted Plank", tracking = TrackingType.TIMED, timedShowsWeight = true,
@@ -1116,7 +1116,8 @@ class WorkoutSetScreenTest {
         show(state.copy(exercises = listOf(card), workout = state.workout?.copy(focus = WorkoutFocus(1L, Slot.MAIN, 0))))
         rule.onNodeWithText("45 s").assertIsDisplayed()
         rule.onNodeWithText("at 25 lb").assertIsDisplayed()
-        rule.onNodeWithText("Log 45 s").assertIsEnabled()
+        // #628: a hold starts its timer instead of logging the target
+        rule.onNodeWithText("Start").assertIsEnabled()
     }
 
     @Test

@@ -255,6 +255,11 @@ strength day; the shipped cardio vectors stay pinned.
 - **Timed rep events.** The clock runs with the screen kept on (no dimming,
   no lock), and when time ends the count entry (a stepper) comes up by
   itself. The lifter records the count.
+- **Timed holds (#628).** Start on a TIMED set runs a hold with the screen kept on: it counts up toward the target,
+  buzzes once and logs the target when it gets there. Stop logs the whole seconds held; a Stop under one second
+  logs nothing. A set done each side runs one hold per side, each started with its own tap, and logs the shorter
+  side. Each side comes from the authored prescription, else the catalog entry. A hold in a superset still logs
+  with its round, and leaving the day drops a hold in progress.
 - **Before production:** plans, run identity, authored prescriptions and
   timed rep events, on phone and watch; a plan switcher on Today; and cardio
   as typed sets (warm-up, work, recovery, cool-down; time ends a set by

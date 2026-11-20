@@ -1,6 +1,5 @@
 {
   "seat": "r5-p9-probe",
-  "probe": true,
   "capture": "compact",
   "start": {
     "restore": "start-backup.json",
@@ -94,10 +93,13 @@
       }
     },
     {
-      "checkpoint": "each-side-first-hold"
+      "checkpoint": "home-balance-start"
     },
     {
-      "advance": "10s"
+      "note": "Counter support: hold left 10 seconds, then right 10 seconds; log pair 1. App only supplies one Each side record."
+    },
+    {
+      "advance": "20s"
     },
     {
       "tap": {
@@ -105,24 +107,44 @@
       }
     },
     {
-      "checkpoint": "each-side-first-log"
+      "checkpoint": "pair-1-logged"
     },
     {
-      "advance": "1m"
+      "advance": "2m"
     },
     {
-      "checkpoint": "each-side-after-rest"
+      "note": "Counter support: hold left 10 seconds, then right 10 seconds; log pair 2. App only supplies one Each side record."
+    },
+    {
+      "advance": "20s"
     },
     {
       "tap": {
-        "text": "All sets"
+        "tag": "workout-action-filled"
       }
     },
     {
-      "checkpoint": "each-side-all-sets"
+      "checkpoint": "pair-2-logged"
     },
     {
-      "back": true
+      "advance": "2m"
+    },
+    {
+      "note": "Counter support: hold left 10 seconds, then right 10 seconds; log pair 3. App only supplies one Each side record."
+    },
+    {
+      "advance": "20s"
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "checkpoint": "pair-3-logged"
+    },
+    {
+      "advance": "5m"
     },
     {
       "tap": {
@@ -130,25 +152,19 @@
       }
     },
     {
-      "checkpoint": "home-finish-dialog"
-    },
-    {
-      "tap": {
-        "text": "Finish",
-        "inDialog": true
-      }
-    },
-    {
-      "checkpoint": "home-finish-result"
-    },
-    {
       "tap": {
         "text": "Skip",
         "role": "Button"
+      },
+      "optional": true
+    },
+    {
+      "expect": {
+        "text": "Balance, saved."
       }
     },
     {
-      "checkpoint": "home-receipt-after-cooldown"
+      "checkpoint": "home-balance-saved"
     },
     {
       "tap": {
@@ -157,7 +173,13 @@
       }
     },
     {
-      "checkpoint": "home-back-on-solid-ground"
+      "expect": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "checkpoint": "monday-home-session-finished"
     },
     {
       "tap": {
@@ -181,6 +203,71 @@
       }
     },
     {
+      "scrollTo": {
+        "desc": "More options for Farmer's Carry"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Farmer's Carry"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Back Extension"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Back Extension"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Cable Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Cable Lateral Raise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Plank"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Remove"
+      }
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Hack Squat"
+      }
+    },
+    {
       "tap": {
         "desc": "More options for Hack Squat"
       }
@@ -191,24 +278,9 @@
       }
     },
     {
-      "checkpoint": "permanent-swap-picker"
-    },
-    {
       "tap": {
         "text": "Leg Press"
       }
-    },
-    {
-      "checkpoint": "permanent-leg-press-choice"
-    },
-    {
-      "tap": {
-        "text": "Swap",
-        "role": "Button"
-      }
-    },
-    {
-      "checkpoint": "permanent-leg-press-result"
     },
     {
       "tap": {
@@ -216,7 +288,150 @@
       }
     },
     {
-      "checkpoint": "leg-press-prescription"
+      "type": {
+        "text": "Sets",
+        "value": "2"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "10"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (lb)",
+        "value": "110"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      }
+    },
+    {
+      "checkpoint": "gym-leg-press-110-baseline"
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for DB Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "chest"
+      }
+    },
+    {
+      "checkpoint": "chest-machine-choices"
+    },
+    {
+      "back": true
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Chest-Supported Row"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Chest-Supported Row"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "row"
+      }
+    },
+    {
+      "checkpoint": "seated-row-choices"
+    },
+    {
+      "back": true
+    },
+    {
+      "scrollTo": {
+        "desc": "More options for Machine Shoulder Press"
+      }
+    },
+    {
+      "tap": {
+        "desc": "More options for Machine Shoulder Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Swap"
+      }
+    },
+    {
+      "type": {
+        "text": "Search exercises",
+        "value": "shoulder"
+      }
+    },
+    {
+      "checkpoint": "dumbbell-shoulder-choices"
+    },
+    {
+      "back": true
+    },
+    {
+      "scrollTo": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add exercise"
+      }
+    },
+    {
+      "checkpoint": "all-movement-groups-top"
+    },
+    {
+      "scrollTo": {
+        "text": "Knee extension (leg extension)"
+      }
+    },
+    {
+      "checkpoint": "movement-groups-middle"
+    },
+    {
+      "back": true
+    },
+    {
+      "scrollTo": {
+        "text": "Add cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add cardio"
+      }
+    },
+    {
+      "checkpoint": "bike-or-walking-options"
     }
-  ]
+  ],
+  "probe": true
 }

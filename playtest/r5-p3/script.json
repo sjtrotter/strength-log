@@ -163,6 +163,27 @@
       "checkpoint": "dec1-workout-in-front-of-me"
     },
     {
+      "tap": {
+        "text": "142 kg × 3",
+        "role": "Button"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "150",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "dec1-set1-restored-to-actual150"
+    },
+    {
       "advance": "45s"
     },
     {
@@ -189,6 +210,27 @@
       }
     },
     {
+      "tap": {
+        "text": "142 kg × 3",
+        "role": "Button"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "150",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "dec1-set2-restored-to-actual150"
+    },
+    {
       "advance": "45s"
     },
     {
@@ -213,6 +255,27 @@
       "tap": {
         "tag": "workout-action-filled"
       }
+    },
+    {
+      "tap": {
+        "text": "142 kg × 3",
+        "role": "Button"
+      }
+    },
+    {
+      "type": {
+        "text": "Weight (kg)",
+        "value": "150",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save set"
+      }
+    },
+    {
+      "checkpoint": "dec1-set3-restored-to-actual150"
     },
     {
       "advance": "45s"
@@ -387,6 +450,27 @@
     },
     {
       "checkpoint": "dec1-finished"
+    },
+    {
+      "tap": {
+        "desc": "Settings"
+      },
+      "optional": true
+    },
+    {
+      "scrollTo": {
+        "text": "Backup and export"
+      },
+      "optional": true
+    },
+    {
+      "tap": {
+        "text": "Backup and export"
+      },
+      "optional": true
+    },
+    {
+      "checkpoint": "export-controls-for-final-block-backup"
     }
   ]
 }

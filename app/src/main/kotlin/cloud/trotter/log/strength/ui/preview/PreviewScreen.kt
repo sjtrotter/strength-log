@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.preview
 
+import cloud.trotter.log.strength.ui.day.lastSourceText
 import cloud.trotter.log.strength.ui.day.CardioNextTime
 import cloud.trotter.log.strength.ui.day.CardioNextTimeChip
 import androidx.compose.foundation.layout.Arrangement
@@ -112,10 +113,7 @@ fun PreviewScreen(state: PreviewUiState, actions: PreviewActions) {
                                     Text(stringResource(it.label), color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 lift.previous.forEach { previous ->
-                                    val source = previous.source?.let { day ->
-                                        previous.sourcePlanName?.let { stringResource(R.string.today_plan_day, it, day) }
-                                            ?: stringResource(R.string.preview_last_day, day)
-                                    }
+                                    val source = previous.source?.let { lastSourceText(it, previous.sourcePlanName) }
                                     val result = when {
                                         !previous.comparable -> stringResource(R.string.preview_no_comparable_result)
                                         previous.last == null -> null

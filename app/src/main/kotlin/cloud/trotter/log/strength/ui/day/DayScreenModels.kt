@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.res.stringResource
 import cloud.trotter.log.strength.R
+import cloud.trotter.log.strength.data.LastSource
 import cloud.trotter.log.strength.data.RunSetCounts
 import cloud.trotter.log.strength.data.SpacingReason
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -384,9 +385,12 @@ data class ExerciseCardState(
     /** "185 × 8"-style chip (PLAN.md A1 bonus); null when never performed before. */
     val lastTimeDisplay: String? = null,
     val lastTimeDate: String? = null,
+    /** The day [lastTimeDisplay] came from when it is not this day (#629). */
+    val lastTimeSource: LastSource? = null,
     val partnerHeaderTarget: HeaderTarget? = null,
     val partnerLastTimeDisplay: String? = null,
     val partnerLastTimeDate: String? = null,
+    val partnerLastTimeSource: LastSource? = null,
     val partnerSetLabels: List<String> = emptyList(),
     /** "245×5"-style all-time-best chip (docs/briefs/performance-profile.md Phase
      *  1); null when there is no record, or when it equals [lastTimeDisplay] —

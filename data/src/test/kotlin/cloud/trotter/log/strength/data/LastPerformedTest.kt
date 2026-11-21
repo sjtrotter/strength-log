@@ -19,6 +19,24 @@ import kotlin.test.assertEquals
 class LastPerformedTest {
 
     @Test
+    fun `last source names another day or plan and is silent on the shown day`() {
+        val rows = listOf(
+            LastPerformedSourceRow("squat", Slot.MAIN, 90.0, 5, 0, 10L, "Own", "B", 5L, 0, "WORK"),
+            LastPerformedSourceRow("curl", Slot.MAIN, 50.0, 10, 0, 20L, "Other", "A", 4L, 0, "WORK"),
+            LastPerformedSourceRow("row", Slot.MAIN, 80.0, 10, 0, 10L, "Own", "A", 3L, 0, "WORK"),
+            LastPerformedSourceRow("press", Slot.MAIN, 70.0, 5, 0, 20L, " ", "A", 2L, 0, "WORK"),
+            LastPerformedSourceRow("dip", Slot.MAIN, 0.0, 10, 0, null, null, "A", 1L, 0, "WORK"),
+        )
+        assertEquals(mapOf(
+            "squat" to LastSource("B", null),
+            "curl" to LastSource("A", "Other"),
+            "press" to LastSource("A", null),
+            "dip" to LastSource("A", null),
+        ), rows.toLastSourcesElsewhere(10L, "A"))
+        assertEquals(null, rows.toLastSourcesElsewhere(PlanEntity.LEGACY_ID, "A")["dip"])
+    }
+
+    @Test
     fun firstRowPerExerciseIdWins() {
         val rows = listOf(
             LastPerformedRow("bb_back_squat", 235.0, 5),

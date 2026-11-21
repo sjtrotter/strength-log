@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.data.HistoryRepository
+import cloud.trotter.log.strength.data.LastSource
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
@@ -25,6 +26,7 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
+import cloud.trotter.log.strength.ui.Routes
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -160,6 +162,34 @@ class DayViewModelLastPerformedTest {
         assertEquals("225 lb × 5, 5, 4", card.lastTimeDisplay)
         assertNull(card.topSetComparison)
         collect.cancel()
+    }
+
+    @Test
+    fun `the lift sheet names the day its last time came from`() = runVmTest {
+        repo.replaceProgram(Program(listOf("A", "B").map { day ->
+            ProgramDay(day, "Day $day", "", listOf(
+                ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(PrescribedTarget.LoadReps(225.0, 5))),
+            ))
+        }))
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val benchId = slotId("bb_bench")
+        val started = repo.startRun(plan, "A") as RunStartResult.Started
+        db.storeTestRows("A", benchId, Slot.MAIN,
+            listOf(5, 5, 5).mapIndexed { index, reps ->
+                LoggedSet(225.0, reps, SetKind.WORK, done = true, plannedIndex = index)
+            }, started.runId)
+        repo.finishRun(started.runId)
+
+        val b = newViewModel(SavedStateHandle(mapOf(Routes.DAY_ID_ARG to "B", Routes.DAY_PLAN_ID_ARG to plan.toString())))
+        val collectB = launch { b.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals(LastSource("A", null), b.uiState.value.exercises.single().lastTimeSource)
+        collectB.cancel()
+        val a = newViewModel(SavedStateHandle(mapOf(Routes.DAY_ID_ARG to "A", Routes.DAY_PLAN_ID_ARG to plan.toString())))
+        val collectA = launch { a.uiState.collect {} }
+        advanceUntilIdle()
+        assertNull(a.uiState.value.exercises.single().lastTimeSource)
+        collectA.cancel()
     }
 
     @Test

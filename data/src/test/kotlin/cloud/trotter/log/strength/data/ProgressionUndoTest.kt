@@ -93,7 +93,7 @@ class ProgressionUndoTest : FinishProgressionFixture() {
         val a = id(plan, "bb_back_squat")
         val c = id(plan, "bb_back_squat", "C")
         lifter(plan, a, work(w = 95.0), rule(inc = 0.025))
-        lifter(plan, c, work(w = 95.0), rule(inc = 0.025), "C")
+        lifter(plan, c, work(w = 95.0), rule(inc = 0.025).copy(rir = 3), "C") // #629: identical slots now share; an effort difference keeps this a shared-credit test
         val before = db.programDao().exercise(c)!!.ruleJson
         val session = finish(plan, a, 95.0)
         assertEquals(1, rule(c).state.successStreak)

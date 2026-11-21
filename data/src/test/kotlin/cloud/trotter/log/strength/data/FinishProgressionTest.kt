@@ -303,7 +303,7 @@ class FinishProgressionTest : FinishProgressionFixture() {
         val cadence = rule(inc = 0.025).copy(everyExposures = 2)
         lifter(plan, a, work(w = 95.0), cadence)
         lifter(plan, b, work(w = 95.0, r = 10), cadence.copy(target = RepTarget.Fixed(10)), "B")
-        lifter(plan, c, work(w = 95.0), cadence, "C")
+        lifter(plan, c, work(w = 95.0), cadence.copy(rir = 3), "C") // #629: identical slots now share; an effort difference keeps this a shared-credit test
         finish(plan, a, 95.0)
         assertEquals(1, rule(c).state.successStreak)
         assertEquals(0, rule(b).state.successStreak)
@@ -317,7 +317,7 @@ class FinishProgressionTest : FinishProgressionFixture() {
         val a = id(plan, "bb_back_squat")
         val c = id(plan, "bb_back_squat", "C")
         lifter(plan, a)
-        lifter(plan, c, day = "C")
+        lifter(plan, c, rule = rule().copy(rir = 3), day = "C") // #629: identical slots now share; an effort difference keeps this a shared-credit test
         val run = start(plan)
         repo.applyToRun(run, plan, "A", listOf(TrackEdit(a, Slot.MAIN) { rows -> rows.mapIndexed { i, row ->
             row.copy(done = true, weightLb = if (i == 0) 175.0 else 185.0)
@@ -439,7 +439,7 @@ class FinishProgressionTest : FinishProgressionFixture() {
             val c = id(plan, "bb_back_squat", "C")
             val cadence = rule(inc = 0.025).copy(everyExposures = 2)
             lifter(plan, a, rule = cadence)
-            lifter(plan, c, rule = cadence.copy(state = SlotState(successStreak = initial)), day = "C")
+            lifter(plan, c, rule = cadence.copy(rir = 3, state = SlotState(successStreak = initial)), day = "C") // #629: identical slots now share; an effort difference keeps this a shared-credit test
             finish(plan, a)
             assertEquals(initial + 1, rule(c).state.successStreak)
             assertEquals(work(), rows(plan, c, "C"))
@@ -456,7 +456,7 @@ class FinishProgressionTest : FinishProgressionFixture() {
             val c = id(plan, "bb_back_squat", "C")
             val cadence = rule(inc = 0.025).copy(everyExposures = 2)
             lifter(plan, a, rule = cadence)
-            lifter(plan, c, rule = cadence.copy(state = SlotState(successStreak = 1)), day = "C")
+            lifter(plan, c, rule = cadence.copy(rir = 3, state = SlotState(successStreak = 1)), day = "C") // #629: identical slots now share; an effort difference keeps this a shared-credit test
             finish(plan, a)
             finish(plan, c, day = "C")
             assertEquals(NextOffer(185.0, 190.0), offer(plan, "bb_back_squat", "C"))
@@ -477,7 +477,7 @@ class FinishProgressionTest : FinishProgressionFixture() {
         val c = id(plan, "bb_back_squat", "C")
         val cadence = rule(inc = 0.025).copy(everyExposures = 2)
         lifter(plan, a, rule = cadence)
-        lifter(plan, c, rule = cadence.copy(state = SlotState(successStreak = 1)), day = "C")
+        lifter(plan, c, rule = cadence.copy(rir = 3, state = SlotState(successStreak = 1)), day = "C") // #629: identical slots now share; an effort difference keeps this a shared-credit test
         finish(plan, a)
         assertTrue("\"pendingIncrease\":true" in SlotRuleJson.encode(rule(c)))
         finish(plan, c, reps = listOf(5, 5, 4), day = "C")
@@ -537,7 +537,7 @@ class FinishProgressionTest : FinishProgressionFixture() {
         val c = id(plan, "db_row", "C")
         lifter(plan, first, work(w = 40.0, r = 10), rule(reps = 10))
         lifter(plan, second, work(w = 40.0, r = 12), rule(reps = 12))
-        lifter(plan, c, work(w = 40.0, r = 10), rule = rule(reps = 10).copy(everyExposures = 2), day = "C")
+        lifter(plan, c, work(w = 40.0, r = 10), rule = rule(reps = 10).copy(everyExposures = 2, rir = 3), day = "C") // #629: identical slots now share; an effort difference keeps this a shared-credit test
         val run = start(plan)
         perform(run, plan, first, 40.0, listOf(10, 10, 10))
         perform(run, plan, second, 40.0, listOf(12, 12, 12))
@@ -553,7 +553,7 @@ class FinishProgressionTest : FinishProgressionFixture() {
         assertEquals(1, rule(c).state.successStreak)
         lifter(plan, first, work(w = 40.0, r = 10), rule(reps = 10))
         lifter(plan, second, work(w = 40.0, r = 10), rule(reps = 10))
-        lifter(plan, c, work(w = 40.0, r = 10), rule = rule(reps = 10).copy(everyExposures = 2), day = "C")
+        lifter(plan, c, work(w = 40.0, r = 10), rule = rule(reps = 10).copy(everyExposures = 2, rir = 3), day = "C") // #629: identical slots now share; an effort difference keeps this a shared-credit test
         val both = start(plan)
         perform(both, plan, first, 40.0, listOf(10, 10, 10))
         perform(both, plan, second, 40.0, listOf(10, 10, 10))

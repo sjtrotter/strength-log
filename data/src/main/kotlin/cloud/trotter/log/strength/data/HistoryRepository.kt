@@ -330,6 +330,11 @@ class HistoryRepository(
     suspend fun lastSets(exerciseIds: List<String>): Map<String, List<LoggedSet>> =
         if (exerciseIds.isEmpty()) emptyMap() else sessionDao.lastPerformedSourceRows(exerciseIds).toLastSetsByExercise()
 
+    /** Where each exercise's newest session ran, when that is not the shown day of this plan. */
+    suspend fun lastSourcesElsewhere(exerciseIds: List<String>, planId: Long, dayId: String): Map<String, LastSource> =
+        if (exerciseIds.isEmpty()) emptyMap()
+        else sessionDao.lastPerformedSourceRows(exerciseIds).toLastSourcesElsewhere(planId, dayId)
+
     /** Offers belong to a program slot, including when an exercise appears twice on the same day. */
     suspend fun slotSessionsById(planId: Long, dayId: String): Map<Pair<Long, String>, SlotSession> = db.withTransaction {
         val session = sessionDao.lastSessionForDay(planId, dayId) ?: return@withTransaction emptyMap()

@@ -22,7 +22,7 @@ is exactly right. **Nothing in §3–§6 or §8–§9 needs structural change.**
 amendments below are additions the new requirements force, plus gaps found in
 review.
 
-## Amendments (A1–A19)
+## Amendments (A1–A20)
 
 ### A1. Session history is now required (biggest change)
 
@@ -386,6 +386,20 @@ a lift opens from the lifter's numbers, its history, or the equipment floor with
   mains move into plan settings; the v1 recipe is cleared. Workout history is never rewritten. A restored old
   backup converts the same way on every later build.
 - The profile is two optional numbers, bodyweight and age (#527). Units stay global.
+
+### A20. Matching slots share progression (owner, 2026-11-20, #629)
+
+Within one plan, slots on different days with the same exercise, sets, reps and effort progress as one: Finish
+copies the performed slot's next-time rows and its progression (rep target, cadence, streaks, calibration, stall
+dates, exposures) to the others, in the same undo record, and Undo and Rough day restore every slot it changed.
+A match also needs the same set structure, role, scheme and Next time mode; load is left out, since it is what they
+share. An authored target matches by type, reps or seconds, and side, without its load. A generated plan's
+SECONDARY exposure differs in role, sets or effort, so it keeps its own numbers and still takes the shared streak
+credit of design §19. Superset partners, Plan slots and slots without stored rows keep their own progression.
+Accepting or reverting an offer reaches the slots still holding what Finish copied. Plans never share with each
+other; there the log is evidence only, as decided 2026-10-19. The Lift sheet's Last names the day, and the plan
+when it is another, that the newest session came from when that is not the day shown. For matching slots this
+supersedes design §19's "It never writes another slot's load."
 
 ## Architecture
 

@@ -2854,11 +2854,11 @@ class DayViewModel @Inject constructor(
             logHold(event)
             return HoldState(event, event.loggedSeconds)
         }
-        if (!event.running) return HoldState(event, event.loggedSeconds)
+        if (!event.running) return HoldState(event, 0)
         val elapsed = BootAnchor(event.wallStart, event.elapsedStart, event.bootCount).elapsedSince(cardioClock.clocks())
         if (HoldClock.reached(elapsed, event.targetSeconds)) {
             endHoldSide(event, event.targetSeconds, buzz = holdAlertAnchor == event.wallStart)
-            return holdEvent.value?.let { HoldState(it, it.loggedSeconds) }
+            return holdEvent.value?.let { HoldState(it, if (it.complete) it.loggedSeconds else 0) }
         }
         if (cardioScreenLive) {
             holdAlertAnchor = event.wallStart

@@ -112,12 +112,10 @@ class HoldTimerSetScreenTest {
 
     @Test fun `between sides the hold offers Start for the second side`() {
         var started: Pair<Long, Int>? = null
-        show(state(hold(heldSeconds = 30, running = false, sides = listOf(30))),
+        show(state(hold(heldSeconds = 0, running = false, sides = listOf(30))),
             workoutActions().copy(onStartHold = { id, index -> started = id to index }))
         rule.onNodeWithText("Side 2 of 2").assertIsDisplayed()
-        // #628: keep side one's held seconds visible while waiting to start side two.
-        rule.onNodeWithText("0:30").assertIsDisplayed()
-        rule.onNodeWithText("0:00").assertDoesNotExist()
+        rule.onNodeWithText("0:00").assertIsDisplayed()
         rule.onNodeWithText("End hold").assertIsDisplayed().assertIsEnabled()
         rule.onNodeWithTag("workout-action-filled").assert(hasText("Start")).assertIsEnabled().performClick()
         rule.runOnIdle { assertEquals(1L to 0, started) }
@@ -125,9 +123,8 @@ class HoldTimerSetScreenTest {
 
     @Test fun `between sides End hold calls the stop action`() {
         var stops = 0
-        show(state(hold(heldSeconds = 18, running = false, sides = listOf(18))),
+        show(state(hold(heldSeconds = 0, running = false, sides = listOf(18))),
             workoutActions().copy(onStopHold = { stops++ }))
-        rule.onNodeWithText("0:18").assertIsDisplayed()
         rule.onNodeWithText("End hold").assertIsEnabled().performClick()
         rule.runOnIdle { assertEquals(1, stops) }
     }
@@ -140,11 +137,10 @@ class HoldTimerSetScreenTest {
         rule.onNodeWithText("End hold").assertDoesNotExist()
     }
 
-    @Test fun `between sides the clock chip shows the held seconds`() {
-        val waiting = state(hold(heldSeconds = 30, running = false, sides = listOf(30)))
+    @Test fun `between sides the clock chip waits at zero`() {
+        val waiting = state(hold(heldSeconds = 0, running = false, sides = listOf(30)))
         show(waiting.copy(cardio = cardioFixture(), selectedPageKey = "cardio"))
-        rule.onNodeWithText("Plank 0:30").assertIsDisplayed()
-        rule.onNodeWithText("Plank 0:00").assertDoesNotExist()
+        rule.onNodeWithText("Plank 0:00").assertIsDisplayed()
     }
 
     @Test fun `a loaded hold shows its weight while it runs`() {

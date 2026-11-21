@@ -71,6 +71,18 @@ fun List<LastPerformedSourceRow>.toLastSetsByExercise(): Map<String, List<Logged
             .sortedWith(compareBy({ it.slot }, { it.setIndex })).map { it.toLoggedSet() }
     }
 
+/** [planName] is null on the plan's own days and when blank. */
+data class LastSource(val dayId: String, val planName: String?)
+
+/** Uses the newest session, as [toLastSetsByExercise] does, unless it ran on the shown day of this plan. */
+fun List<LastPerformedSourceRow>.toLastSourcesElsewhere(planId: Long, dayId: String): Map<String, LastSource> =
+    groupBy { it.exerciseId }.mapNotNull { (exerciseId, rows) ->
+        val row = rows.first()
+        val samePlan = belongsToPlan(row.planId, planId)
+        if (samePlan && row.dayId == dayId) null
+        else exerciseId to LastSource(row.dayId, row.planName?.takeIf { !samePlan && it.isNotBlank() })
+    }.toMap()
+
 private fun LastPerformedSourceRow.toLoggedSet(): LoggedSet = LoggedSet(
     weightLb, reps, SetKind.entries.firstOrNull { it.name == kind } ?: SetKind.WORK,
     done = true, seconds = seconds,

@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import cloud.trotter.log.strength.data.LastSource
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
@@ -144,6 +145,21 @@ class LiftSheetTest {
             assertEquals(1L to 3, edited)
             assertEquals(0 to Slot.MAIN, swapped)
         }
+    }
+
+    @Test fun `the last line names another day or plan`() {
+        val state = workoutLiftSheetFixture()
+        val base = state.exercises.single().copy(workingHeading = "TOP × 5 · 235 lb")
+        var card by mutableStateOf(base.copy(lastTimeSource = LastSource("B", null)))
+        rule.setContent { AppTheme {
+            LiftSheet(card, Slot.MAIN, state.workout?.focus, workoutActions(), false, null, {}, {}, {})
+        } }
+        rule.onNodeWithText("Last 235 × 5 · Day B, Oct 21.", substring = true).assertIsDisplayed()
+        rule.onNodeWithText("Last time", substring = true).assertDoesNotExist()
+        rule.runOnIdle { card = base.copy(lastTimeSource = LastSource("C", "Strength")) }
+        rule.onNodeWithText("Last 235 × 5 · Strength · Day C, Oct 21.", substring = true).assertIsDisplayed()
+        rule.runOnIdle { card = base.copy(lastTimeDate = null, lastTimeSource = LastSource("B", null)) }
+        rule.onNodeWithText("Last 235 × 5 · Day B.", substring = true).assertIsDisplayed()
     }
 
     @Test fun headingReadsWorkingRowsWhenThePrescriptionIsStale() {

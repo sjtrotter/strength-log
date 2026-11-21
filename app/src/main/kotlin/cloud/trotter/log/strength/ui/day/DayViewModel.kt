@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.DayTracks
 import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.LastPerformed
+import cloud.trotter.log.strength.data.LastSource
 import cloud.trotter.log.strength.data.PerformedDay
 import cloud.trotter.log.strength.data.PerformedSlot
 import cloud.trotter.log.strength.data.PersonalRecord
@@ -2692,7 +2693,7 @@ class DayViewModel @Inject constructor(
     private suspend fun fetchDayHistory(ids: List<String>, planId: Long, dayId: String): DayHistory {
         return DayHistory(historyRepository.lastPerformed(ids), historyRepository.personalRecords(ids),
             historyRepository.lastPerformedDates(ids), historyRepository.slotSessionsById(planId, dayId),
-            historyRepository.lastSets(ids))
+            historyRepository.lastSets(ids), lastSources = historyRepository.lastSourcesElsewhere(ids, planId, dayId))
     }
 
     private fun buildState(
@@ -3213,11 +3214,13 @@ class DayViewModel @Inject constructor(
             partnerTimedShowsWeight = slot.partner?.showsLoad == true,
             lastTimeDisplay = DayScreenBuilder.lastTimeDisplay(lastPerformed, history.lastSets[performed.exerciseId].orEmpty(), unit),
             lastTimeDate = history.lastPerformedDates[performed.exerciseId]?.let(::lastTimeDate),
+            lastTimeSource = history.lastSources[performed.exerciseId],
             partnerSetLabels = DayScreenBuilder.kindLabels(partnerSets.orEmpty()),
             partnerHeaderTarget = partnerHeaderTarget,
             partnerLastTimeDisplay = DayScreenBuilder.lastTimeDisplay(partner?.exerciseId?.let(history.lastPerformed::get),
                 partner?.exerciseId?.let(history.lastSets::get).orEmpty(), unit),
             partnerLastTimeDate = partner?.exerciseId?.let(history.lastPerformedDates::get)?.let(::lastTimeDate),
+            partnerLastTimeSource = partner?.exerciseId?.let(history.lastSources::get),
             personalRecordDisplay = DayScreenBuilder.personalRecordDisplay(history.personalRecords[performed.exerciseId], lastPerformed, unit),
             topSetComparison = DayScreenBuilder.topSetComparison(main, lastPerformed, unit),
             allDone = DayScreenBuilder.allDone(rows),
@@ -3243,6 +3246,7 @@ class DayViewModel @Inject constructor(
         val lastPerformedDates: Map<String, Long> = emptyMap(),
         val slotSessions: Map<Pair<Long, String>, SlotSession> = emptyMap(),
         val lastSets: Map<String, List<LoggedSet>> = emptyMap(),
+        val lastSources: Map<String, LastSource> = emptyMap(),
     )
 
     private data class DayContext(

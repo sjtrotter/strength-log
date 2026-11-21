@@ -43,6 +43,10 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 
+@Composable
+internal fun lastSourceText(dayId: String, planName: String?): String =
+    planName?.let { stringResource(R.string.today_plan_day, it, dayId) } ?: stringResource(R.string.preview_last_day, dayId)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun LiftSheet(
@@ -67,6 +71,7 @@ internal fun LiftSheet(
     val nextTime = if (partner) card.partnerNextTime else card.nextTime
     val last = if (partner) card.partnerLastTimeDisplay else card.lastTimeDisplay
     val date = if (partner) card.partnerLastTimeDate else card.lastTimeDate
+    val lastSource = if (partner) card.partnerLastTimeSource else card.lastTimeSource
     val marker = if (partner) card.partnerMarker else card.marker
     val support = listOfNotNull(
         workingHeading?.let { stringResource(R.string.lift_sheet_target, it) },
@@ -74,8 +79,13 @@ internal fun LiftSheet(
             stringResource(R.string.lift_sheet_goal, it.display)
         },
         last?.takeIf { it.isNotBlank() }?.let {
-            if (date == null) stringResource(R.string.lift_sheet_last, it)
-            else stringResource(R.string.lift_sheet_last_date, it, date)
+            val source = lastSource?.let { s -> lastSourceText(s.dayId, s.planName) }
+            when {
+                source != null -> listOfNotNull(stringResource(R.string.preview_last_elsewhere, it, source), date)
+                    .joinToString(", ") + "."
+                date == null -> stringResource(R.string.lift_sheet_last, it)
+                else -> stringResource(R.string.lift_sheet_last_date, it, date)
+            }
         },
         target?.let { DayScreenBuilder.headerTargetDetail(it, stringResource(R.string.day_target_each_side)) }
             ?.takeIf { it.isNotBlank() },

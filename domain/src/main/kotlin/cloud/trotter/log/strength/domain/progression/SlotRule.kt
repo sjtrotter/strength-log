@@ -20,7 +20,8 @@ sealed interface RepTarget {
     }
 }
 
-/** Progression state; Finish also grants matching slots shared success credit. */
+/** Progression state. Finish copies it to the slots that share this one's progression ([SharedProgression])
+ *  and grants other slots of the exercise at the same rep target shared success credit. */
 data class SlotState(
     val calibrating: Boolean = false,
     /** Successes toward cadence; consuming a pending increase starts a fresh cadence. */
@@ -69,6 +70,10 @@ data class SlotRule(
             )
     }
 }
+
+/** Null Next time follows the plan's default. */
+fun SlotRule.automatic(planAutomatic: Boolean): Boolean =
+    (nextTime ?: if (planAutomatic) NextTimeMode.AUTO else NextTimeMode.ASK) == NextTimeMode.AUTO
 
 private fun defaultRir(role: SlotRole, goal: LiftGoal): Int = when (goal) {
     LiftGoal.STRENGTH -> if (role == SlotRole.SECONDARY) 3 else 2

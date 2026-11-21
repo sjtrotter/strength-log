@@ -1728,7 +1728,13 @@ class DayViewModel @Inject constructor(
     }
 
     fun stopHold() {
-        val event = holdEvent.value?.takeIf { it.running } ?: return
+        val event = holdEvent.value?.takeIf { !it.complete } ?: return
+        if (!event.running) {
+            val ended = event.copy(sides = event.heldSeconds.size)
+            savedState[KEY_HOLD] = ended
+            logHold(ended)
+            return
+        }
         val elapsed = BootAnchor(event.wallStart, event.elapsedStart, event.bootCount).elapsedSince(cardioClock.clocks())
         val held = HoldClock.heldSeconds(elapsed, event.targetSeconds)
         if (held < 1) clearHold() else endHoldSide(event, held, buzz = false)
@@ -2167,7 +2173,7 @@ class DayViewModel @Inject constructor(
                         ?.unrated?.isNotEmpty() == true
                 }
                 settings.setWorkoutRecord(WorkoutRecord(runId, selection, UndoTarget(
-                    programExerciseId, slot, index, SetDto.of(row), SetDto.of(logged), loggedAt,
+                    programExerciseId, slot, index, SetDto.of(row), SetDto.of(logged), logged.completedAtMillis ?: loggedAt,
                     slots.drop(1).firstOrNull { it in writtenBefore }?.let {
                         UndoHalf(SetDto.of(writtenBefore.getValue(it)), SetDto.of(writtenAfter.getValue(it)))
                     },
@@ -2845,13 +2851,13 @@ class DayViewModel @Inject constructor(
         }
         if (event.complete) {
             logHold(event)
-            return HoldState(event, 0)
+            return HoldState(event, event.loggedSeconds)
         }
-        if (!event.running) return HoldState(event, 0)
+        if (!event.running) return HoldState(event, event.loggedSeconds)
         val elapsed = BootAnchor(event.wallStart, event.elapsedStart, event.bootCount).elapsedSince(cardioClock.clocks())
         if (HoldClock.reached(elapsed, event.targetSeconds)) {
             endHoldSide(event, event.targetSeconds, buzz = holdAlertAnchor == event.wallStart)
-            return holdEvent.value?.let { HoldState(it, 0) }
+            return holdEvent.value?.let { HoldState(it, it.loggedSeconds) }
         }
         if (cardioScreenLive) {
             holdAlertAnchor = event.wallStart

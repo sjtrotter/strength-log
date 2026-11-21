@@ -83,7 +83,7 @@ object DayScreenBuilder {
         aim(target.display, target.repAim)
     } else target.display
 
-    /** Authored supporting detail only; the last performance belongs to the phone. */
+    /** Supporting detail from the prescription or catalog; the last performance belongs to the phone. */
     fun headerTargetDetail(target: HeaderTarget, eachSideLabel: String = "Each side"): String =
         listOfNotNull(
             eachSideLabel.takeIf { target.eachSide },

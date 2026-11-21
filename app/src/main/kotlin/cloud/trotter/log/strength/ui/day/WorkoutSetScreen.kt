@@ -381,8 +381,10 @@ private fun WorkoutSetContent(
                             when {
                                 hold?.event?.running == true -> WorkoutActionSpec(stringResource(R.string.day_cardio_stop_button), true, true,
                                     actions.onStopHold, guardKey = guardKey)
-                                hold != null -> WorkoutActionSpec(stringResource(R.string.day_cardio_start_button), false, true,
-                                    { actions.onStartHold(card.programExerciseId, index) }, guardKey = guardKey)
+                                hold != null -> WorkoutActionSpec(stringResource(R.string.day_cardio_start_button), false, !hold.event.complete,
+                                    { actions.onStartHold(card.programExerciseId, index) },
+                                    secondary = if (hold.event.complete) null else WorkoutSecondaryAction.Text(
+                                        stringResource(R.string.workout_hold_end), actions.onStopHold), guardKey = guardKey)
                                 resting -> WorkoutActionSpec(stringResource(R.string.workout_end_rest), true, true, actions.onContinueWorkout)
                                 else -> WorkoutActionSpec(stringResource(R.string.day_cardio_start_button), false,
                                     !state.executionBusy && state.timedRep == null, { actions.onStartHold(card.programExerciseId, index) })

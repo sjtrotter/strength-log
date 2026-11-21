@@ -694,6 +694,7 @@
     <string name="workout_hold_held">Held</string>
     <string name="workout_hold_target">Target %1$s</string>
     <string name="workout_hold_side">Side %1$d of %2$d</string>
+    <string name="workout_hold_end">End hold</string>
     <string name="workout_rest_duration">Rest %1$s</string>
     <string name="workout_timed_rep_target">%1$d reps in %2$s</string>
     <string name="timed_rep_log_empty">Log reps</string>

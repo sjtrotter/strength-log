@@ -27,6 +27,10 @@ import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -101,6 +105,7 @@ class DayViewModelHoldTimerTest {
 
     private fun vm(handle: SavedStateHandle = SavedStateHandle()) = DayViewModel(
         repo, SessionPublisher.NoOp, share, handle, clock, alarm, PhoneRestController(settings, rest),
+        clock = clock,
         settings = settings,
         plans = repo.plans,
         catalog = repo.catalog,
@@ -254,6 +259,62 @@ class DayViewModelHoldTimerTest {
         assertEquals(30, row().seconds)
     }
 
+    @Test fun `stop at a fractional second offers Undo and restores the planned target`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val start = clock.wall
+        vm.startHold()
+        runCurrent()
+        tick(18_400)
+        vm.stopHold()
+        runCurrent()
+        assertEquals(18, row().seconds)
+        assertEquals(start, row().startedAtMillis)
+        assertEquals(start + 18_000, row().completedAtMillis)
+        val offer = requireNotNull(vm.uiState.value.workout?.undo)
+        assertEquals(row(), offer.set)
+        assertEquals(row().completedAtMillis, settings.workoutRecordFlow.first()?.undo?.loggedAtMillis)
+        val startedRest = rest.armed.single()
+        assertEquals(clock.wall + startedRest.totalSeconds * 1_000L, startedRest.deadlineEpochMillis)
+        vm.undoLastLog()
+        runCurrent()
+        assertFalse(row().done)
+        assertEquals(30, row().seconds)
+        assertNull(row().startedAtMillis)
+        assertNull(row().completedAtMillis)
+    }
+
+    @Test fun `a late auto log offers Undo and restores the planned target`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val start = clock.wall
+        vm.startHold()
+        runCurrent()
+        vm.setCardioScreenLive(false)
+        clock.advance(35_400)
+        alarm.fire()
+        runCurrent()
+        assertEquals(30, row().seconds)
+        assertEquals(start, row().startedAtMillis)
+        assertEquals(start + 30_000, row().completedAtMillis)
+        val offer = requireNotNull(vm.uiState.value.workout?.undo)
+        assertEquals(row(), offer.set)
+        assertEquals(row().completedAtMillis, settings.workoutRecordFlow.first()?.undo?.loggedAtMillis)
+        val startedRest = rest.armed.single()
+        assertEquals(clock.wall + startedRest.totalSeconds * 1_000L, startedRest.deadlineEpochMillis)
+        assertEquals(1, alarm.buzzes)
+        vm.undoLastLog()
+        runCurrent()
+        assertFalse(row().done)
+        assertEquals(30, row().seconds)
+        assertNull(row().startedAtMillis)
+        assertNull(row().completedAtMillis)
+    }
+
     @Test fun `each side runs two holds and logs the shorter`() = test {
         prepare(Prescription(PrescribedTarget.Hold(30), eachSide = true))
         val vm = readyVm()
@@ -265,6 +326,7 @@ class DayViewModelHoldTimerTest {
         tick(30_000)
         val waiting = requireNotNull(vm.uiState.value.hold)
         assertFalse(waiting.event.running)
+        assertEquals(30, waiting.heldSeconds)
         assertEquals(listOf(30), waiting.event.heldSeconds)
         assertEquals(2, waiting.event.sideNumber)
         assertFalse(row().done)
@@ -283,6 +345,58 @@ class DayViewModelHoldTimerTest {
         assertEquals(start, row().startedAtMillis)
         assertEquals(start + 110_000, row().completedAtMillis)
         assertEquals(1, alarm.buzzes)
+    }
+
+    @Test fun `ending between sides logs side one and frees cardio Start`() = test {
+        prepare(Prescription(PrescribedTarget.Hold(30), eachSide = true))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val start = clock.wall
+        vm.startHold()
+        runCurrent()
+        tick(30_000)
+        assertFalse(requireNotNull(vm.uiState.value.hold).event.running)
+        assertFalse(vm.uiState.value.cardioStartEnabled)
+        tick(60_000)
+        vm.stopHold()
+        runCurrent()
+        assertTrue(row().done)
+        assertEquals(30, row().seconds)
+        assertEquals(start, row().startedAtMillis)
+        assertEquals(start + 30_000, row().completedAtMillis)
+        assertNull(vm.uiState.value.hold)
+        assertNull(alarm.deadline)
+        assertFalse(vm.uiState.value.executionKeepsScreenOn)
+        assertEquals(1, alarm.buzzes)
+        assertTrue(vm.uiState.value.cardioStartEnabled)
+        vm.startCardio()
+        runCurrent()
+        assertNotNull(vm.uiState.value.cardio?.run)
+    }
+
+    @Test fun `ending between sides after Stop logs the whole seconds held`() = test {
+        prepare(Prescription(PrescribedTarget.Hold(30), eachSide = true))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val start = clock.wall
+        vm.startHold()
+        runCurrent()
+        tick(18_400)
+        vm.stopHold()
+        runCurrent()
+        assertEquals(18, vm.uiState.value.hold?.heldSeconds)
+        assertFalse(row().done)
+        vm.stopHold()
+        runCurrent()
+        assertTrue(row().done)
+        assertEquals(18, row().seconds)
+        assertEquals(start + 18_000, row().completedAtMillis)
+        assertNull(vm.uiState.value.hold)
+        assertNotNull(vm.uiState.value.workout?.undo)
+        assertTrue(vm.uiState.value.cardioStartEnabled)
+        assertEquals(0, alarm.buzzes)
     }
 
     @Test fun `a catalog each side entry runs two holds`() = test {
@@ -326,6 +440,8 @@ class DayViewModelHoldTimerTest {
         val saved = recreateHandle(handle)
         clock.advance(5_000)
         clock.wall += 3_600_000
+        // #628: clear the old deadline so only the restored ViewModel can rearm it.
+        alarm.cancel()
         val restored = readyVm(saved)
         assertEquals(15, restored.uiState.value.hold?.heldSeconds)
         assertEquals(clock.elapsed + 15_000, alarm.deadline)
@@ -448,7 +564,11 @@ class DayViewModelHoldTimerTest {
         var wall: Long = 1_800_000_000_000L,
         var elapsed: Long = 9_000_000L,
         var boot: Int = 7,
-    ) : CardioClock {
+    ) : Clock(), CardioClock {
+        override fun getZone(): ZoneId = ZoneOffset.UTC
+        override fun withZone(zone: ZoneId): Clock = Clock.fixed(instant(), zone)
+        override fun instant(): Instant = Instant.ofEpochMilli(wall)
+        override fun millis(): Long = wall
         override fun wallMillis() = wall
         override fun elapsedRealtimeMillis() = elapsed
         override fun bootCount() = boot

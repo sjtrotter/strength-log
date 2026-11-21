@@ -530,6 +530,8 @@ class DayViewModelTimedRepExecutionTest {
         val saved = recreateHandle(handle)
         clock.advance(25_000)
         clock.wall += 3_600_000
+        // #628: clear the old deadline so only the restored ViewModel can rearm it.
+        alarm.cancel()
         val restored = readyVm(saved)
         assertEquals(60, restored.uiState.value.timedRep?.remainingSeconds)
         assertTrue(restored.uiState.value.executionKeepsScreenOn)

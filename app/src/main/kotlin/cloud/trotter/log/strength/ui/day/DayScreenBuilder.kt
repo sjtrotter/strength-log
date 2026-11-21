@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.library.eachSideOf
 import cloud.trotter.log.strength.domain.model.CardioBlock
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetResult
@@ -54,9 +55,10 @@ import java.util.Locale
  * (SSOT via [WeightUnit]/[WeightStepper]); nothing downstream does lb/kg math.
  */
 object DayScreenBuilder {
-    fun headerTarget(exercise: ProgramExercise, goal: GoalTarget, unit: WeightUnit): HeaderTarget {
+    fun headerTarget(exercise: ProgramExercise, goal: GoalTarget, unit: WeightUnit, entry: ExerciseEntry? = null): HeaderTarget {
+        val eachSide = eachSideOf(entry, exercise.prescription)
         val prescription = exercise.prescription
-            ?: return HeaderTarget.Goal(GoalFormatter.label(goal, unit))
+            ?: return HeaderTarget.Goal(GoalFormatter.label(goal, unit), eachSide)
         fun load(lb: Double): String = "${WeightStepper.format(unit.fromLb(lb))} ${unit.name.lowercase(Locale.ROOT)}"
         val display = when (val target = prescription.target) {
             is PrescribedTarget.LoadReps -> "${exercise.targetSets} × ${target.reps} · ${load(target.lb)}"
@@ -68,7 +70,7 @@ object DayScreenBuilder {
         return HeaderTarget.Prescribed(
             display = display,
             repAim = (prescription.target as? PrescribedTarget.RepsInTime)?.repAim,
-            eachSide = prescription.eachSide,
+            eachSide = eachSide,
             resistance = prescription.resistance,
         )
     }
@@ -81,10 +83,10 @@ object DayScreenBuilder {
         aim(target.display, target.repAim)
     } else target.display
 
-    /** Authored supporting detail only; the last performance belongs to the phone. */
+    /** Supporting detail from the prescription or catalog; the last performance belongs to the phone. */
     fun headerTargetDetail(target: HeaderTarget, eachSideLabel: String = "Each side"): String =
         listOfNotNull(
-            eachSideLabel.takeIf { target is HeaderTarget.Prescribed && target.eachSide },
+            eachSideLabel.takeIf { target.eachSide },
             (target as? HeaderTarget.Prescribed)?.resistance?.takeIf { it.isNotBlank() },
         ).joinToString(" · ")
 

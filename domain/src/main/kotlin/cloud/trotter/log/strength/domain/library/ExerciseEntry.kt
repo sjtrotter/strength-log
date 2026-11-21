@@ -77,6 +77,10 @@ data class Dose(val sets: Int, val restSeconds: Int)
 fun ExerciseEntry.availableWith(equipment: Set<Equipment>, excluded: Set<String> = emptySet()): Boolean =
     id !in excluded && this.equipment.all { it in equipment }
 
+/** Whether one set is done once per side: an authored prescription decides, else the catalog entry. */
+fun eachSideOf(entry: ExerciseEntry?, prescription: Prescription?): Boolean =
+    prescription?.eachSide ?: (entry?.eachSide == true)
+
 /** What [sets] working sets of this entry credit each muscle: a primary 1 per set, a secondary 0.5
  *  (design §3.1 invariant 5). */
 fun ExerciseEntry.muscleCredit(sets: Int): Map<Muscle, Double> = buildMap {

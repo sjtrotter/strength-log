@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.GoalSource
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.library.eachSideOf
 import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -66,7 +67,7 @@ data class PrescriptionDraft(
             val draft = PrescriptionDraft(
                 slotId = slot.programExerciseId, sets = slot.targetSets.coerceIn(1, 20),
                 reps = working?.reps?.takeIf { it >= 1 } ?: 10,
-                eachSide = prescription?.eachSide ?: false, resistance = prescription?.resistance.orEmpty(),
+                eachSide = eachSideOf(catalog.find(slot.exerciseId), prescription), resistance = prescription?.resistance.orEmpty(),
             )
             val target = prescription?.target
                 ?: catalog.find(slot.exerciseId)?.let { unprescribedTarget(it, working, draft.reps) }

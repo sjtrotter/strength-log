@@ -295,6 +295,7 @@ That needs no separate owner question unless it touches a hard constraint. Brief
 | 2026-11-20, ladder date | Your plan states the ladder's length and, on dated ladder-only plans, the weeks the date leaves; the Plan screen shows the ladder, not Taper, over ladder days; Some testers are asked for a run without walk breaks | Playtest r5-p8 and the ladder-date council, 2026-11-19 |
 | 2026-11-20, cardio A | Timed intervals start after their recovery; a run day opens on its run; past-session errors sit by the start time | #536, #533 and playtest r5-p6 |
 | 2026-11-20, cardio B | Cardio pace on receipts and History; last-time line; cardio trend cards, two sessions, four at most | #531 and #532; comparisons use the records rule |
+| 2026-11-20, #628 | TIMED sets run a hold timer: Start, a count-up clock filling toward the target, an automatic log of the target at the target, Stop for the seconds held; each side runs two holds and logs the shorter | Owner: "The plank is not timing me"; playtest r5-p9 timed both legs herself; the watch's hold face already worked this way |
 
 ### Watch
 

@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.sync.WatchExercise
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 import cloud.trotter.log.strength.domain.cardio.CardioIntervals
+import cloud.trotter.log.strength.domain.standards.HoldClock
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlin.math.roundToLong
 
@@ -491,7 +492,7 @@ private class ScreenContext(
         return base(
             screen = DialScreen.TIMED_HOLD,
             rounds = roundStates,
-            arc = (elapsedSeconds.toFloat() / goal).coerceIn(0f, 1f),
+            arc = HoldClock.fraction(elapsedSeconds.toInt(), goal),
             topBand = BandContent(
                 text = copy.exerciseKind(exercise.name, round?.kindLabel.orEmpty()).uppercase(),
                 tone = DialTone.SECONDARY,

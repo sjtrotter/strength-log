@@ -11,6 +11,8 @@ import cloud.trotter.log.strength.data.RunSetCounts
 import cloud.trotter.log.strength.data.SpacingReason
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.library.eachSideOf
+import cloud.trotter.log.strength.domain.standards.HoldClock
 import cloud.trotter.log.strength.domain.routine.Move
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -88,6 +90,7 @@ data class DayUiState(
     val cardio: CardioCardState? = null,
     val cardioLeads: Boolean = false,
     val timedRep: TimedRepState? = null,
+    val hold: HoldState? = null,
     val executionBusy: Boolean = false,
     val executionBlockedReason: WorkoutBlockedReason? = null,
     val cardioRunning: Boolean = false,
@@ -107,7 +110,7 @@ data class DayUiState(
 ) {
     val timedRepRunning: Boolean = timedRep?.event?.awaitingCount == false
     val executionKeepsScreenOn: Boolean =
-        keepScreenOn.holds(workoutOpen = false, timerRunning = timedRepRunning || cardioRunning)
+        keepScreenOn.holds(workoutOpen = false, timerRunning = timedRepRunning || hold != null || cardioRunning)
 
     val doneSets: Int = runSetCounts?.done
         ?: (exercises.sumOf { card ->
@@ -124,7 +127,7 @@ data class DayUiState(
     val cardioStartBlockedReason: WorkoutBlockedReason? get() = when {
         cardioStartEnabled -> null
         executionBlockedReason != null -> executionBlockedReason
-        timedRepRunning || cardio?.run?.running == true -> WorkoutBlockedReason.TIMER_RUNNING
+        timedRepRunning || hold != null || cardio?.run?.running == true -> WorkoutBlockedReason.TIMER_RUNNING
         cardio?.run?.saveFailed == true -> WorkoutBlockedReason.CARDIO_NOT_SAVED
         cardio?.run?.complete == true -> WorkoutBlockedReason.CARDIO_SAVING
         else -> null
@@ -175,6 +178,12 @@ data class DayUiState(
                     stringResource(R.string.workout_clock_chip_enter_reps, title)
                 } else stringResource(R.string.workout_clock_chip, title, formatCardioTime(timed.remainingSeconds)))
             }
+            hold?.let { held ->
+                val key = "exercise:${held.event.programExerciseId}"
+                if (shown?.key == key) return@let
+                val title = exercises.firstOrNull { it.programExerciseId == held.event.programExerciseId }?.title ?: return null
+                return ClockChip(key, stringResource(R.string.workout_clock_chip, title, formatCardioTime(held.heldSeconds)))
+            }
             val cardio = cardio ?: return null
             val run = cardio.run?.takeIf { it.running } ?: return null
             if (shown?.key == "cardio") return null
@@ -217,6 +226,12 @@ data class WorkoutReview(val programExerciseId: Long, val index: Int, val effort
 
 /** Finish never judges warm-up ramps or timed holds, so the phone never asks for their effort. */
 internal fun showsEffort(kind: SetKind, tracking: TrackingType): Boolean = kind != SetKind.RAMP && tracking != TrackingType.TIMED
+
+/** The hold timer's target for this set in seconds, or 0: only a TIMED main outside a superset has one. */
+internal fun ExerciseCardState.holdTargetSeconds(index: Int): Int =
+    if (tracking == TrackingType.TIMED && !isSuperset && timedRepDurationSeconds == null) {
+        rows.getOrNull(index)?.seconds ?: 0
+    } else 0
 
 /** Saved as one value; DayUiState exposes only an identity resolved against its day. */
 @Parcelize
@@ -283,6 +298,35 @@ data class TimedRepState(val event: TimedRepEvent, val remainingSeconds: Int) {
     val requestsSheet: Boolean = event.awaitingCount && !event.sheetRequested && !event.sheetDismissed
 }
 
+/** One hold in progress (#628): the running side's clock anchors and what each finished side held.
+ *  Saved under its own key; never add, drop or reorder a field. */
+@Parcelize
+@Immutable
+data class HoldEvent(
+    val dayId: String,
+    val programExerciseId: Long,
+    val exerciseId: String,
+    val setIndex: Int,
+    val targetSeconds: Int,
+    val sides: Int,
+    val startedAtMillis: Long,
+    val wallStart: Long,
+    val elapsedStart: Long,
+    val bootCount: Int,
+    val running: Boolean = true,
+    val heldSeconds: List<Int> = emptyList(),
+    val endedAtMillis: Long = 0L,
+) : Parcelable {
+    val complete: Boolean get() = heldSeconds.size >= sides
+    val sideNumber: Int get() = (heldSeconds.size + 1).coerceAtMost(sides)
+    val loggedSeconds: Int get() = HoldClock.loggedSeconds(heldSeconds)
+}
+
+@Immutable
+data class HoldState(val event: HoldEvent, val heldSeconds: Int) {
+    val fraction: Float get() = HoldClock.fraction(heldSeconds, event.targetSeconds)
+}
+
 @Immutable
 data class RestUiState(val rest: PhoneRest, val remainingSeconds: Int, val remainingFraction: Float, val over: Boolean)
 
@@ -338,13 +382,15 @@ enum class CardioPhase { SUGGESTION, EXECUTING }
 @Immutable
 sealed interface HeaderTarget {
     val display: String
+    /** [eachSideOf] for this slot. */
+    val eachSide: Boolean
 
-    data class Goal(override val display: String) : HeaderTarget
+    data class Goal(override val display: String, override val eachSide: Boolean = false) : HeaderTarget
 
     data class Prescribed(
         override val display: String,
         val repAim: Int? = null,
-        val eachSide: Boolean = false,
+        override val eachSide: Boolean = false,
         val resistance: String = "",
     ) : HeaderTarget
 }

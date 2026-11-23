@@ -106,10 +106,17 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         } catch (e: SerializationException) {
             throw BackupError.Malformed("not valid JSON", e)
         }
-        val obj = root as? JsonObject
+        val raw = root as? JsonObject
             ?: throw BackupError.Malformed("top-level value is not a JSON object")
-        val version = (obj["schemaVersion"] as? JsonPrimitive)?.intOrNull
+        val version = (raw["schemaVersion"] as? JsonPrimitive)?.intOrNull
             ?: throw BackupError.Malformed("missing or non-integer schemaVersion")
+        // Future plan goals stay unknown in old versions, even when they have the wrong type.
+        val obj = if (version < 35) {
+            val plans = raw["plans"] as? JsonArray
+            if (plans == null) raw else JsonObject(raw + ("plans" to JsonArray(
+                plans.map { if (it is JsonObject) JsonObject(it - "testGoalJson") else it },
+            )))
+        } else raw
 
         if (version in 1..34) requireV35ShapesAbsent(obj)
         if (version in 1..32) requireSidesAbsent(obj)
@@ -188,16 +195,13 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         visit(root)
     }
 
-    /** Earlier writers cannot produce test goals, links, answers or results (#646). */
+    /** Earlier writers cannot produce test links, answers or results (#646). */
     private fun requireV35ShapesAbsent(root: JsonObject) {
         if ((root["testResults"] as? JsonArray)?.isNotEmpty() == true) {
             throw BackupError.Inconsistent("test results require schema v35")
         }
         (root["plans"] as? JsonArray)?.forEach { element ->
             val plan = element as? JsonObject ?: return@forEach
-            if (plan["testGoalJson"] != null && plan["testGoalJson"] != JsonNull) {
-                throw BackupError.Inconsistent("test goal requires schema v35")
-            }
             val recipe = (plan["recipeJson"] as? JsonPrimitive)?.content?.let {
                 runCatching { json.parseToJsonElement(it) as? JsonObject }.getOrNull()
             }
@@ -314,13 +318,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         }
         // Future fields stay unknown in old versions, even when they have the wrong type.
         val withTests = if (version < 35) {
-            JsonObject(shaped.toMutableMap().apply {
-                remove("testResults")
-                val plans = get("plans") as? JsonArray
-                if (plans != null) {
-                    put("plans", JsonArray(plans.map { if (it is JsonObject) JsonObject(it - "testGoalJson") else it }))
-                }
-            })
+            JsonObject(shaped - "testResults")
         } else shaped
         val withGoals = if (version < 25) {
             val plans = withTests["plans"] as? JsonArray

@@ -119,13 +119,34 @@ class TestGoalBackupTest {
         assertNull(db.planDao().plan(plan)!!.testGoalJson)
     }
 
-    @Test fun `a v34 document with a test goal or test results is inconsistent`() {
+    @Test fun `custom window results round trip at 60 seconds through export and restore`() = runTest {
+        val plan = repo.plans.createAuthoredPlan("Mine", "Day A")
+        repo.plans.publishCreatedAuthoredPlan(plan)
+        val rows = listOf("custom_pushup_window", "custom_situp_window").mapIndexed { index, id ->
+            val event = TestEvents.get(id)
+            assertNull(event.windowSeconds)
+            TestResultEntity(71L + index, 1000, plan, "A", "run", 7L + index, 0, event.exerciseId, event.id,
+                event.version, TestEvents.window(event, 60), 27, null, "TIME_UP", TestEventJson.encode(event))
+        }
+        rows.forEach { repo.history.logTestResult(it) }
+        val backup = service.export()
+        val decoded = codec.decode(backup)
+        assertEquals(35, decoded.schemaVersion)
+        assertEquals(listOf(60, 60), decoded.testResults.map { it.windowSeconds })
+        assertEquals(rows, decoded.toSnapshot().testResults)
+
+        db.testResultDao().deleteAll()
+        service.import(backup)
+        assertEquals(rows, db.testResultDao().all())
+        assertEquals(backup, service.export())
+    }
+
+    @Test fun `a v34 document with test results answers or links is inconsistent`() {
         val plain = document()
         val plan = plain.plans.single()
         val linked = ProgramExerciseBackup(7, "hand_release_pushup", targetSets = 3, note = "",
             prescriptionJson = PrescriptionJson.encode(Prescription(PrescribedTarget.RepsInTime(120), test = hrp)))
         val cases = listOf(
-            plain.copy(plans = listOf(plan.copy(testGoalJson = TestGoalJson.encode(goal)))) to "test goal",
             plain.copy(testResults = listOf(result())) to "test results",
             plain.copy(plans = listOf(plan.copy(recipeJson = """{"tests":[{"eventId":"aft_hrp","version":1,"windowSeconds":120,"required":40}]}"""))) to "test answers",
             plain.copy(plans = listOf(plan.copy(days = listOf(ProgramDayBackup("A", "Day A", "", exercises = listOf(linked)))))) to "test link",
@@ -149,6 +170,25 @@ class TestGoalBackupTest {
         assertEquals(emptyList<TestResultBackup>(), decoded.testResults)
         assertNull(decoded.toSnapshot().plans.single().testGoalJson)
         assertEquals(emptyList<TestResultEntity>(), decoded.toSnapshot().testResults)
+    }
+
+    @Test fun `a v34 document ignores plan test goals regardless of type on restore`() = runTest {
+        val root = Json.parseToJsonElement(atVersion(document(), 34)).jsonObject
+        val futureGoals = listOf(JsonPrimitive(TestGoalJson.encode(goal)), JsonPrimitive("future"),
+            JsonObject(emptyMap()), JsonArray(emptyList()), JsonPrimitive(1), JsonPrimitive(true))
+        for (future in futureGoals) {
+            val plans = root.getValue("plans").jsonArray.map {
+                JsonObject(it.jsonObject + ("testGoalJson" to future))
+            }
+            val backup = JsonObject(root + ("plans" to JsonArray(plans))).toString()
+            val decoded = codec.decode(backup)
+            assertEquals(34, decoded.schemaVersion)
+            assertNull(decoded.plans.single().testGoalJson)
+            assertNull(decoded.toSnapshot().plans.single().testGoalJson)
+            service.import(backup)
+            assertNull(db.planDao().plan(1)!!.testGoalJson)
+            assertNull(codec.decode(service.export()).plans.single().testGoalJson)
+        }
     }
 
     @Test fun `pre v35 documents ignore wrong typed test results`() {

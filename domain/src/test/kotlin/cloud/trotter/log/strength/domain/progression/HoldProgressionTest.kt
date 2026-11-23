@@ -38,7 +38,7 @@ class HoldProgressionTest {
     }
 
     @Test fun `case 40 a short or missing hold keeps the target`() {
-        val input = rule(state = SlotState(successStreak = 1, repMissStreak = 2, effortMissStreak = 1, pendingIncrease = true))
+        val input = rule(state = SlotState(successStreak = 1, repMissStreak = 2, effortMissStreak = 1)) // #647: the removed credit flag cannot be seeded
         val rows = holds(45)
         val short = finish(input, rows, listOf(45, 40, 45), 60)
         val missing = Progression.afterSession(input, rows, Progression.Exposure(rows,
@@ -49,7 +49,7 @@ class HoldProgressionTest {
             assertEquals(Change.Hold, out.change)
             assertEquals(holds(45), out.rows)
             assertEquals(0, out.rule.state.successStreak)
-            assertEquals(false, out.rule.state.pendingIncrease)
+            // #647: removed the assertion on pendingIncrease; the field no longer exists.
             assertEquals(input.state.repMissStreak, out.rule.state.repMissStreak)
             assertEquals(input.state.effortMissStreak, out.rule.state.effortMissStreak)
         }

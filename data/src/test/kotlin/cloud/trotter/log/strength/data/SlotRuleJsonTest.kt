@@ -131,13 +131,14 @@ class SlotRuleJsonTest {
         }
     }
 
-    @Test fun `pending shared increases are optional and survive rule storage`() {
+    @Test fun `a stored pending increase is dropped on read`() { // #647: old rules discard the removed credit flag
         val original = SlotRuleJson.encode(squat)
         assertTrue("pendingIncrease" !in original)
         assertEquals(squat, SlotRuleJson.decode(original))
         val pending = original.dropLast(1) + ",\"state\":{\"successStreak\":2,\"pendingIncrease\":true}}"
         val restored = requireNotNull(SlotRuleJson.decode(pending))
-        assertTrue("\"pendingIncrease\":true" in SlotRuleJson.encode(restored))
+        assertEquals(squat.copy(state = squat.state.copy(successStreak = 2)), restored) // #647: keep the stored streak only
+        assertTrue("pendingIncrease" !in SlotRuleJson.encode(restored)) // #647: new JSON never writes the credit flag
     }
 
 }

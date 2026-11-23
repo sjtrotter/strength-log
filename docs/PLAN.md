@@ -415,8 +415,8 @@ copies the performed slot's next-time rows and its progression (rep target, cade
 dates, exposures) to the others, in the same undo record, and Undo and Rough day restore every slot it changed.
 A match also needs the same set structure, role, scheme and Next time mode; load is left out, since it is what they
 share. An authored target matches by type, reps or seconds, and side, without its load. A generated plan's
-SECONDARY exposure differs in role, sets or effort, so it keeps its own numbers and still takes the shared streak
-credit of design §19. Superset partners, Plan slots and slots without stored rows keep their own progression.
+SECONDARY exposure differs in role, sets or effort, so it keeps its own numbers; a generated copy follows its MAIN's
+load (A21). Superset partners, Plan slots and slots without stored rows keep their own progression.
 Accepting or reverting an offer reaches the slots still holding what Finish copied. Plans never share with each
 other; there the log is evidence only, as decided 2026-10-19. The Lift sheet's and the Today preview's Last (#645)
 name the day, and the plan when it is another, that the newest session came from when that is not the day shown.

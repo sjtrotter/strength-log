@@ -2300,7 +2300,6 @@ class TrackerRepository(
         val steps = plans.planSettings(day.planId).loadSteps ?: LoadSteps.defaults(unit)
         val today = localEpochDay(now)
         var stalled = false
-        val credits = mutableListOf<Triple<Long, String, Int>>()
         for (track in tracks) {
             if (track.retired && !track.dropped) continue
             val actual = SetJson.decodeSets(track.setsJson)
@@ -2365,34 +2364,6 @@ class TrackerRepository(
             if (track.slot == Slot.MAIN) shareProgression(slot, writtenRows, prepared.rule)
             if (outcome.reason == Reason.Stall) stalled = true
             prepared.offer?.let { offers[track.id] = it }
-            // MaxSet blocks an increase and therefore gives no shared credit.
-            // Holds earn no cross-day credit (#643): a hold's target is its seconds, which the credit cannot compare.
-            if (window == null && outcome.reason in setOf(Reason.AllMade, Reason.EasySession, Reason.Streak, Reason.AddWeight) &&
-                planned.none { it.seconds > 0 }) {
-                credits.add(Triple(slot.id, track.exerciseId, rule.target.reps))
-            }
-        }
-        // Cross-day credit participates in the same compare-and-swap undo record.
-        val credited = mutableSetOf<Pair<Long, String>>()
-        for ((sourceId, exerciseId, reps) in credits) {
-            for (other in programDao.exercisesForPlan(day.planId)) {
-                if (other.id == sourceId || other.dayId == day.dayId || other.keepToPlan) continue
-                for (name in listOf(Slot.MAIN, Slot.SS)) {
-                    if (name == Slot.MAIN && other.id in shared) continue
-                    if (name == Slot.MAIN && repWindowOf(other.prescriptionJson) != null) continue
-                    if (other.exerciseIdFor(name) != exerciseId || (other.id to name) in credited) continue
-                    val stored = other.ruleJsonFor(name) ?: continue
-                    val rule = SlotRuleJson.decode(stored) ?: continue
-                    if (rule.target.reps != reps) continue
-                    val streak = rule.state.successStreak + 1
-                    val creditedRule = rule.copy(state = rule.state.copy(successStreak = streak,
-                        pendingIncrease = rule.state.pendingIncrease ||
-                            streak / rule.everyExposures > rule.state.successStreak / rule.everyExposures))
-                    val encoded = try { SlotRuleJson.encode(creditedRule) } catch (_: RuntimeException) { continue }
-                    writeRule(other, name, stored, encoded)
-                    credited.add(other.id to name)
-                }
-            }
         }
         val reactive = plan != null && plan.autoApply && plan.lightCycleRemaining == 0 && stalled &&
             stalledLifts(day.planId, today) >= 2

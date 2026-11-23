@@ -1,11 +1,15 @@
 package cloud.trotter.log.strength.domain.model
 
+import cloud.trotter.log.strength.domain.standards.TestRef
+
 /** Set count belongs to [ProgramExercise.targetSets], independently of the target. */
 data class Prescription(
     val target: PrescribedTarget,
     val eachSide: Boolean = false,
     /** A band or other resistance described in words, e.g. "red band". */
     val resistance: String = "",
+    /** A due benchmark opens on this test link; ordinary slots have none (#646). */
+    val test: TestRef? = null,
 )
 
 sealed interface PrescribedTarget {

@@ -6,10 +6,13 @@ import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.standards.TestRef
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class PrescriptionJsonTest {
     @Test
@@ -63,5 +66,26 @@ class PrescriptionJsonTest {
     fun `bounds are inclusive and unknown additive fields are tolerated`() {
         val json = """{"type":"loadReps","lb":0,"reps":999,"resistance":"${"r".repeat(40)}","future":true}"""
         assertEquals(Prescription(PrescribedTarget.LoadReps(0.0, 999), resistance = "r".repeat(40)), PrescriptionJson.decode(json))
+    }
+
+    @Test
+    fun `a test link round trips and an unknown event still decodes`() {
+        val hrp = Prescription(PrescribedTarget.RepsInTime(120, 20), test = TestRef("aft_hrp", 1, 120))
+        val hrpJson = PrescriptionJson.encode(hrp)
+        assertEquals(hrp, PrescriptionJson.decode(hrpJson))
+        assertTrue(hrpJson.contains("\"testEventId\":\"aft_hrp\""))
+        val plank = Prescription(PrescribedTarget.Hold(45), test = TestRef("aft_plank", 1))
+        val plankJson = PrescriptionJson.encode(plank)
+        assertEquals(plank, PrescriptionJson.decode(plankJson))
+        assertFalse(plankJson.contains("testWindowSeconds"))
+        val unknown = """{"type":"repsInTime","seconds":120,"testEventId":"navy_pushup","testVersion":3,"testWindowSeconds":120}"""
+        assertEquals(TestRef("navy_pushup", 3, 120), PrescriptionJson.decode(unknown)?.test)
+        assertFailsWith<IllegalArgumentException> {
+            PrescriptionJson.validate("""{"type":"repsInTime","seconds":120,"testEventId":"aft_hrp"}""")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            PrescriptionJson.validate("""{"type":"repsInTime","seconds":120,"testWindowSeconds":120}""")
+        }
+        assertNull(PrescriptionJson.decode("""{"type":"repsInTime","seconds":120}""")?.test)
     }
 }

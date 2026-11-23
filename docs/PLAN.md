@@ -277,6 +277,14 @@ strength day; the shipped cardio vectors stay pinned.
   the clock ends itself at 10:00. The log keeps the held seconds beside the planned target, and an overshoot counts
   as one success. The wall sit never runs past its target and shows "Keep
   breathing" while it runs. Pinned as §11.2 cases 40 and 41.
+- **Fitness-test goals (#646).** A plan may hold a test goal beside its cardio goal: one or more test events from a
+  versioned catalog (first the AFT hand-release push-up and plank, plus timed push-ups and sit-ups with the user's
+  window), each with a typed required number and an optional date. A prep slot links an ordinary window or hold
+  to its event; when a benchmark is due (no result, or 21 days since the last, and not in the last week before the
+  date) the slot opens as the benchmark: a max count in the window, or an open-ended hold with the ceiling shown.
+  Results are stored with the event, edition, window, stopping reason and the rules they were scored under, compare
+  only within one identity, and never set training targets; Finish treats a benchmark as a view (MEASURED). No
+  point tables until verified from official documents. Pinned as §11.2 cases 48 and 49.
 - **Before production:** plans, run identity, authored prescriptions and
   timed rep events, on phone and watch; a plan switcher on Today; and cardio
   as typed sets (warm-up, work, recovery, cool-down; time ends a set by

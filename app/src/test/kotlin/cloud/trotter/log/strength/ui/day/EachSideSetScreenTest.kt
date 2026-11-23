@@ -51,7 +51,7 @@ class EachSideSetScreenTest {
             onEachSide = { id, index, split -> calls += "$id $index $split" },
             onOpenSetEditor = { id, index -> calls += "$id $index" },
         )) } }
-        rule.onNodeWithTag("workout-action-filled").assert(hasText("Log"))
+        rule.onNodeWithTag("workout-action-filled").assert(hasText("Log 10 reps")) // #644: the Log label names the set (round 1 F2)
         rule.onNodeWithTag("workout-left-and-right").assertHeightIsAtLeast(48.dp).performClick()
         rule.runOnIdle { assertEquals(listOf("1 0 true", "1 0"), calls) }
     }

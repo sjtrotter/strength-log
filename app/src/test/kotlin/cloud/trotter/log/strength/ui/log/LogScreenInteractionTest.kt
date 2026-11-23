@@ -884,4 +884,17 @@ class LogScreenInteractionTest {
         )).assertIsDisplayed()
         assertEquals(0, taps)
     }
+    @Test fun `History speaks the side names and units`() {
+        val sides = cloud.trotter.log.strength.domain.model.Sides(
+            cloud.trotter.log.strength.domain.model.SideResult(0.0, 0, 40),
+            cloud.trotter.log.strength.domain.model.SideResult(0.0, 0, 52))
+        val summary = SessionSetSummary("1", "L 40 s · R 52 s", seconds = 40, done = true,
+            tracking = cloud.trotter.log.strength.domain.library.TrackingType.TIMED, sides = sides)
+        setContent(expanded = true, sessions = listOf(logSessionFixture(true).copy(
+            exerciseGroups = listOf(SessionExerciseGroup("Side Plank", listOf(summary))),
+        )))
+        composeTestRule.onNodeWithText("1: L 40 s · R 52 s").assertExists()
+        composeTestRule.onNodeWithContentDescription("1: left 40 seconds, right 52 seconds").assertExists()
+    }
+
 }

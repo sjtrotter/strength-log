@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.data.mapping.withSides
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.Bodyweight
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -96,12 +97,14 @@ class LogScreenBuilderTest {
 
         assertEquals(2, groups.size)
         assertEquals("Barbell Back Squat", groups[0].exerciseName)
+        // #644: single values use the same explicit measurements as sides.
         assertEquals(
-            listOf("R1" to "130×5", "TOP" to "235×5", "B/O" to "175×8"),
+            listOf("R1" to "130 lb × 5", "TOP" to "235 lb × 5", "B/O" to "175 lb × 8"),
             groups[0].sets.map { it.kindLabel to it.weightRepsDisplay },
         )
         assertEquals("Seated Leg Curl", groups[1].exerciseName)
-        assertEquals(listOf("1" to "90×10"), groups[1].sets.map { it.kindLabel to it.weightRepsDisplay })
+        // #644: single values use the same explicit measurements as sides.
+        assertEquals(listOf("1" to "90 lb × 10"), groups[1].sets.map { it.kindLabel to it.weightRepsDisplay })
     }
 
     @Test
@@ -119,8 +122,10 @@ class LogScreenBuilderTest {
         val groups = LogScreenBuilder.groupByExercise(sets, WeightUnit.LB)
 
         assertEquals(listOf("EZ-Bar Curl", "Rope Pushdown"), groups.map { it.exerciseName })
-        assertEquals(listOf("1" to "60×12", "2" to "60×11"), groups[0].sets.map { it.kindLabel to it.weightRepsDisplay })
-        assertEquals(listOf("1" to "50×15", "2" to "50×14"), groups[1].sets.map { it.kindLabel to it.weightRepsDisplay })
+        // #644: single values use the same explicit measurements as sides.
+        assertEquals(listOf("1" to "60 lb × 12", "2" to "60 lb × 11"), groups[0].sets.map { it.kindLabel to it.weightRepsDisplay })
+        // #644: single values use the same explicit measurements as sides.
+        assertEquals(listOf("1" to "50 lb × 15", "2" to "50 lb × 14"), groups[1].sets.map { it.kindLabel to it.weightRepsDisplay })
     }
 
     @Test
@@ -132,7 +137,8 @@ class LogScreenBuilderTest {
     fun groupByExercise_reads_a_hold_from_a_positive_seconds_value() {
         val sets = listOf(set("plank", "Plank", SetKind.WORK, 0.0, 0, seconds = 45))
         val groups = LogScreenBuilder.groupByExercise(sets, WeightUnit.LB)
-        assertEquals("45s", groups.single().sets.single().weightRepsDisplay)
+        // #644: single values use the same explicit measurements as sides.
+        assertEquals("45 s", groups.single().sets.single().weightRepsDisplay)
     }
 
     @Test
@@ -142,7 +148,8 @@ class LogScreenBuilderTest {
         // reps 45 / seconds 0 — must read as reps.
         val sets = listOf(set("plank", "Plank", SetKind.WORK, 0.0, 45))
         val groups = LogScreenBuilder.groupByExercise(sets, WeightUnit.LB)
-        assertEquals("×45", groups.single().sets.single().weightRepsDisplay)
+        // #644: single values use the same explicit measurements as sides.
+        assertEquals("45 reps", groups.single().sets.single().weightRepsDisplay)
     }
 
     @Test fun `a set with sides reads left then right`() {
@@ -150,7 +157,16 @@ class LogScreenBuilderTest {
         val split = legacy.withSides(Sides(SideResult(0.0, 0, 40), SideResult(0.0, 0, 52)))
         val rows = LogScreenBuilder.groupByExercise(listOf(split, legacy), WeightUnit.LB).single().sets
         assertEquals("L 40 s · R 52 s", rows[0].weightRepsDisplay)
-        assertEquals("40s", rows[1].weightRepsDisplay)
+        // #644: single values use the same explicit measurements as sides.
+        assertEquals("40 s", rows[1].weightRepsDisplay)
+    }
+
+    @Test fun `a hold with a side at zero still reads as a hold`() {
+        val hold = set("side_plank", "Side Plank", SetKind.WORK, 0.0, 0)
+            .withSides(Sides(SideResult(0.0, 0, 18), SideResult(0.0, 0, 0)))
+        val row = LogScreenBuilder.groupByExercise(listOf(hold), WeightUnit.LB).single().sets.single()
+        assertEquals(TrackingType.TIMED, row.tracking)
+        assertEquals("L 18 s · R 0 s", row.weightRepsDisplay)
     }
 
 }

@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.cardio.Pace
 import cloud.trotter.log.strength.domain.cardio.PacePer
 import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.Sides
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.records.PrKind
@@ -85,6 +86,12 @@ internal fun spokenSet(set: ReceiptSet, tracking: TrackingType, unit: WeightUnit
 }
 
 @Composable
+internal fun spokenSides(sides: Sides, tracking: TrackingType, unit: WeightUnit): String =
+    stringResource(R.string.receipt_say_sides,
+        spokenSet(ReceiptSet(sides.left.weightLb, sides.left.reps, sides.left.seconds), tracking, unit),
+        spokenSet(ReceiptSet(sides.right.weightLb, sides.right.reps, sides.right.seconds), tracking, unit))
+
+@Composable
 internal fun spokenList(items: List<String>): String = when (items.size) {
     0 -> ""
     1 -> items.single()
@@ -156,9 +163,9 @@ internal fun spokenRow(row: ReceiptRow, unit: WeightUnit, nextTime: ReceiptLiftL
 }
 
 @Composable
-internal fun spokenSetLine(row: ReceiptRow, index: Int, unit: WeightUnit): String {
+internal fun spokenSetLine(row: ReceiptRow, index: Int, unit: WeightUnit, spokenValue: String? = null): String {
     val set = row.sets[index]
-    val value = spokenSet(set, set.tracking(), unit)
+    val value = spokenValue ?: spokenSet(set, set.tracking(), unit)
     val mark = row.record?.takeIf { it.setIndex == index }
     return if (mark == null) stringResource(R.string.receipt_say_set, index + 1, value)
     else stringResource(R.string.receipt_say_set_record, index + 1, value,

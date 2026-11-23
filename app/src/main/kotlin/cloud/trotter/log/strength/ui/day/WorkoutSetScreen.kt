@@ -9,6 +9,8 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Snackbar
+import cloud.trotter.log.strength.ui.day.receipt.spokenSides
 import cloud.trotter.log.strength.run.GpsNotice
 import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.cardio.startsOnItsOwn
@@ -112,6 +114,7 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.Sides
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.progression.EffortScale
@@ -172,6 +175,8 @@ fun WorkoutSetScreen(
     }
     val offer = state.workout?.undo?.takeIf { state.workout.review == null }
     val message = offer?.let { workoutLoggedMessage(state, it, catalog) }
+    val spokenMessage = offer?.takeIf { it.partnerSet == null && it.set.sides != null }
+        ?.let { workoutLoggedMessage(state, it, catalog, spoken = true) }
     val undoLabel = stringResource(R.string.day_undo)
     val latestActions by rememberUpdatedState(actions)
     LaunchedEffect(offer?.programExerciseId, offer?.slot, offer?.index, offer?.set?.completedAtMillis) {
@@ -185,12 +190,12 @@ fun WorkoutSetScreen(
     MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(
         primary = dayAccent(state.dayIndex), onPrimary = onDayAccent(state.dayIndex),
     )) {
-        WorkoutSetContent(state, actions, catalog, onExercises, onFinish, snackbarHost, onEditDay, onBack, nowMillis, onNote)
+        WorkoutSetContent(state, actions, catalog, onExercises, onFinish, snackbarHost, onEditDay, onBack, nowMillis, onNote, message, spokenMessage)
     }
 }
 
 @Composable
-private fun workoutLoggedMessage(state: DayUiState, undo: UndoOffer, catalog: ExerciseCatalog): String {
+private fun workoutLoggedMessage(state: DayUiState, undo: UndoOffer, catalog: ExerciseCatalog, spoken: Boolean = false): String {
     undo.partnerSet?.let { partner ->
         val card = state.exercises.firstOrNull { it.programExerciseId == undo.programExerciseId }
         val main = if (undo.slot == Slot.MAIN) undo.set else partner
@@ -210,7 +215,7 @@ private fun workoutLoggedMessage(state: DayUiState, undo: UndoOffer, catalog: Ex
         val shortName = exerciseId?.let(catalog::find)?.shortName ?: undo.title
         stringResource(R.string.workout_lift_set_number, shortName, undo.index + 1)
     }
-    val summary = undo.set.sides?.let { SetFormatter.sides(undo.tracking, it, undo.unit) } ?: SetFormatter.summary(undo.tracking, undo.set.weightLb, undo.set.reps, undo.set.seconds, undo.unit, spaced = true).trim()
+    val summary = undo.set.sides?.let { if (spoken) spokenSides(it, undo.tracking, undo.unit) else SetFormatter.sides(undo.tracking, it, undo.unit) } ?: SetFormatter.summary(undo.tracking, undo.set.weightLb, undo.set.reps, undo.set.seconds, undo.unit, spaced = true).trim()
     val effort = undo.set.rir?.takeIf { showsEffort(undo.set.kind, undo.tracking, undo.set.seconds) }?.let { rir ->
         if (state.effortScale.forTracking(undo.tracking) == EffortScale.REPS_LEFT) stringResource(R.string.effort_reps_left_value, rir)
         else effortWord(rir)?.let { stringResource(effortResource(it)) }
@@ -232,6 +237,8 @@ private fun WorkoutSetContent(
     onBack: (() -> Unit)?,
     nowMillis: () -> Long,
     onNote: (Long) -> Unit,
+    loggedMessage: String?,
+    spokenMessage: String?,
 ) {
     val workout = state.workout ?: return
     val review = workout.review
@@ -241,7 +248,19 @@ private fun WorkoutSetContent(
     val allLogged = state.workoutAllLogged
     val reducedMotion = !ValueAnimator.areAnimatorsEnabled()
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHost) },
+        snackbarHost = {
+            SnackbarHost(snackbarHost) { data ->
+                if (spokenMessage != null && data.visuals.message == loggedMessage) {
+                    Snackbar(action = {
+                        data.visuals.actionLabel?.let { label ->
+                            TextButton(onClick = data::performAction) { Text(label) }
+                        }
+                    }) {
+                        Text(data.visuals.message, Modifier.semantics { contentDescription = spokenMessage })
+                    }
+                } else Snackbar(data)
+            }
+        },
         topBar = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 TopAppBar(
@@ -924,7 +943,7 @@ private fun WorkoutSetCard(
                         modifier = Modifier.weight(1f).semantics { contentDescription = editLabel },
                         colors = neutralTextButtonColors(), contentPadding = PaddingValues(0.dp), shape = RectangleShape) {
                         Box(Modifier.fillMaxWidth()) {
-                            WorkoutHero(values, tracking, state.unit, if (compact) 56.sp else SetNumerals.fontSize)
+                            WorkoutHero(values, tracking, state.unit, if (compact) 56.sp else SetNumerals.fontSize, row.sides.takeIf { slot == Slot.MAIN })
                         }
                     }
                     Icon(Icons.Default.Check, null, tint = Done, modifier = Modifier.size(if (compact) 24.dp else 32.dp).testTag("workout-set-done"))
@@ -940,9 +959,9 @@ private fun WorkoutSetCard(
                     else if (hold != null) WorkoutHoldHero(hold, card.holdPressureCaution, if (compact) 56.sp else SetNumerals.fontSize)
                     else {
                         WorkoutEditableHero(card, slot, index, actions) {
-                            Crossfade(values to tracking,
+                            Crossfade(Triple(values, tracking, row.sides.takeIf { slot == Slot.MAIN }),
                                 animationSpec = if (reducedMotion) snap() else tween(FAST_EFFECTS_MILLIS), label = "workoutHero") {
-                                (set, type) -> WorkoutHero(set, type, state.unit, if (compact) 56.sp else SetNumerals.fontSize)
+                                (set, type, sides) -> WorkoutHero(set, type, state.unit, if (compact) 56.sp else SetNumerals.fontSize, sides)
                             }
                         }
                     }
@@ -965,6 +984,17 @@ private fun WorkoutSetCard(
                 }
                 workoutDetail(card, slot, index, state.unit, catalog)?.let {
                     Text(it, style = detailStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (slot == Slot.MAIN && card.headerTarget.eachSide && tracking != TrackingType.TIMED &&
+                    !logged && !values.done && row.sides == null) {
+                    TextButton(
+                        onClick = {
+                            actions.onEachSide(card.programExerciseId, index, true)
+                            actions.onOpenSetEditor(card.programExerciseId, index)
+                        },
+                        colors = neutralTextButtonColors(),
+                        modifier = Modifier.heightIn(min = 48.dp).testTag("workout-left-and-right"),
+                    ) { Text(stringResource(R.string.set_edit_left_and_right)) }
                 }
             }
             if (logged && slot in effortSlots) {
@@ -1139,7 +1169,11 @@ private fun WorkoutEditableHero(
 }
 
 @Composable
-private fun WorkoutHero(values: PartnerRowState, tracking: TrackingType, unit: WeightUnit, maxFontSize: TextUnit = SetNumerals.fontSize) {
+private fun WorkoutHero(values: PartnerRowState, tracking: TrackingType, unit: WeightUnit, maxFontSize: TextUnit = SetNumerals.fontSize, sides: Sides? = null) {
+    if (sides != null) {
+        WorkoutHeroText(SetFormatter.sides(tracking, sides, unit), null, Modifier, maxFontSize, minFontSize = 20.sp)
+        return
+    }
     val primary = when (tracking) {
         TrackingType.WEIGHTED -> WeightStepper.format(values.weightDisplay)
         TrackingType.REPS -> values.reps.toString()
@@ -1154,7 +1188,13 @@ private fun WorkoutHero(values: PartnerRowState, tracking: TrackingType, unit: W
 }
 
 @Composable
-private fun WorkoutHeroText(primary: String, secondary: String? = null, modifier: Modifier = Modifier.fillMaxWidth(), maxFontSize: TextUnit = SetNumerals.fontSize) {
+private fun WorkoutHeroText(
+    primary: String,
+    secondary: String? = null,
+    modifier: Modifier = Modifier.fillMaxWidth(),
+    maxFontSize: TextUnit = SetNumerals.fontSize,
+    minFontSize: TextUnit = HERO_MIN_SP.sp,
+) {
     BasicText(
         buildAnnotatedString {
             append(primary)
@@ -1172,7 +1212,7 @@ private fun WorkoutHeroText(primary: String, secondary: String? = null, modifier
         maxLines = 1,
         softWrap = false,
         autoSize = TextAutoSize.StepBased(
-            minFontSize = HERO_MIN_SP.sp,
+            minFontSize = minFontSize,
             maxFontSize = maxFontSize,
         ),
     )

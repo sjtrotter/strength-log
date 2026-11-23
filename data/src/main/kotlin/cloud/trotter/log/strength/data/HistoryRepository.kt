@@ -297,6 +297,10 @@ class HistoryRepository(
         written
     }
 
+    suspend fun recentSessionSets(exerciseId: String, sessionId: Long, completedAt: Long, limit: Int): List<List<LoggedSet>> =
+        sessionDao.recentDoneSets(exerciseId, completedAt, sessionId, limit)
+            .groupBy { it.sessionId }.values.map { rows -> rows.map { it.toLoggedSet() } }
+
     /** Deletes history only; in particular, the DataStore rotation pointer is untouched. */
     suspend fun deleteSession(sessionId: Long): DeletedSession? {
         ensureSessionNotesMoved()

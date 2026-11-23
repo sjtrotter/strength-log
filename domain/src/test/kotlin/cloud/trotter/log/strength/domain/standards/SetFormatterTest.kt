@@ -116,4 +116,24 @@ class SetFormatterTest {
         assertEquals("L 40 s · R 52 s at 50 lb", format(TrackingType.TIMED, SideResult(50.0, 0, 40), SideResult(50.0, 0, 52)))
     }
 
+    @Test fun `tracking of a set reads its stronger side`() {
+        val hold = LoggedSet(0.0, 0, SetKind.WORK, true,
+            sides = Sides(SideResult(0.0, 0, 18), SideResult(0.0, 0, 0)))
+        assertEquals(TrackingType.TIMED, SetFormatter.trackingOfSet(hold))
+        assertEquals("0 s", SetFormatter.performed(listOf(hold), WeightUnit.LB))
+        val reps = hold.copy(sides = Sides(SideResult(0.0, 10, 0), SideResult(0.0, 0, 0)))
+        assertEquals(TrackingType.REPS, SetFormatter.trackingOfSet(reps))
+        for (plain in listOf(hold.copy(sides = null), LoggedSet(25.0, 10, SetKind.WORK),
+            LoggedSet(0.0, 10, SetKind.WORK), LoggedSet(0.0, 0, SetKind.WORK, seconds = 18))) {
+            assertEquals(SetFormatter.trackingOfValues(plain.weightLb, plain.reps, plain.seconds), SetFormatter.trackingOfSet(plain))
+        }
+    }
+
+    @Test fun `single and sided values share explicit measurement formatting`() {
+        val set = LoggedSet(0.0, 0, SetKind.WORK, true, seconds = 40)
+        assertEquals("40 s", SetFormatter.display(set, WeightUnit.LB))
+        assertEquals("L 40 s · R 52 s", SetFormatter.display(set.copy(
+            sides = Sides(SideResult(0.0, 0, 40), SideResult(0.0, 0, 52))), WeightUnit.LB))
+    }
+
 }

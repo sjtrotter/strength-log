@@ -63,10 +63,10 @@ object SetFormatter {
     fun performed(sets: List<LoggedSet>, unit: WeightUnit): String {
         val groups = mutableListOf<MutableList<LoggedSet>>()
         for (set in sets) {
-            val tracking = trackingOfValues(set.weightLb, set.reps, set.seconds)
+            val tracking = trackingOfSet(set)
             val previous = groups.lastOrNull()?.last()
             if (previous != null &&
-                trackingOfValues(previous.weightLb, previous.reps, previous.seconds) == tracking &&
+                trackingOfSet(previous) == tracking &&
                 (tracking != TrackingType.WEIGHTED || previous.weightLb == set.weightLb)
             ) {
                 groups.last().add(set)
@@ -76,7 +76,7 @@ object SetFormatter {
         }
         return groups.joinToString(", ") { group ->
             val first = group.first()
-            val tracking = trackingOfValues(first.weightLb, first.reps, first.seconds)
+            val tracking = trackingOfSet(first)
             if (tracking == TrackingType.WEIGHTED) {
                 "${weight(first.weightLb, unit)} × ${group.joinToString(", ") { it.reps.toString() }}"
             } else {
@@ -126,6 +126,19 @@ object SetFormatter {
         seconds > 0 -> TrackingType.TIMED
         weightLb == 0.0 && reps > 0 -> TrackingType.REPS
         else -> TrackingType.WEIGHTED
+    }
+
+    /** Classification uses the stronger side so a zero on one side cannot turn a hold into reps. */
+    fun trackingOfSet(set: LoggedSet): TrackingType {
+        val sides = set.sides ?: return trackingOfValues(set.weightLb, set.reps, set.seconds)
+        return trackingOfValues(maxOf(sides.left.weightLb, sides.right.weightLb),
+            maxOf(sides.left.reps, sides.right.reps), maxOf(sides.left.seconds, sides.right.seconds))
+    }
+
+    fun display(set: LoggedSet, unit: WeightUnit): String {
+        val tracking = trackingOfSet(set)
+        return set.sides?.let { sides(tracking, it, unit) }
+            ?: display(tracking, set.weightLb, set.reps, set.seconds, unit)
     }
 
     /** The set's VALUE-driven summary — see [trackingOfValues] for the classification rule. */

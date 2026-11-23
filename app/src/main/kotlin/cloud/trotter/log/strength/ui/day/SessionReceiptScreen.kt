@@ -82,6 +82,7 @@ import cloud.trotter.log.strength.ui.day.receipt.hasPlannedSetCount
 import cloud.trotter.log.strength.ui.day.receipt.isPartial
 import cloud.trotter.log.strength.ui.day.receipt.loggedSetCount
 import cloud.trotter.log.strength.ui.day.receipt.plannedSetCount
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptSides
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptBackoffLabels
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptSetCounts
 import cloud.trotter.log.strength.ui.emphasizedDecelerate
@@ -103,6 +104,7 @@ internal fun SessionReceiptScreen(
     modifier: Modifier = Modifier,
     setCounts: ReceiptSetCounts? = null,
     backoffLabels: ReceiptBackoffLabels? = null,
+    sides: ReceiptSides? = null,
     progress: ReceiptProgressState = ReceiptProgressState(),
     mutation: ReceiptMutation? = null,
     onMutationHandled: () -> Unit = {},
@@ -190,6 +192,10 @@ internal fun SessionReceiptScreen(
                             StrengthReceiptRow(if (receipt.recordsChecked) row else row.copy(record = null), receipt.unit, receipt.dayIndex,
                                 "${receipt.sessionId}:$groupIndex:$rowIndex", { roll.value },
                                 if (group.rounds != null) stringResource(R.string.receipt_superset_gutter, rowIndex + 1) else null,
+                                sideSets = sides?.takeIf { it.sessionId == receipt.sessionId }?.sets.orEmpty()
+                                    .filter { it.groupIndex == groupIndex && it.rowIndex == rowIndex }.associateBy { it.setIndex },
+                                gap = sides?.takeIf { it.sessionId == receipt.sessionId }?.gaps
+                                    ?.firstOrNull { it.groupIndex == groupIndex && it.rowIndex == rowIndex },
                                 backoffLines = backoffLabels?.takeIf { it.sessionId == receipt.sessionId }?.lines.orEmpty()
                                     .filter { it.groupIndex == groupIndex && it.rowIndex == rowIndex }.map { it.lineIndex }.toSet(),
                                 nextTime = progress.lifts.firstOrNull { it.ref.groupIndex == groupIndex && it.ref.rowIndex == rowIndex }?.line)

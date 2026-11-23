@@ -1322,5 +1322,40 @@ class ReceiptScreenTest {
         rule.onNodeWithText("Starting dose: 2 more sessions.").performScrollTo().assertIsDisplayed()
     }
 
+    @Test fun `an each side set line reads left then right`() {
+        val row = ReceiptRow("Side Plank", TrackingType.TIMED, ReceiptRow.Shape.STRAIGHT,
+            listOf(ReceiptSet(0.0, 0, 40)), listOf(ValueLine(null, listOf(0))), 0, null, null)
+        val sides = ReceiptSideSet(0, 0, 0, ReceiptSet(0.0, 0, 40), ReceiptSet(0.0, 0, 52))
+        val receipt = receiptFixture().copy(groups = listOf(ReceiptGroup(null, listOf(row))))
+        rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {},
+            sides = ReceiptSides(receipt.sessionId, listOf(sides), emptyList())) } }
+        rule.onNodeWithContentDescription("Side Plank. Holds of 40 seconds.").performScrollTo().performClick()
+        rule.onNodeWithText("L 40 s · R 52 s", useUnmergedTree = true).assertExists()
+        rule.onNodeWithContentDescription("Set 1, left 40 seconds, right 52 seconds").assertExists()
+    }
+
+    @Test fun `a repeated gap is named once in neutral words`() {
+        val gap = mutableStateOf<ReceiptSideGap?>(ReceiptSideGap(0, 0, true))
+        val row = ReceiptRow("Side Plank", TrackingType.TIMED, ReceiptRow.Shape.STRAIGHT,
+            listOf(ReceiptSet(0.0, 0, 40)), listOf(ValueLine(null, listOf(0))), 0, null, null)
+        rule.setContent { AppTheme { StrengthReceiptRow(row, WeightUnit.LB, 0, "side-gap", { 0f }, gap = gap.value) } }
+        rule.onAllNodesWithText("Left side lower the last 3 sessions", useUnmergedTree = true).assertCountEquals(1)
+        rule.onNodeWithContentDescription("Left side lower the last 3 sessions", substring = true).assertExists()
+        rule.runOnIdle { gap.value = null }
+        rule.onNodeWithText("Left side lower the last 3 sessions", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test fun `receipt sides from another session do not label the shown receipt`() {
+        val row = ReceiptRow("Side Plank", TrackingType.TIMED, ReceiptRow.Shape.STRAIGHT,
+            listOf(ReceiptSet(0.0, 0, 40)), listOf(ValueLine(null, listOf(0))), 0, null, null)
+        val receipt = receiptFixture().copy(groups = listOf(ReceiptGroup(null, listOf(row))))
+        rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}, sides = ReceiptSides(receipt.sessionId + 1,
+            listOf(ReceiptSideSet(0, 0, 0, ReceiptSet(0.0, 0, 40), ReceiptSet(0.0, 0, 52))),
+            listOf(ReceiptSideGap(0, 0, true)))) } }
+        rule.onNodeWithContentDescription("Side Plank. Holds of 40 seconds.").performScrollTo().performClick()
+        rule.onNodeWithText("L 40 s · R 52 s", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithText("Left side lower the last 3 sessions", useUnmergedTree = true).assertDoesNotExist()
+    }
+
 }
 

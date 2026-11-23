@@ -43,6 +43,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import cloud.trotter.log.strength.domain.routine.Move
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.domain.model.Side
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
@@ -57,6 +58,7 @@ import cloud.trotter.log.strength.ui.components.backGesturePreview
 import cloud.trotter.log.strength.ui.components.rememberBackGestureProgress
 import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
 import cloud.trotter.log.strength.ui.day.receipt.NoteSave
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptSides
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptBackoffLabels
 import cloud.trotter.log.strength.ui.day.receipt.WorkoutReceipt
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptSetCounts
@@ -86,6 +88,7 @@ fun DayScreen(
     nowMillis: () -> Long = System::currentTimeMillis,
     receiptSetCounts: ReceiptSetCounts? = null,
     receiptBackoffLabels: ReceiptBackoffLabels? = null,
+    receiptSides: ReceiptSides? = null,
     receiptProgress: ReceiptProgressState = ReceiptProgressState(),
     receiptMutation: ReceiptMutation? = null,
     onReceiptMutationHandled: () -> Unit = {},
@@ -109,6 +112,7 @@ fun DayScreen(
             receipt = receipt,
             setCounts = receiptSetCounts,
             backoffLabels = receiptBackoffLabels,
+            sides = receiptSides,
             progress = receiptProgress, mutation = receiptMutation,
             onMutationHandled = onReceiptMutationHandled, onUndo = onUndoChanges,
             onRoughDay = onRoughDay, onCardioEffort = onCardioEffort, onAcceptReplan = onAcceptReplan,
@@ -538,6 +542,9 @@ data class DayActions(
     val onWeightChange: (Long, String, Int, Double) -> Unit,
     val onRepsChange: (Long, String, Int, Int) -> Unit,
     val onSecondsChange: (Long, String, Int, Int) -> Unit,
+    val onEachSide: (programExerciseId: Long, index: Int, split: Boolean) -> Unit = { _, _, _ -> },
+    val onSideChange: (programExerciseId: Long, index: Int, side: Side, weightDisplay: Double?, reps: Int?, seconds: Int?) -> Unit =
+        { _, _, _, _, _, _ -> },
     val onToggleDone: (Long, Int, Boolean, String) -> Unit,
     val onAddSet: (Long, Boolean) -> Unit,
     val onRemoveSet: (Long, Int, Boolean) -> Unit,

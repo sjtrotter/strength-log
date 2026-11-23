@@ -61,6 +61,8 @@ import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.Side
+import cloud.trotter.log.strength.domain.model.Sides
 import cloud.trotter.log.strength.domain.model.SprintTime
 import cloud.trotter.log.strength.domain.model.StartProtocol
 import cloud.trotter.log.strength.domain.model.TimingMethod
@@ -1739,7 +1741,7 @@ class DayViewModel @Inject constructor(
     fun stopHold() {
         val event = holdEvent.value?.takeIf { !it.complete } ?: return
         if (!event.running) {
-            val ended = event.copy(sides = event.heldSeconds.size)
+            val ended = event.copy(heldSeconds = event.heldSeconds + List(event.sides - event.heldSeconds.size) { 0 })
             savedState[KEY_HOLD] = ended
             logHold(ended)
             return
@@ -1901,6 +1903,55 @@ class DayViewModel @Inject constructor(
             val result = repo.applyToRun(runId, planId, day, listOf(
                 TrackEdit(programExerciseId, slot, createsMissing = true) { rows ->
                     if (index !in rows.indices) null else SetEditor.edit(rows, index, SetEdit(seconds = newSeconds))
+                },
+            ))
+            reportOtherDay(result, planId, day)
+        }
+    }
+
+    fun setEachSide(programExerciseId: Long, index: Int, split: Boolean) {
+        val day = currentDay() ?: return
+        val state = dayState.value.takeIf { it.viewDayId == day } ?: return
+        val runId = state.runId ?: return
+        val planId = state.planId ?: return
+        mutate {
+            val result = repo.applyToRun(runId, planId, day, listOf(
+                TrackEdit(programExerciseId, Slot.MAIN, createsMissing = true) { rows ->
+                    val row = rows.getOrNull(index)
+                    when {
+                        split && row != null && row.sides == null -> SetEditor.edit(rows, index, SetEdit(sides = Sides.same(row)))
+                        !split && row?.sides != null -> rows.mapIndexed { i, r -> if (i == index) r.copy(sides = null) else r }
+                        else -> null
+                    }
+                },
+            ))
+            reportOtherDay(result, planId, day)
+        }
+    }
+
+    fun changeSide(programExerciseId: Long, index: Int, side: Side, weightDisplay: Double?, reps: Int?, seconds: Int?) {
+        val day = currentDay() ?: return
+        val state = dayState.value.takeIf { it.viewDayId == day } ?: return
+        val runId = state.runId ?: return
+        val planId = state.planId ?: return
+        mutate {
+            val unit = settings.unitFlow.first()
+            val programSlot = plans.slotsFor(planId, day).first().firstOrNull { it.programExerciseId == programExerciseId }
+                ?: return@mutate
+            val track = repo.dayTracksFlow(planId, day).first().tracks.firstOrNull {
+                it.programExerciseId == programExerciseId && it.slot == Slot.MAIN
+            }
+            val performed = performedExercise(programSlot, track?.exerciseId, catalog.catalogFlow.first(), Slot.MAIN)
+            val result = repo.applyToRun(runId, planId, day, listOf(
+                TrackEdit(programExerciseId, Slot.MAIN, createsMissing = true) { rows ->
+                    val sides = rows.getOrNull(index)?.sides
+                    if (sides == null) null else {
+                        val old = if (side == Side.LEFT) sides.left else sides.right
+                        val changed = old.copy(weightLb = weightDisplay?.let(unit::toLb) ?: old.weightLb,
+                            reps = reps ?: old.reps, seconds = seconds ?: old.seconds)
+                        val newSides = if (side == Side.LEFT) sides.copy(left = changed) else sides.copy(right = changed)
+                        SetEditor.edit(rows, index, SetEdit(sides = newSides), unit, performed.entry?.equipment.orEmpty())
+                    }
                 },
             ))
             reportOtherDay(result, planId, day)
@@ -2579,7 +2630,7 @@ class DayViewModel @Inject constructor(
                 SetRowState(
                     index = index, kindLabel = "", isTop = set.kind == SetKind.TOP,
                     weightDisplay = state.unit.fromLb(set.weightLb), reps = set.reps, done = set.done,
-                    seconds = set.seconds, kind = set.kind, rir = set.rir,
+                    seconds = set.seconds, kind = set.kind, rir = set.rir, sides = set.sides,
                     partner = partner?.getOrNull(index)?.let {
                         PartnerRowState(state.unit.fromLb(it.weightLb), it.reps, it.done, it.seconds, rir = it.rir)
                     },
@@ -3200,6 +3251,7 @@ class DayViewModel @Inject constructor(
                 seconds = s.seconds,
                 done = s.done,
                 rir = s.rir,
+                sides = s.sides,
                 partner = partnerSets?.getOrNull(i)?.let {
                     PartnerRowState(weightDisplay = unit.fromLb(it.weightLb), reps = it.reps, done = it.done, seconds = it.seconds, rir = it.rir)
                 },

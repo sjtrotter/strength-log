@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data.serialization
 
+import cloud.trotter.log.strength.domain.progression.LoadSource
 import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.domain.progression.NextTimeMode
 import cloud.trotter.log.strength.domain.progression.RepTarget
@@ -13,6 +14,7 @@ import kotlinx.serialization.Serializable
 @Serializable internal data class SlotRuleDto(
     val role: String, val target: RepTargetDto, val rir: Int, val incrementPct: Double, val everyExposures: Int,
     val dropPct: Double, val scheme: SchemeDto, val restSeconds: Int? = null, val nextTime: String? = null,
+    val loadSource: LoadSourceDto? = null,
     val state: SlotStateDto = SlotStateDto(),
 ) {
     fun toDomain(): SlotRule {
@@ -42,11 +44,17 @@ import kotlinx.serialization.Serializable
             .all { it in 0..9_999 })
         require(state.resetEpochDays.size <= 2)
         require(state.resetEpochDays.zipWithNext().all { (a, b) -> a <= b })
+        loadSource?.let {
+            require(it.dayId.isNotBlank() && it.dayId.length <= 30 && it.ratio.isFinite() && it.ratio > 0.0 && it.ratio <= 4.0)
+        }
         return SlotRule(parsedRole, parsedTarget, rir, incrementPct, everyExposures, dropPct, parsedScheme,
-            restSeconds, parsedNextTime, SlotState(state.calibrating, state.successStreak, state.repMissStreak,
+            restSeconds, parsedNextTime, loadSource = loadSource?.let { LoadSource(it.dayId, it.ratio) },
+            state = SlotState(state.calibrating, state.successStreak, state.repMissStreak,
                 state.effortMissStreak, state.resetEpochDays, state.exposures))
     }
 }
+
+@Serializable internal data class LoadSourceDto(val dayId: String, val ratio: Double)
 
 /** "fixed" carries [reps]; "range" carries [lo], [hi] and [current]. */
 @Serializable internal data class RepTargetDto(val type: String, val reps: Int? = null, val lo: Int? = null,
@@ -69,7 +77,8 @@ object SlotRuleJson {
         val dto = SlotRuleDto(rule.role.name, target, rule.rir, rule.incrementPct, rule.everyExposures,
             rule.dropPct, SchemeDto(rule.scheme.ramps.map { RampDto(it.pct, it.reps) }, rule.scheme.backoffs,
                 rule.scheme.backoffPct, rule.scheme.backoffReps), rule.restSeconds, rule.nextTime?.name,
-            SlotStateDto(state.calibrating, state.successStreak, state.repMissStreak, state.effortMissStreak,
+            loadSource = rule.loadSource?.let { LoadSourceDto(it.dayId, it.ratio) },
+            state = SlotStateDto(state.calibrating, state.successStreak, state.repMissStreak, state.effortMissStreak,
                 state.resetEpochDays, state.exposures))
         dto.toDomain()
         return SetJson.encode(SlotRuleDto.serializer(), dto)

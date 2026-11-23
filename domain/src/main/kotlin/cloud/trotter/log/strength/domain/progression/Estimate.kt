@@ -13,4 +13,8 @@ object Estimate {
 
     /** The predicted reps in reserve at [load] for [reps] repetitions. */
     fun rirAt(e1rm: Double, load: Double, reps: Int): Double = 30 * (e1rm / load - 1) - reps
+    /** The dose's load over the source dose's load; e1RM cancels. Null outside Estimate's bound. */
+    fun loadRatio(reps: Int, rir: Int, sourceReps: Int, sourceRir: Int): Double? =
+        if (reps + rir > MAX_REPS || sourceReps + sourceRir > MAX_REPS) null
+        else (30.0 + sourceReps + sourceRir) / (30.0 + reps + rir)
 }

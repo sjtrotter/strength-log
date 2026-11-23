@@ -3,6 +3,10 @@ package cloud.trotter.log.strength.domain.planner
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.Muscle
+import cloud.trotter.log.strength.domain.library.tracking
+import cloud.trotter.log.strength.domain.progression.Estimate
+import cloud.trotter.log.strength.domain.progression.LoadFollowing
+import cloud.trotter.log.strength.domain.progression.LoadSource
 import cloud.trotter.log.strength.domain.library.availableWith
 import cloud.trotter.log.strength.domain.model.MovementPattern
 import cloud.trotter.log.strength.domain.model.MovementPattern.BICEPS
@@ -103,7 +107,20 @@ internal fun layout(answers: SetupAnswers, mains: List<ExerciseEntry>): List<Pro
             rotation += ProgramDay(('A' + rotation.size).toString(), "Rest", "", emptyList(), kind = ProgramDayKind.REST)
         }
     }
-    return rotation
+    return rotation.map { day -> day.copy(exercises = day.exercises.map { tiedToMain(it, rotation) }) }
+}
+
+private fun tiedToMain(slot: ProgramExercise, days: List<ProgramDay>): ProgramExercise {
+    val rule = slot.rule?.takeIf { it.role == SlotRole.SECONDARY } ?: return slot
+    val tracking = ExerciseLibrary.get(slot.exerciseId).tracking
+    if (!LoadFollowing.eligible(slot, tracking)) return slot
+    val mainDay = days.firstOrNull { day ->
+        day.exercises.any { it.exerciseId == slot.exerciseId && it.rule?.role == SlotRole.MAIN }
+    } ?: return slot
+    val main = LoadFollowing.source(mainDay, slot.exerciseId, tracking)?.takeIf { LoadFollowing.eligible(it, tracking) } ?: return slot
+    val mainRule = requireNotNull(main.rule)
+    val ratio = Estimate.loadRatio(rule.target.reps, rule.rir, mainRule.target.reps, mainRule.rir) ?: return slot
+    return slot.copy(rule = rule.copy(loadSource = LoadSource(mainDay.id, ratio)))
 }
 
 private fun dayContents(

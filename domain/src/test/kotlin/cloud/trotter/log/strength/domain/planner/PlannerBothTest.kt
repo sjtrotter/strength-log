@@ -11,6 +11,7 @@ import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.progression.CardioRule
 import cloud.trotter.log.strength.domain.progression.KnownLoads
 import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.LoadSource
 import cloud.trotter.log.strength.domain.progression.RepTarget
 import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.progression.RunWalkLadder
@@ -52,6 +53,25 @@ class PlannerBothTest {
         assertEquals(setOf("A", "C", "E"), draft.sessions.keys)
         assertEquals(ProgramDayKind.REST, draft.program.days[5].kind)
         assertTrue(draft.program.cardioDays.all { it.exercises.isEmpty() })
+    }
+
+    @Test fun `separate Both days keep each secondary linked to its main's final day id`() {
+        for (first in listOf(false, true)) for (days in listOf(4, 6)) {
+            val answers = answers(days = days, cardioFirst = first, together = BothAnswers.Together.SEPARATE_DAYS)
+                .copy(goal = LiftGoal.STRENGTH, experience = LiftExperience.A_YEAR_OR_MORE)
+            val draft = plan(answers)
+            val secondaries = draft.program.strengthDays.flatMap { it.exercises }
+                .filter { it.rule?.role == SlotRole.SECONDARY }
+            assertTrue(secondaries.isNotEmpty())
+            for (secondary in secondaries) {
+                val mainDay = draft.program.days.single { day ->
+                    day.exercises.any { it.exerciseId == secondary.exerciseId && it.rule?.role == SlotRole.MAIN }
+                }
+                val source = requireNotNull(requireNotNull(secondary.rule).loadSource)
+                assertEquals(LoadSource(mainDay.id, 37.0 / 38.0), source)
+                assertEquals(ProgramDayKind.STRENGTH, draft.program.days.single { it.id == source.dayId }.kind)
+            }
+        }
     }
 
     @Test fun `cardio first same visit uses the lift subgoal for strength blocks`() {
@@ -214,9 +234,10 @@ class PlannerBothTest {
         assertEquals(mapOf("B" to RunSession.EASY), draft.sessions)
         assertEquals(2, draft.program.strengthDays.size)
         val lift = plan(trained.copy(branch = PlanBranch.LIFT, days = 2))
+        val relabeled = relabel(lift, mapOf("A" to "A", "B" to "C"))
         for ((index, day) in draft.program.strengthDays.withIndex()) {
             val original = lift.program.days[index]
-            assertEquals(original.copy(id = day.id), day)
+            assertEquals(relabeled.program.days[index], day) // #647: source ids move with the strength days
             for (slot in day.exercises.indices) {
                 assertEquals(lift.working[SlotKey(original.id, slot)], draft.working[SlotKey(day.id, slot)])
             }

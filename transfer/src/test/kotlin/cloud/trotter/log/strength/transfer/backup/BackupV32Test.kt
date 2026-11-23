@@ -23,10 +23,10 @@ class BackupV32Test {
             suggestedDay = "A", days = listOf(ProgramDayBackup("A", "Sprint", "", exercises = emptyList())))))
 
     @Test fun `v32 round trips sprint plans`() {
-        assertEquals(33, CURRENT_SCHEMA_VERSION) // #644: v33 adds each-side results
         for (recipe in recipes) {
             val source = document(recipe)
             val decoded = codec.decode(codec.encode(source))
+            assertEquals(CURRENT_SCHEMA_VERSION, decoded.schemaVersion) // #647: exports follow the current schema, now v34
             assertEquals(source, decoded)
             assertEquals(recipe, decoded.toSnapshot().toDocument().plans.single().recipeJson)
         }

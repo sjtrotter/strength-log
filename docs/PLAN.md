@@ -22,7 +22,7 @@ is exactly right. **Nothing in §3–§6 or §8–§9 needs structural change.**
 amendments below are additions the new requirements force, plus gaps found in
 review.
 
-## Amendments (A1–A20)
+## Amendments (A1–A22)
 
 ### A1. Session history is now required (biggest change)
 
@@ -264,7 +264,7 @@ strength day; the shipped cardio vectors stay pinned.
   it for the full duration, including at Max, the aim rises one rep at the lift's cadence, and any miss repeats it.
   Counts beyond the aim never become the aim (council 2026-11-23 Q2). Without an aim the set records the count and
   nothing progresses. No rep ceiling, no weight offer,
-  no estimate and no automatic extra set, and a window neither gives nor takes another slot's shared credit.
+  no estimate and no automatic extra set.
   Identical windows on two days still share progression. Pinned as §11.2 case 39.
 - **Hold progression and Past target (#643).** A bodyweight hold whose catalog entry has a ceiling gains 5 s when a
   session meets every planned hold at the slot's cadence, up to the ceiling; misses keep the target. When every
@@ -424,7 +424,7 @@ dates, exposures) to the others, in the same undo record, and Undo and Rough day
 A match also needs the same set structure, role, scheme and Next time mode; load is left out, since it is what they
 share. An authored target matches by type, reps or seconds, and side, without its load. A generated plan's
 SECONDARY exposure differs in role, sets or effort, so it keeps its own numbers; a generated copy follows its MAIN's
-load (A21). Superset partners, Plan slots and slots without stored rows keep their own progression.
+load (A22). Superset partners, Plan slots and slots without stored rows keep their own progression.
 Accepting or reverting an offer reaches the slots still holding what Finish copied. Plans never share with each
 other; there the log is evidence only, as decided 2026-10-19. The Lift sheet's and the Today preview's Last (#645)
 name the day, and the plan when it is another, that the newest session came from when that is not the day shown.
@@ -440,6 +440,23 @@ they differ on drops the sides. Room v33, backup v33 and the CSV's six side colu
 sends the single value. A comparison against a published norm follows the protocol behind the norm: Springer 2007
 measured a leg the subject chose, so a unipedal stance comparison uses the leg the lifter names, not the weaker or
 the better side by default.
+
+### A22. Load source (owner council, 2026-11-21 and 2026-11-23, #647)
+
+A weighted slot, at a fixed or a range rep target, may follow another day of its plan: it keeps a load ratio to that
+day's first linkable slot of the exercise and takes ratio × the source's load at the nearest step whenever the
+source's load moves, in the same undo record as the move. A link is made only while both ends sit inside Estimate's
+bound at their current reps plus target RIR; once made, reps climbing past the bound neither recompute the ratio
+nor end the link. The follower judges its own target: a success takes the derived load and never earns one, and a
+range follower still moves its reps (restarting at the bottom when the derived load rises); a rep miss holds it,
+counts, and never stalls or moves the source; a changed working load re-forms the ratio. The link and ratio live in
+the slot's rule. The generator ties each SECONDARY exposure to its MAIN at Estimate's ratio of the two doses
+(37/38 for Strength, 38/40 for an experienced Muscle plan; a New Muscle MAIN at 3 RIR sits outside the bound and
+ties nothing); hand-written slots, converted plans and older backups are Own results,
+and the user changes a slot's source in Lift options ("Load source": Own results or a day by name). Identical
+prescriptions still share (A20) when their sources match. The #502 success credit between unlike prescriptions is
+gone in both directions; the pending increases it set are dropped on read. Backup v34 carries the link; older
+documents with one are refused.
 
 ## Architecture
 

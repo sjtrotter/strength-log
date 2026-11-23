@@ -49,6 +49,8 @@ object Progression {
         val baseCadence: Int = 1,
         /** The exercise's [cloud.trotter.log.strength.domain.library.ExerciseEntry.holdCeilingSeconds]; null keeps a hold's seconds. */
         val holdCeilingSeconds: Int? = null,
+        /** Null progresses on this slot's own results. */
+        val sourceLoadLb: Double? = null,
     )
 
     /** ceil(7 × strength entries ÷ (strength days a week × strength entries with the exercise per rotation)). */
@@ -117,6 +119,8 @@ object Progression {
     }
 
     /** After Finish: next time's working rows, the updated rule, and the one change with its reason.
+     *  With [Context.sourceLoadLb], success takes the ratio times that load and moves only reps; a rep miss holds
+     *  without a stall, and a changed working load re-forms the ratio.
      *  A reps-in-time main passes its [window] and takes [repsInTime] instead. */
     fun afterSession(
         rule: SlotRule,
@@ -140,6 +144,7 @@ object Progression {
             WorkingRows.withWorkingWeight(base, load, ctx.unit, ctx.equipment, current.scheme)
 
         val loadCalibration = usesLoadCalibration(working)
+        val following = rule.loadSource?.takeIf { ctx.sourceLoadLb != null && ctx.sourceLoadLb > 0.0 }
         val recalibrationRows = if (exposure.layoff == LayoffKind.Recalibrate && loadCalibration) {
             current = current.copy(state = current.state.copy(calibrating = true))
             val anchor = requireNotNull(WorkingRows.workingWeight(working))
@@ -176,10 +181,12 @@ object Progression {
                 row.weightLb != carried && !(topIndex >= 0 && loadChanged && row.weightLb == base.getOrNull(i)?.weightLb)
         }
         if (loadChanged) {
-            base = loaded(requireNotNull(carried))
-            current = current.copy(state = current.state.resetStreaks())
-            if (requireNotNull(carried) < priorAnchor && !lowerBlocked) {
-                return result(Reason.Lowered, Change.KeptLowered(carried), base)
+            val adopted = requireNotNull(carried)
+            base = loaded(adopted)
+            current = current.copy(state = current.state.resetStreaks(),
+                loadSource = following?.copy(ratio = adopted / requireNotNull(ctx.sourceLoadLb)) ?: current.loadSource)
+            if (adopted < priorAnchor && !lowerBlocked) {
+                return result(Reason.Lowered, Change.KeptLowered(adopted), base)
             }
         }
         val workingSets = WorkingRows.workSetIndices(working).map { working[it] }
@@ -212,16 +219,18 @@ object Progression {
         val step = ctx.steps.stepLb(ctx.equipment)
         val bodyweight = workingSets.all { it.weightLb == 0.0 && it.seconds == 0 }
         val coarse = anchor > 0.0 && step / anchor > 0.10
-        if (!bodyweight && coarse && current.target is RepTarget.Fixed) {
+        if (following == null && !bodyweight && coarse && current.target is RepTarget.Fixed) {
             val reps = current.target.reps
             current = current.copy(target = RepTarget.Range(reps, reps + 4, reps))
         }
         return when (judgment) {
-            Judgment.SUCCESS -> success(current, base, done.map { it.second }, doneAnchors, anchor, step, bodyweight, coarse, ctx)
+            Judgment.SUCCESS -> if (following != null) followed(current, base, doneAnchors, anchor,
+                requireNotNull(current.loadSource).ratio * requireNotNull(ctx.sourceLoadLb), ctx)
+            else success(current, base, done.map { it.second }, doneAnchors, anchor, step, bodyweight, coarse, ctx)
             Judgment.REP_MISS -> {
                 val misses = current.state.repMissStreak + 1
                 current = current.copy(state = current.state.copy(successStreak = 0, repMissStreak = misses, effortMissStreak = 0))
-                if (misses < 2) return result(Reason.RepMiss)
+                if (misses < 2 || following != null) return result(Reason.RepMiss)
                 val recentStall = current.state.resetEpochDays.any { exposure.epochDay - it <= 42 }
                 current = current.copy(
                     everyExposures = if (recentStall) minOf(3, current.everyExposures + 1) else current.everyExposures,
@@ -466,6 +475,28 @@ object Progression {
             rule.copy(session = nextSession, alternate = rule.alternate?.let { session }, steps = steps, credits = credits), change)
     }
 
+    private fun followed(rule: SlotRule, base: List<LoggedSet>, anchors: List<LoggedSet>, anchor: Double,
+                         derivedLb: Double, ctx: Context): Outcome {
+        var current = rule.copy(state = rule.state.resetStreaks().copy(successStreak = rule.state.successStreak + 1))
+        val load = ctx.steps.nearest(derivedLb, ctx.equipment, ctx.unit)
+        val loaded = LoadFollowing.atLoad(base, current, load, ctx.unit, ctx.equipment)
+        var rows = loaded.first
+        current = loaded.second
+        val target = current.target
+        if (target is RepTarget.Range && load <= anchor && target.current < target.hi) {
+            val reps = minOf(target.hi, anchors.minOf { it.reps } + 1)
+            current = current.copy(target = target.copy(current = reps))
+            rows = WorkingRows.withReps(rows, reps)
+        }
+        val change = when {
+            load > anchor -> Change.Increase(anchor, load)
+            load < anchor -> Change.Decrease(anchor, load)
+            current.target.reps != rule.target.reps -> Change.RepsTo(current.target.reps)
+            else -> Change.Hold
+        }
+        return Outcome(rows, current, change, Reason.Followed)
+    }
+
     private fun success(
         rule: SlotRule,
         base: List<LoggedSet>,
@@ -572,10 +603,7 @@ object Progression {
         is RepTarget.Range -> copy(current = reps)
     }
 
-    private fun withReps(rows: List<LoggedSet>, reps: Int): List<LoggedSet> {
-        val anchors = WorkingRows.workingIndices(rows).toSet()
-        return rows.mapIndexed { i, row -> if (i in anchors) row.copy(reps = reps) else row }
-    }
+    private fun withReps(rows: List<LoggedSet>, reps: Int) = WorkingRows.withReps(rows, reps)
 
     /** A reps-in-time set's aim this time: the working rows' reps once they carry one, else the authored aim; null when
      *  the prescription has no aim. */

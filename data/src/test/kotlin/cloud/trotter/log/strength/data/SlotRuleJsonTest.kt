@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SlotRuleDto
 import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.data.serialization.SlotStateDto
+import cloud.trotter.log.strength.domain.progression.LoadSource
 import cloud.trotter.log.strength.domain.progression.NextTimeMode
 import cloud.trotter.log.strength.domain.progression.RepTarget
 import cloud.trotter.log.strength.domain.progression.Scheme
@@ -139,6 +140,19 @@ class SlotRuleJsonTest {
         val restored = requireNotNull(SlotRuleJson.decode(pending))
         assertEquals(squat.copy(state = squat.state.copy(successStreak = 2)), restored) // #647: keep the stored streak only
         assertTrue("pendingIncrease" !in SlotRuleJson.encode(restored)) // #647: new JSON never writes the credit flag
+    }
+
+    @Test fun `a load source round trips and is validated`() {
+        val linked = squat.copy(loadSource = LoadSource("A", 37.0 / 38.0))
+        val encoded = SlotRuleJson.encode(linked)
+        assertEquals(linked, SlotRuleJson.decode(encoded))
+        assertTrue("\"loadSource\"" in encoded)
+        assertTrue("loadSource" !in SlotRuleJson.encode(squat))
+        for (invalid in listOf(encoded.replace("\"dayId\":\"A\"", "\"dayId\":\"\""),
+            encoded.replace(Regex("\"ratio\":[0-9.]+"), "\"ratio\":0"),
+            encoded.replace(Regex("\"ratio\":[0-9.]+"), "\"ratio\":5"))) {
+            assertNull(SlotRuleJson.decode(invalid))
+        }
     }
 
 }

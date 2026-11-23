@@ -4,6 +4,8 @@ import cloud.trotter.log.strength.domain.progression.NextTimeMode
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 
 sealed interface RuleEdit {
+    /** Null is Own results; a day id follows that day's load. MAIN only. */
+    data class LoadSource(val dayId: String?) : RuleEdit
     data class NextTime(val mode: NextTimeMode?) : RuleEdit
     data class Rest(val seconds: Int?) : RuleEdit {
         init { require(seconds == null || seconds in 0..RestPolicy.MAX_REST_SECONDS) }

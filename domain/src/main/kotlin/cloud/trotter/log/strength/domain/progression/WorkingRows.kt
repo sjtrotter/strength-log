@@ -57,6 +57,11 @@ object WorkingRows {
         }
     }
 
+    fun withReps(rows: List<LoggedSet>, reps: Int): List<LoggedSet> {
+        val anchors = workingIndices(rows).toSet()
+        return rows.mapIndexed { i, row -> if (i in anchors) row.copy(reps = reps) else row }
+    }
+
     /** Every row the lifter is judged on: TOP, BACKOFF, WORK and EXTRA. [workingIndices] is the narrower load anchor. */
     fun workSetIndices(rows: List<LoggedSet>): List<Int> = rows.indices.filter { rows[it].kind != SetKind.RAMP }
 }

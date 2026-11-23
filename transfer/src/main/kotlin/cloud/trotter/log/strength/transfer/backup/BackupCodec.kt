@@ -108,6 +108,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             ?: throw BackupError.Malformed("missing or non-integer schemaVersion")
 
         if (version in 1..32) requireSidesAbsent(obj)
+        if (version in 1..33) requireV34ShapesAbsent(obj)
         if (version in 1..31) requireV32ShapesAbsent(obj)
         if (version in 1..30) requireV31ShapesAbsent(obj)
 
@@ -153,7 +154,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
+            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33,
             CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
@@ -180,6 +181,20 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             }
         }
         visit(root)
+    }
+
+    private fun requireV34ShapesAbsent(root: JsonObject) {
+        fun checkSlot(element: JsonElement) {
+            val slot = element as? JsonObject ?: return
+            val text = (slot["ruleJson"] as? JsonPrimitive)?.content ?: return
+            val rule = runCatching { json.parseToJsonElement(text) as? JsonObject }.getOrNull() ?: return
+            if (rule["loadSource"] != null && rule["loadSource"] != JsonNull) {
+                throw BackupError.Inconsistent("load source requires schema v34")
+            }
+        }
+        fun checkDay(element: JsonElement) { ((element as? JsonObject)?.get("exercises") as? JsonArray)?.forEach(::checkSlot) }
+        (root["plans"] as? JsonArray)?.forEach { ((it as? JsonObject)?.get("days") as? JsonArray)?.forEach(::checkDay) }
+        (root["program"] as? JsonArray)?.forEach(::checkDay)
     }
 
     private fun requireV32ShapesAbsent(root: JsonObject) {

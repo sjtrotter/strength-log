@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.progression.KnownLoads
 import cloud.trotter.log.strength.domain.progression.LayoffKind
 import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.LoadSource
 import cloud.trotter.log.strength.domain.progression.LoadSteps
 import cloud.trotter.log.strength.domain.progression.Progression
 import cloud.trotter.log.strength.domain.progression.RepTarget
@@ -398,6 +399,38 @@ class PlannerTest {
                     }
                 }
             }
+        }
+    }
+    @Test fun `case 44 the generator ties each secondary exposure to its main`() {
+        val draft = Planner.plan(referenceAnswers())
+        assertEquals(LoadSource("A", 37.0 / 38.0), slot(draft, "C", "bb_back_squat").rule!!.loadSource)
+        assertEquals(LoadSource("B", 37.0 / 38.0), slot(draft, "E", "bb_bench").rule!!.loadSource)
+        assertNull(slot(draft, "A", "bb_back_squat").rule!!.loadSource)
+        assertEquals(List(2) { Triple(270.0, 5, SetKind.WORK) }, rows(draft, "C", "bb_back_squat").map(::row))
+        val new = Planner.plan(SetupAnswers(goal = LiftGoal.STRENGTH))
+        val secondaries = new.program.strengthDays.flatMap { it.exercises }.filter { it.rule?.role == SlotRole.SECONDARY }
+        assertTrue(secondaries.isNotEmpty())
+        for (secondary in secondaries) assertEquals(1.0, secondary.rule!!.loadSource?.ratio)
+    }
+
+    @Test fun `case 44 a Muscle plan ties its ranges inside the bound and not outside it`() {
+        val experienced = Planner.plan(SetupAnswers(goal = LiftGoal.MUSCLE, experience = LiftExperience.A_YEAR_OR_MORE))
+        val secondaries = experienced.program.strengthDays.flatMap { it.exercises }.filter { it.rule?.role == SlotRole.SECONDARY }
+        assertTrue(secondaries.isNotEmpty())
+        for (secondary in secondaries) {
+            val mainDay = experienced.program.strengthDays.single { day ->
+                day.exercises.any { it.exerciseId == secondary.exerciseId && it.rule?.role == SlotRole.MAIN }
+            }
+            val main = mainDay.exercises.single { it.exerciseId == secondary.exerciseId && it.rule?.role == SlotRole.MAIN }
+            assertEquals(RepTarget.Range(6, 10, 6), main.rule!!.target)
+            assertEquals(2, main.rule!!.rir)
+            assertEquals(RepTarget.Range(8, 12, 8), secondary.rule!!.target)
+            assertEquals(2, secondary.rule!!.rir)
+            assertEquals(LoadSource(mainDay.id, 38.0 / 40.0), secondary.rule!!.loadSource)
+        }
+        val new = Planner.plan(SetupAnswers(goal = LiftGoal.MUSCLE))
+        for (secondary in new.program.strengthDays.flatMap { it.exercises }.filter { it.rule?.role == SlotRole.SECONDARY }) {
+            assertNull(secondary.rule!!.loadSource)
         }
     }
 }

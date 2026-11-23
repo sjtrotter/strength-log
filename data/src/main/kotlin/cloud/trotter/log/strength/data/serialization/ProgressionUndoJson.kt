@@ -18,10 +18,11 @@ import kotlinx.serialization.Serializable
                                                         val plan: UndoPlanDto? = null, val roughLight: UndoPlanDto? = null)
 
 /** Null [afterSetsJson] represents a deletion; null [before] represents an inserted row. [dayId] is null for the
- *  session's own day; [sharedFrom] names the performed slot a shared copy came from (#629). */
+ *  session's own day; [sharedFrom] names the performed slot a shared copy came from (#629).
+ *  [followed] marks a row [sharedFrom] moved by ratio rather than copied (#647). */
 @Serializable internal data class UndoLogDto(val programExerciseId: Long, val slot: String, val before: UndoRowDto? = null,
                                              val afterSetsJson: String? = null, val dayId: String? = null,
-                                             val sharedFrom: Long? = null)
+                                             val sharedFrom: Long? = null, val followed: Boolean = false)
 @Serializable internal data class UndoRowDto(val setsJson: String, val updatedAt: Long)
 /** [slot] names the column: `ruleJson` for main, `partnerRuleJson` for ss. A record from before this field reads as main.
  *  [sharedFrom] as on [UndoLogDto]. */

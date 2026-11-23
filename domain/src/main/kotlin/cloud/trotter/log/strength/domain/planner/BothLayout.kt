@@ -137,7 +137,11 @@ internal fun spreadDays(rotation: List<ProgramDay>, k: Int): List<String> {
 }
 
 internal fun relabel(draft: PlanDraft, ids: Map<String, String>): PlanDraft = draft.copy(
-    program = Program(draft.program.days.map { it.copy(id = ids.getValue(it.id)) }),
+    program = Program(draft.program.days.map { day -> day.copy(id = ids.getValue(day.id),
+        exercises = day.exercises.map { slot -> slot.copy(rule = slot.rule?.let { rule ->
+            rule.copy(loadSource = rule.loadSource?.let { source -> source.copy(dayId = ids.getValue(source.dayId)) })
+        }) },
+    ) }),
     working = draft.working.mapKeys { (key, _) -> key.copy(dayId = ids.getValue(key.dayId)) },
     sessions = draft.sessions.mapKeys { (id, _) -> ids.getValue(id) },
     reasons = draft.reasons.map { reason ->

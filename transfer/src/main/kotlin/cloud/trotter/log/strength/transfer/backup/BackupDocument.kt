@@ -39,8 +39,9 @@ import kotlinx.serialization.Serializable
  * v31 carries Run and Both setup recipes, ladder credits and counted dates, and timed goals without a time.
  * v32 carries Sprint and Both + sprint setup recipes.
  * v33 carries each-side results: a session set's left and right, and sides inside set payloads.
+ * v34 carries each slot's load source; legacy strength credits are discarded on read.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 33
+const val CURRENT_SCHEMA_VERSION: Int = 34
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */

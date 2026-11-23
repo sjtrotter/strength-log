@@ -253,7 +253,8 @@ class HoldTimerSetScreenTest {
         ))
         rule.setContent { AppTheme { WorkoutSetHost(current, workoutActions()) } }
         rule.onNodeWithText("Easy", substring = true).assertIsDisplayed()
-        rule.onNodeWithText("left", substring = true).assertDoesNotExist()
+        // #644: the each-side label now says "left first", so name the numeric reading itself.
+        rule.onNodeWithText("4 left", substring = true).assertDoesNotExist()
     }
 
 }

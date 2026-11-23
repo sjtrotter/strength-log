@@ -216,10 +216,12 @@ class ReceiptLinesTest {
         assertEquals("Day C: 175 lb (−5)", ReceiptLines.followerLabel(ReceiptFollower("C", 175.0, -5.0), WeightUnit.LB, resources))
     }
 
-    @Test fun `Why falls back to Next time after a follower switches to Own results`() {
+    @Test fun `Why omits a followed reason after a follower switches to Own results`() {
         val stored = line(175.0, session(offer = null, reason = "FOLLOWED"))
-        assertEquals("Next time: 175 lb", ReceiptLines.why("Squat", stored, WeightUnit.LB, resources))
-        assertEquals("Next time: 175 lb (+5)", ReceiptLines.why("Squat", stored.copy(delta = 5.0), WeightUnit.LB, resources))
+        assertNull(ReceiptLines.why("Squat", stored, WeightUnit.LB, resources))
+        assertNull(ReceiptLines.why("Squat", stored.copy(delta = 5.0), WeightUnit.LB, resources))
+        assertEquals("Next time: 175 lb", text(stored))
+        assertEquals("Next time: 175 lb (+5)", text(stored.copy(delta = 5.0)))
     }
 
     @Test fun `spoken followers name the day load and direction in the chosen unit`() {

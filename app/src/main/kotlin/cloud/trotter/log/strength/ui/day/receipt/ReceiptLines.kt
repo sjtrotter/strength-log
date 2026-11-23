@@ -117,7 +117,7 @@ object ReceiptLines {
     }
 
     fun why(name: String, line: ReceiptLiftLine, unit: WeightUnit, resources: Resources): String? {
-        if (line.reason == "FOLLOWED" && line.followsDay == null) return label(line, unit, resources)
+        if (line.reason == "FOLLOWED" && line.followsDay == null) return null
         if (ReasonCode.decode(line.reason) == null) return null
         val repChange = line.reps != null && line.hasOffer
         val key = when (line.reason) {

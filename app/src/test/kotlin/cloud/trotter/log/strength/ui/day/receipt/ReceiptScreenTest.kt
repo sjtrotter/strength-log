@@ -1330,6 +1330,7 @@ class ReceiptScreenTest {
         rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}, progress = progress) } }
         rule.onNodeWithContentDescription("Next time, 190 pounds, up 5 pounds.", substring = true).assertIsDisplayed() // #647: read the merged row.
         rule.onNodeWithContentDescription("Day C, 175 pounds, up 5 pounds.", substring = true).assertIsDisplayed() // #647: TalkBack hears the move.
+        rule.onNodeWithText("Day C: 175 lb (+5)", useUnmergedTree = true).assertExists()
         rule.onNodeWithContentDescription("Day E, 165 pounds.", substring = true).assertIsDisplayed() // #647: TalkBack hears each follower.
     }
 

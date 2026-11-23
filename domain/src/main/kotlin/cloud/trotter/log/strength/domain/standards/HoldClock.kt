@@ -3,7 +3,7 @@ package cloud.trotter.log.strength.domain.standards
 /**
  * A timed hold's clock, read the same way on the phone and the watch (#628): it counts whole seconds up from
  * the start, fills toward the target and ends at the target, or, past target, at [PAST_TARGET_LIMIT_SECONDS].
- * A set held once per side logs its shorter side.
+ * A set held once per side keeps both sides, left first, and logs its shorter side as the set's value.
  */
 object HoldClock {
     /** A hold past its target ends itself here, so a forgotten clock cannot run on (#643). */

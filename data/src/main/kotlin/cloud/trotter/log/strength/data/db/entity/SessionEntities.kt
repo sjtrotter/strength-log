@@ -74,4 +74,11 @@ data class SessionSetEntity(
     val plannedIndex: Int? = null,
     /** Reported reps in reserve; null = not reported. */
     val rir: Int? = null,
+    /** All six are null without sides, including every row archived before DB v33 (#644). */
+    val leftWeightLb: Double? = null,
+    val leftReps: Int? = null,
+    val leftSeconds: Int? = null,
+    val rightWeightLb: Double? = null,
+    val rightReps: Int? = null,
+    val rightSeconds: Int? = null,
 )

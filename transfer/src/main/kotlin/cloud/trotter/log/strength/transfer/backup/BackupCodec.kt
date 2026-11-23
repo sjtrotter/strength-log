@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.sidesAgree
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.preferredPlan
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
@@ -105,6 +107,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         val version = (obj["schemaVersion"] as? JsonPrimitive)?.intOrNull
             ?: throw BackupError.Malformed("missing or non-integer schemaVersion")
 
+        if (version in 1..32) requireSidesAbsent(obj)
         if (version in 1..33) requireV34ShapesAbsent(obj)
         if (version in 1..31) requireV32ShapesAbsent(obj)
         if (version in 1..30) requireV31ShapesAbsent(obj)
@@ -145,7 +148,8 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // added cardio sessions, v7 added program-day kinds, and v8 added
             // plans and their live-log/selection pointers; v9 added each plan's
             // recipe and rotation; v10 added authored prescriptions; v28 added recipe v2 and plan settings'
-            // equipment and goals; v29 added plan settings' legacyMains; v30 made the profile optional. Older documents decode
+            // equipment and goals; v29 added plan settings' legacyMains; v30 made the profile optional;
+            // v33 added each-side results. Older documents decode
             // with newer fields at their defaults; the version determines which
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
@@ -156,6 +160,27 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         }
         validate(document)
         return document
+    }
+
+    /** Check before legacy shaping discards future fields, without changing old payload parsing (#644). */
+    private fun requireSidesAbsent(root: JsonObject) {
+        fun visit(value: JsonElement) {
+            when (value) {
+                is JsonArray -> value.forEach(::visit)
+                is JsonObject -> {
+                    if (value["sides"] != null && value["sides"] != JsonNull && "weightLb" in value && "reps" in value) {
+                        throw BackupError.Inconsistent("each-side results require schema v33")
+                    }
+                    value.forEach { (key, child) ->
+                        if (key in listOf("setsJson", "plannedJson", "parkedLogsJson") && child is JsonPrimitive && child.isString) {
+                            runCatching { json.parseToJsonElement(child.content) }.getOrNull()?.let(::visit)
+                        } else visit(child)
+                    }
+                }
+                else -> Unit
+            }
+        }
+        visit(root)
     }
 
     private fun requireV34ShapesAbsent(root: JsonObject) {
@@ -624,6 +649,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         validateCardioSessions(doc.cardioSessions)
         if (doc.schemaVersion >= 12) validateCardioSets(doc.cardioSessions, doc.schemaVersion)
         if (doc.schemaVersion >= 13) validateRuns(doc)
+        validateSides(doc)
     }
 
     private fun validateVersion27(doc: BackupDocument) {
@@ -744,6 +770,40 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             }
             if (runId in identities) {
                 throw BackupError.Inconsistent("session runId '$runId' is a day's nextRunId")
+            }
+        }
+    }
+
+    /** Only v33 carries sides, and each row's values must be their weaker side (#644). */
+    private fun validateSides(doc: BackupDocument) {
+        fun check(what: String, set: LoggedSet) {
+            val sides = set.sides ?: return
+            if (doc.schemaVersion < 33) throw BackupError.Inconsistent("each-side results in $what require schema v33")
+            if (!sides.valid || !set.sidesAgree) throw BackupError.Inconsistent("$what does not match its sides")
+        }
+        fun checkPayload(what: String, payload: String, malformed: Boolean = false) =
+            decodePayload(what, malformed) { SetJson.decodeSets(payload) }.forEach { check(what, it) }
+        for (session in doc.sessions) {
+            for (set in session.sets) {
+                check("set ${set.id} in session ${session.id}",
+                    LoggedSet(set.weightLb, set.reps, SetKind.WORK, set.done, set.seconds, sides = set.sides?.toDomain()))
+            }
+            // Older plans restore verbatim; v27 first validates their structure.
+            if (doc.schemaVersion >= 27) session.plannedJson?.let { planned ->
+                decodePayload("plannedJson of session ${session.id}") { SessionPlanJson.decode(planned) }
+                    .flatMap { it.sets + it.offer?.beforeSets.orEmpty() + it.offer?.afterSets.orEmpty() }
+                    .forEach { check("plannedJson of session ${session.id}", it.toDomain()) }
+            }
+        }
+        for (log in doc.liveLogs) checkPayload("setsJson of slot ${log.programExerciseId} in day '${log.dayId}'", log.setsJson)
+        for (run in doc.runs) for (track in run.tracks) {
+            checkPayload("plannedJson of run track ${track.id}", track.plannedJson, malformed = true)
+            checkPayload("setsJson of run track ${track.id}", track.setsJson, malformed = true)
+        }
+        for (day in doc.plans.flatMap { it.days } + doc.program) for (slot in day.exercises) {
+            slot.parkedLogsJson?.let { parked ->
+                decodePayload("parkedLogsJson of slot ${slot.id}") { ParkedLogsJson.decode(parked) }
+                    .forEach { checkPayload("parked setsJson of slot ${slot.id}", it.setsJson) }
             }
         }
     }

@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.log
 
+import cloud.trotter.log.strength.data.mapping.sides
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.decodedCardioMode
@@ -112,7 +113,9 @@ object LogScreenBuilder {
                 sets = group.mapIndexed { i, s ->
                     SessionSetSummary(
                         kindLabel = labels[i],
-                        weightRepsDisplay = SetFormatter.summaryOfValues(s.weightLb, s.reps, s.seconds, unit),
+                        weightRepsDisplay = s.sides()?.let {
+                            SetFormatter.sides(SetFormatter.trackingOfValues(s.weightLb, s.reps, s.seconds), it, unit)
+                        } ?: SetFormatter.summaryOfValues(s.weightLb, s.reps, s.seconds, unit),
                         id = s.id,
                         weightLb = s.weightLb,
                         reps = s.reps,

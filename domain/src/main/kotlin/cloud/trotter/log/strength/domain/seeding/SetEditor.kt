@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.domain.seeding
 
+import cloud.trotter.log.strength.domain.model.sidesAfter
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
@@ -23,12 +24,17 @@ object SetEditor {
         equipment: Collection<Equipment> = emptyList(),
         scheme: Scheme = Scheme.PROTOTYPE,
     ): List<LoggedSet> {
+        // An unchanged weight must not re-run the TOP cascade over hand-edited ramps.
+        val values = edit.sides?.let { sides ->
+            edit.copy(weightLb = sides.weightLb.takeIf { it != sets[index].weightLb }, reps = sides.reps, seconds = sides.seconds)
+        } ?: edit
         var updated = sets
-        edit.weightLb?.let { updated = editWeight(updated, index, it, unit, equipment, scheme) }
-        edit.reps?.let { updated = editReps(updated, index, it) }
-        edit.seconds?.let { updated = editSeconds(updated, index, it) }
+        values.weightLb?.let { updated = editWeight(updated, index, it, unit, equipment, scheme) }
+        values.reps?.let { updated = editReps(updated, index, it) }
+        values.seconds?.let { updated = editSeconds(updated, index, it) }
         return updated.mapIndexed { i, row ->
-            if (i != index) row else {
+            val sides = if (i == index && edit.sides != null) edit.sides else sets[i].sidesAfter(row)
+            if (i != index) row.copy(sides = sides) else {
                 val unticking = edit.done == false
                 val filling = edit.done == true && row.done
                 row.copy(
@@ -45,6 +51,7 @@ object SetEditor {
                         else -> edit.completedAtMillis ?: row.completedAtMillis
                     },
                     watchEditedAt = edit.watchEditedAt ?: row.watchEditedAt,
+                    sides = sides,
                 )
             }
         }
@@ -103,7 +110,7 @@ object SetEditor {
     /** "+ add set" appends a copy of the last row as an EXTRA. */
     fun addSet(sets: List<LoggedSet>): List<LoggedSet> {
         val last = sets.last()
-        return sets + last.copy(kind = SetKind.EXTRA, done = false, plannedIndex = null, watchEditedAt = null)
+        return sets + last.copy(kind = SetKind.EXTRA, done = false, plannedIndex = null, watchEditedAt = null, sides = null)
     }
 
     /** Keeps each index's newest watch stamp across a remove or insert, so a watch edit replayed

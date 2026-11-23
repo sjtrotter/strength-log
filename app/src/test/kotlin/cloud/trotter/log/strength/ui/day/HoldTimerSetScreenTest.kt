@@ -20,6 +20,8 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SideResult
+import cloud.trotter.log.strength.domain.model.Sides
 import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -91,7 +93,7 @@ class HoldTimerSetScreenTest {
         show(state(), workoutActions().copy(onStartHold = { id, index -> started = id to index }))
         rule.onNodeWithText("30 s").assertIsDisplayed()
         rule.onNodeWithContentDescription("Edit set 1").assertIsEnabled()
-        rule.onNodeWithText("Each side").assertIsDisplayed()
+        rule.onNodeWithText("Each side, left first").assertIsDisplayed() // #644: left first before Start.
         rule.onNodeWithText("Log 30 s").assertDoesNotExist()
         rule.onNodeWithTag("workout-action-filled").assert(hasText("Start")).assertIsEnabled().performClick()
         rule.runOnIdle { assertEquals(1L to 0, started) }
@@ -103,7 +105,8 @@ class HoldTimerSetScreenTest {
         rule.onNodeWithText("0:12").assertIsDisplayed()
         rule.onNodeWithText("Held").assertIsDisplayed()
         rule.onNodeWithText("Target 0:30").assertIsDisplayed()
-        rule.onNodeWithText("Side 1 of 2").assertIsDisplayed()
+        // #644: left first.
+        rule.onNodeWithText("Left side").assertIsDisplayed()
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
         rule.onNodeWithContentDescription("Edit set 1").assertDoesNotExist()
         var node: SemanticsNode? = rule.onNodeWithTag("workout-hero", useUnmergedTree = true).fetchSemanticsNode()
@@ -119,7 +122,7 @@ class HoldTimerSetScreenTest {
         var started: Pair<Long, Int>? = null
         show(state(hold(heldSeconds = 0, running = false, sides = listOf(30))),
             workoutActions().copy(onStartHold = { id, index -> started = id to index }))
-        rule.onNodeWithText("Side 2 of 2").assertIsDisplayed()
+        rule.onNodeWithText("Right side").assertIsDisplayed() // #644: left first.
         rule.onNodeWithText("0:00").assertIsDisplayed()
         rule.onNodeWithText("End hold").assertIsDisplayed().assertIsEnabled()
         rule.onNodeWithTag("workout-action-filled").assert(hasText("Start")).assertIsEnabled().performClick()
@@ -152,6 +155,28 @@ class HoldTimerSetScreenTest {
         show(state(hold(), weight = 25.0))
         rule.onNodeWithText("at 25 lb").assertIsDisplayed()
     }
+
+    @Test fun `the logged message names both sides`() {
+        val base = state()
+        val card = base.exercises.single()
+        val logged = LoggedSet(0.0, 0, SetKind.WORK, done = true, seconds = 20,
+            sides = Sides(SideResult(0.0, 0, 30), SideResult(0.0, 0, 20)))
+        val movedOn = base.copy(exercises = listOf(card.copy(
+            rows = card.rows.map { if (it.index == 0) it.copy(done = true, seconds = 20) else it },
+            focusIndex = 1,
+        ))).withWorkoutSelection()
+        val loggedState = movedOn.copy(workout = requireNotNull(movedOn.workout).copy(
+            undo = UndoOffer(1L, Slot.MAIN, 0, "Plank", logged, TrackingType.TIMED, base.unit),
+        ))
+        rule.setContent { AppTheme { WorkoutSetHost(loggedState, workoutActions()) } }
+        rule.onNodeWithText("✓ Set 1 · L 30 s · R 20 s").assertIsDisplayed()
+    }
+
+    @Test fun `an each side hold names the left side first before Start`() {
+        show(state())
+        rule.onNodeWithText("Each side, left first").assertIsDisplayed()
+    }
+
     @Test fun `an idle hold offers Past target beside Start`() {
         val starts = mutableListOf<Pair<Long, Int>>()
         show(state(), workoutActions().copy(onStartHoldPastTarget = { id, index -> starts += id to index }))
@@ -228,7 +253,8 @@ class HoldTimerSetScreenTest {
         ))
         rule.setContent { AppTheme { WorkoutSetHost(current, workoutActions()) } }
         rule.onNodeWithText("Easy", substring = true).assertIsDisplayed()
-        rule.onNodeWithText("left", substring = true).assertDoesNotExist()
+        // #644: the each-side label now says "left first", so name the numeric reading itself.
+        rule.onNodeWithText("4 left", substring = true).assertDoesNotExist()
     }
 
 }

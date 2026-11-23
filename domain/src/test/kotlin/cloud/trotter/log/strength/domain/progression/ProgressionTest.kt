@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.domain.progression
 
+import cloud.trotter.log.strength.domain.model.SideResult
+import cloud.trotter.log.strength.domain.model.Sides
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
@@ -564,4 +566,33 @@ class ProgressionTest {
         assertEquals(Change.Hold, out.change)
         assertEquals(Reason.RepMiss, out.reason)
     }
+
+    private fun LoggedSet.sided(left: SideResult, right: SideResult) = Sides(left, right).let {
+        copy(weightLb = it.weightLb, reps = it.reps, seconds = it.seconds, sides = it)
+    }
+
+    @Test fun `case 42 the weaker side gates and never the better side or the average`() {
+        val logged = actual(work()).mapIndexed { i, row ->
+            row.sided(SideResult(185.0, 7, 0), SideResult(185.0, listOf(5, 5, 3)[i], 0))
+        }
+        val out = finish(actual = logged)
+        assertEquals(Change.Hold, out.change)
+        assertEquals(Reason.RepMiss, out.reason)
+        assertStreaks(out, 0, 1, 0)
+        assertEquals(finish(actual = actual(work(), reps = listOf(5, 5, 3))), out)
+        assertTrue(finish(actual = actual(work(), reps = listOf(7, 7, 7))).reason != Reason.RepMiss)
+        assertTrue(finish(actual = actual(work(), reps = listOf(6, 6, 5))).reason != Reason.RepMiss)
+        val equal = actual(work()).map { it.sided(SideResult(185.0, 5, 0), SideResult(185.0, 5, 0)) }
+        assertEquals(finish(actual = actual(work())), finish(actual = equal))
+    }
+
+    @Test fun `case 42 a side at zero misses`() {
+        val logged = actual(work()).mapIndexed { i, row ->
+            row.sided(SideResult(185.0, 5, 0), SideResult(185.0, if (i == 2) 0 else 5, 0))
+        }
+        val out = finish(actual = logged)
+        assertEquals(Reason.RepMiss, out.reason)
+        assertStreaks(out, 0, 1, 0)
+    }
+
 }

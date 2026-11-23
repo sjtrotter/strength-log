@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.data.mapping.withSides
 import androidx.room.withTransaction
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.data.serialization.setupAnswers
@@ -2013,7 +2014,7 @@ class TrackerRepository(
         val sets = stored?.let { SetJson.decodeSets(it.setsJson) }
             ?: seeds[slot.id to slotName]?.rows
         return sets?.map {
-            it.copy(done = false, startedAtMillis = null, completedAtMillis = null, plannedIndex = null)
+            it.copy(done = false, startedAtMillis = null, completedAtMillis = null, plannedIndex = null, sides = null)
         }
     }
 
@@ -2308,7 +2309,7 @@ class TrackerRepository(
                     reps = set.reps, done = set.done, seconds = set.seconds, startedAtMillis = set.startedAtMillis,
                     completedAtMillis = set.completedAtMillis, trackPosition = track.position, plannedIndex = set.plannedIndex,
                     rir = set.rir,
-                )
+                ).withSides(set.sides)
             }
         })
         return sessionId

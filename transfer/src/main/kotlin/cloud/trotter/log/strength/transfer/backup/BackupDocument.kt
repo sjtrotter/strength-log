@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.serialization.SidesDto
 import cloud.trotter.log.strength.domain.standards.RestSettings
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -37,6 +38,7 @@ import kotlinx.serialization.Serializable
  * v30 makes the profile's bodyweight and age optional and drops level and hasLifterAnswers from new documents.
  * v31 carries Run and Both setup recipes, ladder credits and counted dates, and timed goals without a time.
  * v32 carries Sprint and Both + sprint setup recipes.
+ * v33 carries each-side results: a session set's left and right, and sides inside set payloads.
  * v34 carries each slot's load source; legacy strength credits are discarded on read.
  */
 const val CURRENT_SCHEMA_VERSION: Int = 34
@@ -335,6 +337,10 @@ data class SessionSetBackup(
     val trackPosition: Int? = null,
     val plannedIndex: Int? = null,
     val rir: Int? = null,
+    /** Omitted without sides; absent before v33 (#644). */
+    @OptIn(ExperimentalSerializationApi::class)
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val sides: SidesDto? = null,
 )
 
 /** An open workout and its ordered captured tracks. */

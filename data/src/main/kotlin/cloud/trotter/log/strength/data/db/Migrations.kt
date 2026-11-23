@@ -607,3 +607,15 @@ val MIGRATION_31_32 = object : Migration(31, 32) {
         db.execSQL("ALTER TABLE cardio_session ADD COLUMN progressionUndoJson TEXT")
     }
 }
+
+/** v32 → v33: archived sets keep both sides; older rows stay side unknown (#644). */
+val MIGRATION_32_33 = object : Migration(32, 33) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE session_set ADD COLUMN leftWeightLb REAL")
+        db.execSQL("ALTER TABLE session_set ADD COLUMN leftReps INTEGER")
+        db.execSQL("ALTER TABLE session_set ADD COLUMN leftSeconds INTEGER")
+        db.execSQL("ALTER TABLE session_set ADD COLUMN rightWeightLb REAL")
+        db.execSQL("ALTER TABLE session_set ADD COLUMN rightReps INTEGER")
+        db.execSQL("ALTER TABLE session_set ADD COLUMN rightSeconds INTEGER")
+    }
+}

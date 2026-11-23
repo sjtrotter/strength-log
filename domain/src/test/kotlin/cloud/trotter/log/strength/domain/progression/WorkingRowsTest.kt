@@ -3,6 +3,8 @@ package cloud.trotter.log.strength.domain.progression
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SideResult
+import cloud.trotter.log.strength.domain.model.Sides
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.seeding.SetSeeder
@@ -109,5 +111,13 @@ class WorkingRowsTest {
     @Test
     fun `work set indices judge TOP and both backoffs`() {
         assertEquals(listOf(2, 3, 4), WorkingRows.workSetIndices(squat()))
+    }
+
+    @Test fun `cleared rows carry no sides`() {
+        val logged = LoggedSet(25.0, 8, SetKind.WORK, done = true, startedAtMillis = 10,
+            completedAtMillis = 20, plannedIndex = 0, watchEditedAt = 30,
+            sides = Sides(SideResult(25.0, 10, 0), SideResult(25.0, 8, 0)))
+        assertEquals(logged.copy(done = false, startedAtMillis = null, completedAtMillis = null,
+            plannedIndex = null, watchEditedAt = null, sides = null), WorkingRows.cleared(listOf(logged)).single())
     }
 }

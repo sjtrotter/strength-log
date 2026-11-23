@@ -7,9 +7,9 @@ import cloud.trotter.log.strength.domain.seeding.SetEditor
 import cloud.trotter.log.strength.domain.units.WeightUnit
 
 object WorkingRows {
-    /** Results removed: done, both timestamps, plannedIndex, watchEditedAt. Other values kept. */
+    /** Results removed: done, both timestamps, plannedIndex, watchEditedAt, sides. Other values kept. */
     fun cleared(sets: List<LoggedSet>): List<LoggedSet> = sets.map {
-        it.copy(done = false, startedAtMillis = null, completedAtMillis = null, plannedIndex = null, watchEditedAt = null)
+        it.copy(done = false, startedAtMillis = null, completedAtMillis = null, plannedIndex = null, watchEditedAt = null, sides = null)
     }
 
     /** Next time's rows from a run that opened on [planned]: RAMP and BACKOFF rows keep their logged weights

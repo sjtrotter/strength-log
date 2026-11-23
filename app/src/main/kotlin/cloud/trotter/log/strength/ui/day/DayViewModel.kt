@@ -1748,7 +1748,7 @@ class DayViewModel @Inject constructor(
         }
         val elapsed = BootAnchor(event.wallStart, event.elapsedStart, event.bootCount).elapsedSince(cardioClock.clocks())
         val held = HoldClock.heldSeconds(elapsed, HoldClock.limitSeconds(event.targetSeconds, holdPastTarget))
-        if (held < 1) clearHold() else endHoldSide(event, held, buzz = false)
+        if (held < 1 && event.heldSeconds.isEmpty()) clearHold() else endHoldSide(event, held, buzz = false)
     }
 
     /** Starts a set timer now when this day's workout is open, else reserves it behind the start sheet. */

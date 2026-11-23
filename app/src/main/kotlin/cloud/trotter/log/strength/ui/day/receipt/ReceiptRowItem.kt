@@ -247,7 +247,7 @@ internal fun StrengthReceiptRow(
     }
     val gapText = gap?.let { stringResource(if (it.left) R.string.receipt_side_gap_left else R.string.receipt_side_gap_right, SideGap.SESSIONS) }
     val spoken = listOfNotNull(spokenRow(row, unit, nextTime, backoffLines), gapText).joinToString(" ")
-    ExpandableReceiptRow(rowKey, row.name, spoken, row.shape == ReceiptRow.Shape.STRAIGHT,
+    ExpandableReceiptRow(rowKey, row.name, spoken, row.shape == ReceiptRow.Shape.STRAIGHT || sideSets.isNotEmpty(),
         dayIndex, row.record?.kind, gutter, values = {
             row.lines.forEachIndexed { lineIndex, line ->
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

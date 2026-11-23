@@ -83,6 +83,20 @@ class EachSideSetScreenTest {
         rule.onNodeWithText("L 10 · R 8 reps").performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
         assertFalse(layouts.single().hasVisualOverflow)
         rule.onNodeWithTag("workout-left-and-right").assertDoesNotExist()
+        rule.onNodeWithTag("workout-action-filled").assert(hasText("Log L 10 · R 8 reps"))
+        rule.onNodeWithContentDescription("One fewer rep").assertDoesNotExist()
+    }
+
+    @Test fun `a superset with differing MAIN sides hides only its MAIN decrement`() {
+        val base = workoutSetSupersetFixture()
+        val sides = Sides(SideResult(80.0, 10, 0), SideResult(80.0, 8, 0))
+        val current = base.copy(exercises = base.exercises.map { card -> card.copy(rows = card.rows.map {
+            if (it.index == 1) it.copy(reps = 8, sides = sides) else it
+        }) })
+        rule.setContent { AppTheme { WorkoutSetHost(current, workoutActions()) } }
+        rule.onNodeWithTag("workout-minus-main").assertDoesNotExist()
+        rule.onNodeWithTag("workout-minus-ss").assertIsDisplayed()
+        rule.onNodeWithText("Log round 2").assertIsDisplayed()
     }
 
     @Test fun `the set editor switches between Each side and Left and right`() {

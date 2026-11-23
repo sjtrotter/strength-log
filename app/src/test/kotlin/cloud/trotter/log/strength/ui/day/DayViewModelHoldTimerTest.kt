@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.domain.model.SideResult
 import cloud.trotter.log.strength.domain.model.Sides
+import cloud.trotter.log.strength.domain.model.sidesAgree
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.cardio.CardioBlocks
 import android.content.Context
@@ -410,6 +411,40 @@ class DayViewModelHoldTimerTest {
         assertNotNull(vm.uiState.value.workout?.undo)
         assertTrue(vm.uiState.value.cardioStartEnabled)
         assertEquals(0, alarm.buzzes)
+    }
+
+    @Test fun `case 50 stopping the right side before a second keeps the left and records zero`() = test {
+        prepare(Prescription(PrescribedTarget.Hold(30), eachSide = true))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val start = clock.wall
+        vm.startHold()
+        runCurrent()
+        tick(18_400)
+        vm.stopHold()
+        runCurrent()
+        vm.startHold()
+        runCurrent()
+        clock.advance(400)
+        vm.stopHold()
+        runCurrent()
+        assertTrue(row().done)
+        assertEquals(0, row().seconds)
+        assertEquals(Sides(SideResult(0.0, 0, 18), SideResult(0.0, 0, 0)), row().sides)
+        assertTrue(row().sidesAgree)
+        assertEquals(start, row().startedAtMillis)
+        assertEquals(start + 18_400, row().completedAtMillis)
+        assertEquals(row(), vm.uiState.value.workout?.undo?.set)
+        assertNull(vm.uiState.value.hold)
+        assertNull(alarm.deadline)
+        assertEquals(0, alarm.buzzes)
+        assertEquals(1, rest.armed.size)
+        vm.undoLastLog()
+        runCurrent()
+        assertFalse(row().done)
+        assertEquals(30, row().seconds)
+        assertNull(row().sides)
     }
 
     @Test fun `a catalog each side entry runs two holds`() = test {

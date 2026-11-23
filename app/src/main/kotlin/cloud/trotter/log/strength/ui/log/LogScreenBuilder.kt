@@ -115,7 +115,7 @@ object LogScreenBuilder {
                     val set = LoggedSet(s.weightLb, s.reps, SetKind.WORK, s.done, s.seconds, sides = s.sides())
                     SessionSetSummary(
                         kindLabel = labels[i],
-                        weightRepsDisplay = SetFormatter.display(set, unit),
+                        weightRepsDisplay = SetFormatter.summary(set, unit),
                         id = s.id,
                         weightLb = s.weightLb,
                         reps = s.reps,

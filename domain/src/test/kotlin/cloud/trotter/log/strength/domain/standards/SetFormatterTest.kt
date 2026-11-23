@@ -129,11 +129,28 @@ class SetFormatterTest {
         }
     }
 
-    @Test fun `single and sided values share explicit measurement formatting`() {
+    @Test fun `single and sided values share compact summary formatting`() {
         val set = LoggedSet(0.0, 0, SetKind.WORK, true, seconds = 40)
-        assertEquals("40 s", SetFormatter.display(set, WeightUnit.LB))
-        assertEquals("L 40 s · R 52 s", SetFormatter.display(set.copy(
+        // #644: History keeps compact notation for single values and each side.
+        assertEquals("40s", SetFormatter.summary(set, WeightUnit.LB))
+        // #644: each side uses the single-value summary notation.
+        assertEquals("L 40s · R 52s", SetFormatter.summary(set.copy(
             sides = Sides(SideResult(0.0, 0, 40), SideResult(0.0, 0, 52))), WeightUnit.LB))
+    }
+
+    @Test fun `compact sided summaries share weighted reps and loaded hold notation`() {
+        for (unit in WeightUnit.entries) {
+            val cases = listOf(
+                Sides(SideResult(unit.toLb(130.0), 5, 0), SideResult(unit.toLb(125.0), 5, 0)) to "L 130×5 · R 125×5",
+                Sides(SideResult(0.0, 10, 0), SideResult(0.0, 8, 0)) to "L ×10 · R ×8",
+                Sides(SideResult(unit.toLb(25.0), 0, 40), SideResult(unit.toLb(30.0), 0, 52)) to "L 40s +25 · R 52s +30",
+                Sides(SideResult(0.0, 0, 90), SideResult(0.0, 0, 0)) to "L 1:30 · R 0s",
+            )
+            for ((sides, expected) in cases) {
+                val set = LoggedSet(sides.weightLb, sides.reps, SetKind.WORK, true, sides.seconds, sides = sides)
+                assertEquals(expected, SetFormatter.summary(set, unit))
+            }
+        }
     }
 
 }

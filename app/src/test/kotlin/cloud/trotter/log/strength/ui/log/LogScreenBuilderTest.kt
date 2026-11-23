@@ -97,14 +97,12 @@ class LogScreenBuilderTest {
 
         assertEquals(2, groups.size)
         assertEquals("Barbell Back Squat", groups[0].exerciseName)
-        // #644: single values use the same explicit measurements as sides.
         assertEquals(
-            listOf("R1" to "130 lb × 5", "TOP" to "235 lb × 5", "B/O" to "175 lb × 8"),
+            listOf("R1" to "130×5", "TOP" to "235×5", "B/O" to "175×8"),
             groups[0].sets.map { it.kindLabel to it.weightRepsDisplay },
         )
         assertEquals("Seated Leg Curl", groups[1].exerciseName)
-        // #644: single values use the same explicit measurements as sides.
-        assertEquals(listOf("1" to "90 lb × 10"), groups[1].sets.map { it.kindLabel to it.weightRepsDisplay })
+        assertEquals(listOf("1" to "90×10"), groups[1].sets.map { it.kindLabel to it.weightRepsDisplay })
     }
 
     @Test
@@ -122,10 +120,8 @@ class LogScreenBuilderTest {
         val groups = LogScreenBuilder.groupByExercise(sets, WeightUnit.LB)
 
         assertEquals(listOf("EZ-Bar Curl", "Rope Pushdown"), groups.map { it.exerciseName })
-        // #644: single values use the same explicit measurements as sides.
-        assertEquals(listOf("1" to "60 lb × 12", "2" to "60 lb × 11"), groups[0].sets.map { it.kindLabel to it.weightRepsDisplay })
-        // #644: single values use the same explicit measurements as sides.
-        assertEquals(listOf("1" to "50 lb × 15", "2" to "50 lb × 14"), groups[1].sets.map { it.kindLabel to it.weightRepsDisplay })
+        assertEquals(listOf("1" to "60×12", "2" to "60×11"), groups[0].sets.map { it.kindLabel to it.weightRepsDisplay })
+        assertEquals(listOf("1" to "50×15", "2" to "50×14"), groups[1].sets.map { it.kindLabel to it.weightRepsDisplay })
     }
 
     @Test
@@ -137,8 +133,7 @@ class LogScreenBuilderTest {
     fun groupByExercise_reads_a_hold_from_a_positive_seconds_value() {
         val sets = listOf(set("plank", "Plank", SetKind.WORK, 0.0, 0, seconds = 45))
         val groups = LogScreenBuilder.groupByExercise(sets, WeightUnit.LB)
-        // #644: single values use the same explicit measurements as sides.
-        assertEquals("45 s", groups.single().sets.single().weightRepsDisplay)
+        assertEquals("45s", groups.single().sets.single().weightRepsDisplay)
     }
 
     @Test
@@ -148,17 +143,16 @@ class LogScreenBuilderTest {
         // reps 45 / seconds 0 — must read as reps.
         val sets = listOf(set("plank", "Plank", SetKind.WORK, 0.0, 45))
         val groups = LogScreenBuilder.groupByExercise(sets, WeightUnit.LB)
-        // #644: single values use the same explicit measurements as sides.
-        assertEquals("45 reps", groups.single().sets.single().weightRepsDisplay)
+        assertEquals("×45", groups.single().sets.single().weightRepsDisplay)
     }
 
     @Test fun `a set with sides reads left then right`() {
         val legacy = set("side_plank", "Side Plank", SetKind.WORK, 0.0, 0, seconds = 40)
         val split = legacy.withSides(Sides(SideResult(0.0, 0, 40), SideResult(0.0, 0, 52)))
         val rows = LogScreenBuilder.groupByExercise(listOf(split, legacy), WeightUnit.LB).single().sets
-        assertEquals("L 40 s · R 52 s", rows[0].weightRepsDisplay)
-        // #644: single values use the same explicit measurements as sides.
-        assertEquals("40 s", rows[1].weightRepsDisplay)
+        // #644: History uses compact notation per side, matching single values.
+        assertEquals("L 40s · R 52s", rows[0].weightRepsDisplay)
+        assertEquals("40s", rows[1].weightRepsDisplay)
     }
 
     @Test fun `a hold with a side at zero still reads as a hold`() {
@@ -166,7 +160,8 @@ class LogScreenBuilderTest {
             .withSides(Sides(SideResult(0.0, 0, 18), SideResult(0.0, 0, 0)))
         val row = LogScreenBuilder.groupByExercise(listOf(hold), WeightUnit.LB).single().sets.single()
         assertEquals(TrackingType.TIMED, row.tracking)
-        assertEquals("L 18 s · R 0 s", row.weightRepsDisplay)
+        // #644: History uses compact notation per side, including zero seconds.
+        assertEquals("L 18s · R 0s", row.weightRepsDisplay)
     }
 
 }

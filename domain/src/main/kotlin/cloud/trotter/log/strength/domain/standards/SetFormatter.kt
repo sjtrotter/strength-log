@@ -15,9 +15,12 @@ import java.util.Locale
  * no surface can invent a "0 lb × 60" rendering for a REPS/TIMED entry — a REPS
  * best never reads as "0 lb", a TIMED best reads as its hold, not "25×0".
  *
- * WEIGHTED output ("225×5") is byte-identical to the `w×r` form expected by
- * day/log surfaces. The companion [GoalFormatter] formats read-only GOAL
- * targets the same three ways.
+ * [summary] keeps compact notation for History and Last/Best chips ("225×5",
+ * "×12", "40s"). History formats each recorded side with that same notation.
+ * [display] and [sides] use explicit measurements for the set screen and receipt
+ * ("225 lb × 5", "12 reps", "40 s"). Logged snackbars use [sides] for recorded
+ * sides and [summary] with spacing for single values. The companion
+ * [GoalFormatter] formats read-only GOAL targets.
  */
 object SetFormatter {
 
@@ -135,10 +138,13 @@ object SetFormatter {
             maxOf(sides.left.reps, sides.right.reps), maxOf(sides.left.seconds, sides.right.seconds))
     }
 
-    fun display(set: LoggedSet, unit: WeightUnit): String {
+    /** Compact History values, with the same notation for single values and each recorded side. */
+    fun summary(set: LoggedSet, unit: WeightUnit): String {
         val tracking = trackingOfSet(set)
-        return set.sides?.let { sides(tracking, it, unit) }
-            ?: display(tracking, set.weightLb, set.reps, set.seconds, unit)
+        return set.sides?.let {
+            "L ${summary(tracking, it.left.weightLb, it.left.reps, it.left.seconds, unit)} · " +
+                "R ${summary(tracking, it.right.weightLb, it.right.reps, it.right.seconds, unit)}"
+        } ?: summary(tracking, set.weightLb, set.reps, set.seconds, unit)
     }
 
     /** The set's VALUE-driven summary — see [trackingOfValues] for the classification rule. */

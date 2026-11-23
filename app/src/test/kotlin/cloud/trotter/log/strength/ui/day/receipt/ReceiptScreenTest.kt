@@ -1334,6 +1334,25 @@ class ReceiptScreenTest {
         rule.onNodeWithContentDescription("Set 1, left 40 seconds, right 52 seconds").assertExists()
     }
 
+    @Test fun `sided top and ramp receipts expand without changing the collapsed summary`() {
+        val shape = mutableStateOf(ReceiptRow.Shape.TOP_SET)
+        val sides = ReceiptSideSet(0, 0, 0, ReceiptSet(25.0, 8, 0), ReceiptSet(30.0, 10, 0))
+        rule.setContent { AppTheme {
+            val row = ReceiptRow("Bulgarian Split Squat", TrackingType.WEIGHTED, shape.value,
+                listOf(ReceiptSet(25.0, 8, 0)), listOf(ValueLine(25.0, listOf(0))), 0, null, null)
+            StrengthReceiptRow(row, WeightUnit.LB, 0, shape.value.name, { 0f }, sideSets = mapOf(0 to sides))
+        } }
+        for (candidate in listOf(ReceiptRow.Shape.TOP_SET, ReceiptRow.Shape.HEAVIEST_NO_TOP)) {
+            rule.runOnIdle { shape.value = candidate }
+            rule.onNodeWithText("25 lb × 8", useUnmergedTree = true).assertExists()
+            rule.onNodeWithText("L 25 lb × 8 · R 30 lb × 10", useUnmergedTree = true).assertDoesNotExist()
+            rule.onNodeWithContentDescription("Bulgarian Split Squat.", substring = true).assertHasClickAction().performClick()
+            rule.onNodeWithText("25 lb × 8", useUnmergedTree = true).assertExists()
+            rule.onNodeWithText("L 25 lb × 8 · R 30 lb × 10", useUnmergedTree = true).assertExists()
+            rule.onNodeWithContentDescription("Set 1, left 25 pounds for 8 reps, right 30 pounds for 10 reps").assertExists()
+        }
+    }
+
     @Test fun `a repeated gap is named once in neutral words`() {
         val gap = mutableStateOf<ReceiptSideGap?>(ReceiptSideGap(0, 0, true))
         val row = ReceiptRow("Side Plank", TrackingType.TIMED, ReceiptRow.Shape.STRAIGHT,

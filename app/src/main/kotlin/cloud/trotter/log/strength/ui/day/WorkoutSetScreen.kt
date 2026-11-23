@@ -10,6 +10,7 @@ import android.provider.Settings
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDefaults
 import cloud.trotter.log.strength.ui.day.receipt.spokenSides
 import cloud.trotter.log.strength.run.GpsNotice
 import cloud.trotter.log.strength.domain.model.CardioFamily
@@ -175,7 +176,7 @@ fun WorkoutSetScreen(
     }
     val offer = state.workout?.undo?.takeIf { state.workout.review == null }
     val message = offer?.let { workoutLoggedMessage(state, it, catalog) }
-    val spokenMessage = offer?.takeIf { it.partnerSet == null && it.set.sides != null }
+    val spokenMessage = offer?.takeIf { it.set.sides != null || it.partnerSet?.sides != null }
         ?.let { workoutLoggedMessage(state, it, catalog, spoken = true) }
     val undoLabel = stringResource(R.string.day_undo)
     val latestActions by rememberUpdatedState(actions)
@@ -200,11 +201,9 @@ private fun workoutLoggedMessage(state: DayUiState, undo: UndoOffer, catalog: Ex
         val card = state.exercises.firstOrNull { it.programExerciseId == undo.programExerciseId }
         val main = if (undo.slot == Slot.MAIN) undo.set else partner
         val ss = if (undo.slot == Slot.MAIN) partner else undo.set
-        fun summary(set: LoggedSet, tracking: TrackingType) = SetFormatter.summary(
-            tracking, set.weightLb, set.reps, set.seconds, undo.unit, spaced = true).trim()
         return stringResource(R.string.workout_logged_round, undo.index + 1,
-            summary(main, card?.tracking ?: undo.tracking),
-            summary(ss, card?.partnerTracking ?: TrackingType.WEIGHTED))
+            loggedSetSummary(main, card?.tracking ?: undo.tracking, undo.unit, spoken),
+            loggedSetSummary(ss, card?.partnerTracking ?: TrackingType.WEIGHTED, undo.unit, spoken))
     }
     val focus = state.workout?.focus
     val label = if (focus != null && undo.programExerciseId == focus.programExerciseId && undo.slot == focus.slot) {
@@ -215,7 +214,7 @@ private fun workoutLoggedMessage(state: DayUiState, undo: UndoOffer, catalog: Ex
         val shortName = exerciseId?.let(catalog::find)?.shortName ?: undo.title
         stringResource(R.string.workout_lift_set_number, shortName, undo.index + 1)
     }
-    val summary = undo.set.sides?.let { if (spoken) spokenSides(it, undo.tracking, undo.unit) else SetFormatter.sides(undo.tracking, it, undo.unit) } ?: SetFormatter.summary(undo.tracking, undo.set.weightLb, undo.set.reps, undo.set.seconds, undo.unit, spaced = true).trim()
+    val summary = loggedSetSummary(undo.set, undo.tracking, undo.unit, spoken)
     val effort = undo.set.rir?.takeIf { showsEffort(undo.set.kind, undo.tracking, undo.set.seconds) }?.let { rir ->
         if (state.effortScale.forTracking(undo.tracking) == EffortScale.REPS_LEFT) stringResource(R.string.effort_reps_left_value, rir)
         else effortWord(rir)?.let { stringResource(effortResource(it)) }
@@ -223,6 +222,11 @@ private fun workoutLoggedMessage(state: DayUiState, undo: UndoOffer, catalog: Ex
     return if (effort == null) stringResource(R.string.workout_logged, label, summary)
     else stringResource(R.string.workout_logged_effort, label, summary, effort)
 }
+
+@Composable
+private fun loggedSetSummary(set: LoggedSet, tracking: TrackingType, unit: WeightUnit, spoken: Boolean): String =
+    set.sides?.let { if (spoken) spokenSides(it, tracking, unit) else SetFormatter.sides(tracking, it, unit) }
+        ?: SetFormatter.summary(tracking, set.weightLb, set.reps, set.seconds, unit, spaced = true).trim()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -253,7 +257,8 @@ private fun WorkoutSetContent(
                 if (spokenMessage != null && data.visuals.message == loggedMessage) {
                     Snackbar(action = {
                         data.visuals.actionLabel?.let { label ->
-                            TextButton(onClick = data::performAction) { Text(label) }
+                            TextButton(onClick = data::performAction,
+                                colors = ButtonDefaults.textButtonColors(contentColor = SnackbarDefaults.actionColor)) { Text(label) }
                         }
                     }) {
                         Text(data.visuals.message, Modifier.semantics { contentDescription = spokenMessage })
@@ -329,6 +334,7 @@ private fun WorkoutSetContent(
                     val index = event?.event?.setIndex ?: hold?.event?.setIndex ?: focus?.index ?: -1
                     val slot = if (event != null) Slot.MAIN else focus?.slot ?: Slot.MAIN
                     val values = card?.rows?.getOrNull(index)?.values(slot)
+                    val sides = card?.rows?.getOrNull(index)?.sides.takeIf { slot == Slot.MAIN }
                     val cardio = state.cardio
                     val cardioShown = (workout.shown as? WorkoutSelection.Shown.Group)?.key == "cardio"
                     val resting = state.rest?.over == false
@@ -415,9 +421,11 @@ private fun WorkoutSetContent(
                             stringResource(R.string.workout_end_rest), true, true, actions.onContinueWorkout,
                         ) else WorkoutActionSpec(
                             if (card.isSuperset) stringResource(R.string.workout_log_round, index + 1) else
-                                stringResource(R.string.workout_log_measurement, workoutValue(values, card.tracking(slot), state.unit, includeTimedWeight = false)), resting, true,
+                                stringResource(R.string.workout_log_measurement, sides?.let { SetFormatter.sides(card.tracking(slot), it, state.unit) }
+                                    ?: workoutValue(values, card.tracking(slot), state.unit, includeTimedWeight = false)), resting, true,
                             actions.onLogFocusedSet,
-                            secondary = if (!card.isSuperset && card.tracking(slot) != TrackingType.TIMED) {
+                            secondary = if (!card.isSuperset && card.tracking(slot) != TrackingType.TIMED &&
+                                sides?.let { it.left != it.right } != true) {
                                 WorkoutSecondaryAction.DecrementReps(values.reps > 1) { actions.onDecrementFocusedReps(card.programExerciseId, Slot.MAIN, index) }
                             } else null)
                         else -> null
@@ -968,10 +976,12 @@ private fun WorkoutSetCard(
                 }
                 if (compact) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(Modifier.weight(1f)) { hero() }
-                    OutlinedIconButton(onClick = { actions.onDecrementFocusedReps(card.programExerciseId, slot, index) },
-                        enabled = values.reps > 1 && tracking != TrackingType.TIMED && !timed,
-                        modifier = Modifier.size(48.dp).testTag(if (slot == Slot.SS) "workout-minus-ss" else "workout-minus-main")) {
-                        Icon(painterResource(R.drawable.ic_remove), stringResource(R.string.workout_one_fewer_rep))
+                    if (slot == Slot.SS || row.sides?.let { it.left != it.right } != true) {
+                        OutlinedIconButton(onClick = { actions.onDecrementFocusedReps(card.programExerciseId, slot, index) },
+                            enabled = values.reps > 1 && tracking != TrackingType.TIMED && !timed,
+                            modifier = Modifier.size(48.dp).testTag(if (slot == Slot.SS) "workout-minus-ss" else "workout-minus-main")) {
+                            Icon(painterResource(R.drawable.ic_remove), stringResource(R.string.workout_one_fewer_rep))
+                        }
                     }
                 } else hero()
             }

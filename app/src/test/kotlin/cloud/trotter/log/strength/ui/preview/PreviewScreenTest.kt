@@ -113,6 +113,21 @@ class PreviewScreenTest {
         rule.onNodeWithText("Last 70 lb × 5 · Strength · Day C").assertExists()
     }
 
+    @Test fun aLastFromAnotherDayNamesTheDayAndDate() {
+        rule.setContent { AppTheme { PreviewScreen(PreviewUiState(
+            loading = false, lifts = listOf(
+                PreviewLift("Squat", "TOP × 5 · 235 lb", listOf(
+                    PreviewPreviousResult("225 lb × 6", source = "B", date = "Nov 18"),
+                )),
+                PreviewLift("Bench", "3 × 5 · 70 lb", listOf(
+                    PreviewPreviousResult("70 lb × 5", source = "C", sourcePlanName = "Strength", date = "Nov 18"),
+                )),
+            ),
+        ), PreviewActions({}, {}, {})) } }
+        rule.onNodeWithText("Last 225 lb × 6 · Day B, Nov 18").assertExists()
+        rule.onNodeWithText("Last 70 lb × 5 · Strength · Day C, Nov 18").assertExists()
+    }
+
     @Test fun absentHistoryHasNoLastLineAndIncomparableHistoryKeepsItsMessage() {
         rule.setContent { AppTheme { PreviewScreen(PreviewUiState(
             loading = false, lifts = listOf(

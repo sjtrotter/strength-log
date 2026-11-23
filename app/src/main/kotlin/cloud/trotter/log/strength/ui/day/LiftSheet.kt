@@ -47,6 +47,11 @@ import cloud.trotter.log.strength.ui.components.AppModalBottomSheet
 internal fun lastSourceText(dayId: String, planName: String?): String =
     planName?.let { stringResource(R.string.today_plan_day, it, dayId) } ?: stringResource(R.string.preview_last_day, dayId)
 
+/** A Last that came from another day or plan, with its date: "Last 235 × 5 · Day B, Oct 21" (#641, #645). */
+@Composable
+internal fun lastElsewhereText(last: String, source: String, date: String?): String =
+    listOfNotNull(stringResource(R.string.preview_last_elsewhere, last, source), date).joinToString(", ")
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun LiftSheet(
@@ -81,8 +86,7 @@ internal fun LiftSheet(
         last?.takeIf { it.isNotBlank() }?.let {
             val source = lastSource?.let { s -> lastSourceText(s.dayId, s.planName) }
             when {
-                source != null -> listOfNotNull(stringResource(R.string.preview_last_elsewhere, it, source), date)
-                    .joinToString(", ") + "."
+                source != null -> lastElsewhereText(it, source, date) + "."
                 date == null -> stringResource(R.string.lift_sheet_last, it)
                 else -> stringResource(R.string.lift_sheet_last_date, it, date)
             }

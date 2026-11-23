@@ -33,9 +33,11 @@ data class PreviewPreviousResult(
     val last: String?,
     val comparable: Boolean = true,
     val exerciseName: String = "",
-    /** Fallback day id; the screen supplies the localized label. */
+    /** The day [last] came from when it is not this day of this plan; the screen supplies the localized label. */
     val source: String? = null,
     val sourcePlanName: String? = null,
+    /** Shown with [source] only. */
+    val date: String? = null,
 )
 data class PreviewCardio(
     val activity: String,

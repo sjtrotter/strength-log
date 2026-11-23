@@ -22,9 +22,11 @@ class ProgressionRepsInTimeTest {
         counts: List<Int>,
         rirs: List<Int?> = counts.map { null },
         planned: List<LoggedSet> = rows(window.repAim ?: 0),
+        layoff: LayoffKind = LayoffKind.None,
+        light: Boolean = false,
     ) = Progression.afterSession(rule, planned, Progression.Exposure(planned,
-        counts.mapIndexed { i, reps -> planned[i].copy(reps = reps, done = true, plannedIndex = i, rir = rirs[i]) }, 130),
-        ctx, window)
+        counts.mapIndexed { i, reps -> planned[i].copy(reps = reps, done = true, plannedIndex = i, rir = rirs[i]) }, 130, layoff),
+        ctx.copy(light = light), window)
 
     @Test fun `case 39 rows seed the rep aim`() {
         assertEquals(rows(20), SetSeeder.seedPrescribed(3, Prescription(aimed)))
@@ -89,6 +91,18 @@ class ProgressionRepsInTimeTest {
         assertEquals(Reason.EffortMiss, outcome.reason)
         assertEquals(1, outcome.rule.state.effortMissStreak)
     }
+
+    @Test fun `case 39 an unfinished window is incomplete`() =
+        assertEquals(Reason.Incomplete, after(rule(), aimed, listOf(20, 20)).reason)
+
+    @Test fun `case 39 a layoff window repeats the aim`() =
+        assertEquals(Reason.Layoff, after(rule(), aimed, listOf(20, 20, 20), layoff = LayoffKind.Hold).reason)
+
+    @Test fun `case 39 a light window repeats the aim`() =
+        assertEquals(Reason.LightCycle, after(rule(), aimed, listOf(20, 20, 20), light = true).reason)
+
+    @Test fun `case 39 Max blocks an increase at a one RIR target`() =
+        assertEquals(Reason.MaxSet, after(rule().copy(rir = 1), aimed, listOf(20, 20, 20), rirs = listOf(1, 0, 1)).reason)
 
     @Test fun `case 39 the aim follows the rows and falls back to the authored aim`() {
         assertEquals(21, Progression.repAim(aimed, rows(21)))

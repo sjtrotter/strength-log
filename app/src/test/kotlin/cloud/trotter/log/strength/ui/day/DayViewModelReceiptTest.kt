@@ -1634,6 +1634,29 @@ class DayViewModelReceiptTest {
         assertEquals(cloud.trotter.log.strength.domain.progression.CardioEffort.GOOD, vm.finisher.progressState.value.cardioEffort)
     }
 
+    @Test fun `an aimless light window has no Next time line after Finish`() = runVmTest {
+        val plan = repo.plans.createAuthoredPlan("Mine", "Push-ups")
+        repo.plans.publishCreatedAuthoredPlan(plan)
+        repo.addExercise("A", ProgramExercise("pushup", targetSets = 3,
+            prescription = Prescription(PrescribedTarget.RepsInTime(60))), plan)
+        val window = db.programDao().exercisesForDay(plan, "A").single().id
+        val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        val run = (repo.startRun(plan, "A", lighter = true) as cloud.trotter.log.strength.data.RunStartResult.Started).runId
+        repo.applyToRun(run, plan, "A", listOf(cloud.trotter.log.strength.data.TrackEdit(window, Slot.MAIN) { rows ->
+            rows.map { it.copy(reps = 25, done = true, rir = 2) }
+        }))
+        advanceUntilIdle()
+        vm.completeDay()
+        advanceUntilIdle()
+
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        val archived = requireNotNull(db.sessionDao().sessionById(receipt.sessionId))
+        assertEquals("MEASURED", SessionPlanJson.decode(requireNotNull(archived.plannedJson)).single().reason)
+        assertEquals(ReceiptNextTimes(receipt.sessionId, emptyList()), nextTimes(vm))
+        assertTrue(vm.finisher.progressState.value.lifts.isEmpty())
+    }
+
     @Test fun `mixed Automatic and Ask lifts show Undo at the receipt state`() = runVmTest {
         val (plan, bench) = automaticBench()
         repo.addExercise("A", ProgramExercise("ohp", targetSets = 3,

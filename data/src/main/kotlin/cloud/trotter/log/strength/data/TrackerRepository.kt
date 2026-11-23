@@ -2306,8 +2306,9 @@ class TrackerRepository(
             val actual = SetJson.decodeSets(track.setsJson)
             if (track.dropped && actual.none { it.done }) continue
             val opening = OpeningJson.decode(track.openingJson)
-            // Recalibration must persist through a light opening; other light openings are views.
-            if (opening?.light == true && opening.layoff != OpeningDto.RECALIBRATE) {
+            val window = if (track.slot == Slot.MAIN) repWindowOf(slots[track.programExerciseId]?.prescriptionJson) else null
+            // Non-window light openings are views; recalibration must persist.
+            if (window == null && opening?.light == true && opening.layoff != OpeningDto.RECALIBRATE) {
                 val planned = SetJson.decodeSets(track.plannedJson)
                 val reached = WorkingRows.workSetIndices(planned).any { i -> actual.any { it.plannedIndex == i && it.done } }
                 reasons[track.id] = ReasonCode.encode(if (reached) Reason.LightCycle else Reason.NoSets)
@@ -2344,7 +2345,6 @@ class TrackerRepository(
             val layoff = opening?.let { runCatching { it.layoffKind() }.getOrNull() } ?: LayoffKind.None
             val entry = catalog.find(track.exerciseId)
             val automatic = rule.automatic(planAutomatic)
-            val window = if (track.slot == Slot.MAIN) repWindowOf(slot.prescriptionJson) else null
             // A malformed row must never block Finish; an opened track keeps its stored load.
             val prepared = try {
                 val outcome = Progression.afterSession(rule, working, Progression.Exposure(planned, actual, today, layoff = layoff),
@@ -2359,7 +2359,7 @@ class TrackerRepository(
             }
             val outcome = prepared.outcome
             reasons[track.id] = ReasonCode.encode(outcome.reason)
-            val writtenRows = if (automatic) outcome.rows else WorkingRows.cleared(working)
+            val writtenRows = if (automatic || outcome.reason == Reason.Measured) outcome.rows else WorkingRows.cleared(working)
             writeLog(slot, track.slot, writtenRows)
             writeRule(slot, track.slot, requireNotNull(stored), prepared.encodedRule)
             if (track.slot == Slot.MAIN) shareProgression(slot, writtenRows, prepared.rule)

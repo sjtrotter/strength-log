@@ -117,11 +117,14 @@ object ReceiptLines {
     }
 
     fun why(name: String, line: ReceiptLiftLine, unit: WeightUnit, resources: Resources): String? {
-        if (line.reason == "FOLLOWED" && line.followsDay == null) return null
         if (ReasonCode.decode(line.reason) == null) return null
         val repChange = line.reps != null && line.hasOffer
         val key = when (line.reason) {
-            "FOLLOWED" -> if (line.delta != null) R.string.receipt_why_followed_change else R.string.receipt_why_followed
+            "FOLLOWED" -> when {
+                line.followsDay == null -> R.string.receipt_why_followed_other
+                line.delta != null -> R.string.receipt_why_followed_change
+                else -> R.string.receipt_why_followed
+            }
             "ALL_MADE" -> if (repChange) R.string.receipt_why_all_made_reps else R.string.receipt_why_all_made
             "EASY_SESSION" -> R.string.receipt_why_easy
             "STREAK" -> R.string.receipt_why_streak

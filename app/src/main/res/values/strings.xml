@@ -994,6 +994,7 @@
     <string name="receipt_why_calibrated">%1$s %2$s %5$s: found from today\'s sets.</string>
     <string name="receipt_why_add_weight">%1$s %2$s reps: the most reps this plan counts.</string>
     <string name="receipt_why_followed">%1$s %2$s %5$s: follows Day %6$s at %7$s.</string>
+    <string name="receipt_why_followed_other">%1$s %2$s %5$s: set from another day.</string>
     <string name="receipt_why_followed_change">%1$s %2$s %5$s (%3$s): follows Day %6$s at %7$s.</string>
     <string name="receipt_follower_line">Day %1$s: %2$s</string>
     <string name="receipt_why_hold_step">%1$s %2$s %5$s: all holds made.</string>

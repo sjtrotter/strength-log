@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.model.SideResult
+import cloud.trotter.log.strength.domain.model.Sides
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.cardio.CardioBlocks
 import android.content.Context
@@ -885,4 +887,53 @@ class DayViewModelHoldTimerTest {
         override fun cancel() = Unit
         override fun complete() = true
     }
+
+    @Test fun `case 42 an each side hold keeps both sides left first`() = test {
+        prepare(Prescription(PrescribedTarget.Hold(30), eachSide = true))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.startHold()
+        runCurrent()
+        tick(30_000)
+        vm.startHold()
+        runCurrent()
+        tick(20_000)
+        vm.stopHold()
+        runCurrent()
+        assertTrue(row().done)
+        assertEquals(20, row().seconds)
+        assertEquals(Sides(SideResult(0.0, 0, 30), SideResult(0.0, 0, 20)), row().sides)
+        vm.undoLastLog()
+        runCurrent()
+        assertNull(row().sides)
+        assertFalse(row().done)
+    }
+
+    @Test fun `an each side hold past target keeps both sides through its effort rating`() = test {
+        prepare(Prescription(PrescribedTarget.Hold(30), eachSide = true))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.startHoldPastTarget()
+        runCurrent()
+        tick(30_000)
+        tick(10_000)
+        vm.stopHold()
+        runCurrent()
+        vm.startHold()
+        runCurrent()
+        tick(35_000)
+        vm.stopHold()
+        runCurrent()
+        val sides = Sides(SideResult(0.0, 0, 40), SideResult(0.0, 0, 35))
+        assertEquals(35, row().seconds)
+        assertEquals(sides, row().sides)
+        val review = requireNotNull(vm.uiState.value.workout?.review)
+        vm.setEffort(review.programExerciseId, Slot.MAIN, review.index, Effort.EASY)
+        runCurrent()
+        assertEquals(Effort.EASY.rir, row().rir)
+        assertEquals(sides, row().sides)
+    }
+
 }

@@ -1,9 +1,31 @@
 package cloud.trotter.log.strength.data.serialization
 
+import cloud.trotter.log.strength.domain.model.SideResult
+import cloud.trotter.log.strength.domain.model.Sides
+import cloud.trotter.log.strength.domain.model.sidesAgree
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+
+@Serializable
+data class SideDto(val weightLb: Double, val reps: Int, val seconds: Int) {
+    fun toDomain(): SideResult = SideResult(weightLb, reps, seconds)
+
+    companion object {
+        fun of(side: SideResult): SideDto = SideDto(side.weightLb, side.reps, side.seconds)
+    }
+}
+
+/** Shared by live JSON, archive plans and backups (#644). */
+@Serializable
+data class SidesDto(val left: SideDto, val right: SideDto) {
+    fun toDomain(): Sides = Sides(left.toDomain(), right.toDomain())
+
+    companion object {
+        fun of(sides: Sides): SidesDto = SidesDto(SideDto.of(sides.left), SideDto.of(sides.right))
+    }
+}
 
 /**
  * Persistence representation of a [LoggedSet]. The domain types stay pure Kotlin
@@ -32,6 +54,8 @@ data class SetDto(
     val plannedIndex: Int? = null,
     val watchEditedAt: Long? = null,
     val rir: Int? = null,
+    // Null-defaulted like the stamps: a set without sides serializes byte-identically to before (#644).
+    val sides: SidesDto? = null,
 ) {
     fun toDomain(): LoggedSet =
         LoggedSet(
@@ -45,6 +69,7 @@ data class SetDto(
             plannedIndex = plannedIndex,
             watchEditedAt = watchEditedAt,
             rir = rir,
+            sides = sides?.toDomain(),
         )
 
     companion object {
@@ -60,6 +85,7 @@ data class SetDto(
                 plannedIndex = set.plannedIndex,
                 watchEditedAt = set.watchEditedAt,
                 rir = set.rir,
+                sides = set.sides?.let(SidesDto::of),
             )
     }
 }
@@ -74,8 +100,9 @@ object SetJson {
     // loads; strict enough to fail loudly on genuinely malformed data.
     private val json = Json { ignoreUnknownKeys = true }
 
+    /** A disagreeing row is written without sides, so a value edit cannot store a contradiction (#644). */
     fun encodeSets(sets: List<LoggedSet>): String =
-        json.encodeToString(sets.map(SetDto::of))
+        json.encodeToString(sets.map { SetDto.of(if (it.sidesAgree) it else it.copy(sides = null)) })
 
     fun decodeSets(text: String): List<LoggedSet> =
         json.decodeFromString<List<SetDto>>(text).map(SetDto::toDomain)

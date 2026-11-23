@@ -4,6 +4,9 @@ import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
+import cloud.trotter.log.strength.data.mapping.withSides
+import cloud.trotter.log.strength.domain.model.SideResult
+import cloud.trotter.log.strength.domain.model.Sides
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.ZoneId
@@ -61,9 +64,10 @@ class HistoryCsvWriterTest {
         val header = Csv.parse(csv).first()
         assertEquals(HISTORY_CSV_HEADER, header)
         assertEquals("Plan", header[15])
-        // PR 8: RIR column
+        // #644: six side columns follow RIR.
         assertEquals(listOf("Activity", "Role", "Target", "Aim", "Hard", "Status", "Distance Source",
-            "Steps Completed", "Cardio Mode", "RIR"), header.drop(16))
+            "Steps Completed", "Cardio Mode", "RIR", "Left Weight", "Left Reps", "Left Seconds",
+            "Right Weight", "Right Reps", "Right Seconds"), header.drop(16))
     }
 
     @Test
@@ -77,7 +81,7 @@ class HistoryCsvWriterTest {
             ),
             HISTORY_CSV_HEADER.take(25),
         )
-        assertEquals("RIR", HISTORY_CSV_HEADER.last())
+        assertEquals("RIR", HISTORY_CSV_HEADER[25]) // #644: RIR keeps its position before the side columns.
     }
 
     @Test
@@ -262,5 +266,25 @@ class HistoryCsvWriterTest {
 
         assertEquals("Day A", row[1])
         assertEquals("Barbell Back Squat", row[3])
+    }
+
+    @Test fun `each side columns follow RIR`() {
+        val names = listOf("Left Weight", "Left Reps", "Left Seconds", "Right Weight", "Right Reps", "Right Seconds")
+        assertEquals(names, HISTORY_CSV_HEADER.drop(26))
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1_720_000_000_000L, 180.0)
+        val hold = set(1, 1, "Side Plank", 0, 0.0, 0).copy(seconds = 40)
+            .withSides(Sides(SideResult(0.0, 0, 40), SideResult(0.0, 0, 52)))
+        val weighted = set(1, 2, "Row", 1, 25.0, 8)
+            .withSides(Sides(SideResult(25.0, 10, 0), SideResult(25.0, 8, 0)))
+        val plain = set(1, 3, "Row", 2, 25.0, 8)
+        val cardio = CardioSessionEntity(1, "A", "TREADMILL", false, "Easy", 1000, 61000, 60, 1)
+        val rows = Csv.parse(HistoryCsvWriter.export(listOf(session), listOf(hold, weighted, plain), WeightUnit.LB, zone,
+            cardioSessions = listOf(cardio)))
+        rows.forEach { assertEquals(HISTORY_CSV_HEADER.size, it.size) }
+        val strength = rows.drop(1).filter { it[5] != "cardio" }
+        assertEquals(listOf("", "", "40", "", "", "52"), strength[0].drop(26))
+        assertEquals(listOf("25", "10", "", "25", "8", ""), strength[1].drop(26))
+        assertEquals(List(6) { "" }, strength[2].drop(26))
+        assertEquals(List(6) { "" }, rows.single { it[5] == "cardio" }.drop(26))
     }
 }

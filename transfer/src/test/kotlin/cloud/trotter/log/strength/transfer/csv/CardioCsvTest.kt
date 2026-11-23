@@ -180,7 +180,7 @@ class CardioCsvTest {
         val rows = Csv.parse(exportSets(sets)).drop(1)
         assertEquals(11, rows.size)
         rows.forEachIndexed { index, row ->
-            assertEquals(26, row.size) // PR 8: RIR column
+            assertEquals(32, row.size) // #644: six side columns after RIR.
             assertEquals("cardio", cell(row, "Set Type"))
             assertEquals((index + 1).toString(), cell(row, "Set Order"))
             assertEquals(if (index == 0) "5:00" else "2:00", cell(row, "Target"))

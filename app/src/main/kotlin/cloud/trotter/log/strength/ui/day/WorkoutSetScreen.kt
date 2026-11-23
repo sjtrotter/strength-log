@@ -210,7 +210,7 @@ private fun workoutLoggedMessage(state: DayUiState, undo: UndoOffer, catalog: Ex
         val shortName = exerciseId?.let(catalog::find)?.shortName ?: undo.title
         stringResource(R.string.workout_lift_set_number, shortName, undo.index + 1)
     }
-    val summary = SetFormatter.summary(undo.tracking, undo.set.weightLb, undo.set.reps, undo.set.seconds, undo.unit, spaced = true).trim()
+    val summary = undo.set.sides?.let { SetFormatter.sides(undo.tracking, it, undo.unit) } ?: SetFormatter.summary(undo.tracking, undo.set.weightLb, undo.set.reps, undo.set.seconds, undo.unit, spaced = true).trim()
     val effort = undo.set.rir?.takeIf { showsEffort(undo.set.kind, undo.tracking, undo.set.seconds) }?.let { rir ->
         if (state.effortScale.forTracking(undo.tracking) == EffortScale.REPS_LEFT) stringResource(R.string.effort_reps_left_value, rir)
         else effortWord(rir)?.let { stringResource(effortResource(it)) }
@@ -510,7 +510,7 @@ private fun WorkoutHoldHero(hold: HoldState, breathingCue: Boolean, maxFontSize:
     WorkoutClockProgress(hold.fraction)
     Text(stringResource(R.string.workout_hold_target, formatCardioTime(event.targetSeconds)),
         style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    if (event.sides > 1) Text(stringResource(R.string.workout_hold_side, event.sideNumber, event.sides),
+    if (event.sides > 1) Text(stringResource(if (event.sideNumber == 1) R.string.workout_hold_left else R.string.workout_hold_right),
         style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
     if (breathingCue && event.running) Text(stringResource(R.string.workout_hold_keep_breathing),
@@ -1182,7 +1182,8 @@ private fun WorkoutHeroText(primary: String, secondary: String? = null, modifier
 private fun workoutDetail(card: ExerciseCardState, slot: String, index: Int, unit: WeightUnit, catalog: ExerciseCatalog): String? {
     if (slot == Slot.MAIN) {
         val target = card.headerTarget as? HeaderTarget.Prescribed
-        val eachSide = if (card.headerTarget.eachSide) stringResource(R.string.day_target_each_side) else null
+        val eachSide = if (card.headerTarget.eachSide) stringResource(if (card.holdTargetSeconds(index) > 0)
+            R.string.day_target_each_side_left_first else R.string.day_target_each_side) else null
         val resistance = target?.resistance?.takeIf { it.isNotBlank() }
         val detail = when {
             eachSide != null && resistance != null -> stringResource(R.string.set_edit_partner_field, eachSide, resistance)

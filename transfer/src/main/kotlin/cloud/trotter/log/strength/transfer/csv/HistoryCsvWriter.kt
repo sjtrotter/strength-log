@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.transfer.csv
 
+import cloud.trotter.log.strength.data.mapping.sides
+import cloud.trotter.log.strength.domain.model.SideResult
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
@@ -98,6 +100,12 @@ object HistoryCsvWriter {
                 // load either. Every other set writes its weight.
                 val weightCell =
                     if (isReps || isTimed && set.weightLb == 0.0) "" else formatWeight(unit.fromLb(set.weightLb))
+                val sides = set.sides()
+                fun sideCells(side: SideResult?): List<String> = listOf(
+                    if (side == null || weightCell.isEmpty()) "" else formatWeight(unit.fromLb(side.weightLb)),
+                    if (side == null || isTimed) "" else side.reps.toString(),
+                    if (side == null || !isTimed) "" else side.seconds.toString(),
+                )
                 rows.add(
                     listOf(
                         date,
@@ -116,7 +124,7 @@ object HistoryCsvWriter {
                         "", // Workout Notes — not tracked
                         "", // RPE — not tracked
                         Csv.neutralizeFormula(session.planName.orEmpty()),
-                    ) + List(9) { "" } + set.rir?.toString().orEmpty(),
+                    ) + List(9) { "" } + set.rir?.toString().orEmpty() + sideCells(sides?.left) + sideCells(sides?.right),
                 )
             }
     }
@@ -155,6 +163,7 @@ object HistoryCsvWriter {
             if (set == null) session.stepsCompleted.toString() else "",
             if (set == null) Csv.neutralizeFormula(session.mode) else "",
             "",
+            "", "", "", "", "", "",
         )
         // Set rows only import with a known activity; anything else keeps its summary row.
         if (sets.isEmpty() || CardioActivity.entries.none { it.name == session.activity }) {

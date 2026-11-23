@@ -1,13 +1,17 @@
 package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.mapping.sides
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SideResult
+import cloud.trotter.log.strength.domain.model.Sides
 import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.progression.NextTimeMode
 import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.seeding.SetEdit
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -31,6 +35,38 @@ class FinishHoldProgressionTest : FinishProgressionFixture() {
         val run = start(plan)
         hold(run, plan, id, held)
         return assertNotNull(repo.finishRun(run)).also { advanceDays(1) }
+    }
+
+    @Test fun `an each side plank misses on the shorter hold then steps when both sides meet the target`() = runTest {
+        val plan = authored()
+        val id = add(plan, "plank")
+        repo.setPrescription(id, Prescription(PrescribedTarget.Hold(45), eachSide = true))
+        lifter(plan, id, holdRows(45), rule(SlotRole.CORE, 10))
+        for (rightSeconds in listOf(40, 45)) {
+            val run = start(plan)
+            val sides = Sides(SideResult(0.0, 0, 45), SideResult(0.0, 0, rightSeconds))
+            repo.applyToRun(run, plan, "A", listOf(TrackEdit(id, Slot.MAIN) { rows ->
+                rows.indices.fold(rows) { logged, index ->
+                    SetEditor.edit(logged, index, SetEdit(done = true, sides = sides))
+                }
+            }))
+            val session = assertNotNull(repo.finishRun(run))
+            val archived = repo.history.sessionSets(session)
+            assertEquals(List(3) { rightSeconds }, archived.map { it.seconds })
+            assertEquals(List(3) { sides }, archived.map { it.sides() })
+            val finished = repo.history.slotSessionsById(plan, "A").getValue(id to Slot.MAIN)
+            assertEquals(listOf(45, 45, 45), finished.planned.map { it.seconds })
+            if (rightSeconds < 45) {
+                assertEquals("REP_MISS", finished.reason)
+                assertEquals(holdRows(45), rows(plan, id))
+                assertNull(offer(plan, "plank"))
+            } else {
+                assertEquals("HOLD_STEP", finished.reason)
+                assertEquals(holdRows(50), rows(plan, id))
+                assertEquals(NextOffer(0.0, 0.0, fromSeconds = 45, toSeconds = 50), offer(plan, "plank"))
+            }
+            advanceDays(1)
+        }
     }
 
     @Test fun `case 40 an Automatic plank steps and an Ask plank offers the step`() = runTest {

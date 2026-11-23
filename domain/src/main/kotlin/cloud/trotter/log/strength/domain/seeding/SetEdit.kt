@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.domain.seeding
 
+import cloud.trotter.log.strength.domain.model.Sides
+
 /** Null leaves a value alone; unticking clears both timing stamps. */
 data class SetEdit(
     val weightLb: Double? = null,
@@ -9,4 +11,6 @@ data class SetEdit(
     val startedAtMillis: Long? = null,
     val completedAtMillis: Long? = null,
     val watchEditedAt: Long? = null,
+    /** New sides for the row; its single values become their weaker side (#644). */
+    val sides: Sides? = null,
 )

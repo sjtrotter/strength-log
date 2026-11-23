@@ -29,6 +29,8 @@ import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SideResult
+import cloud.trotter.log.strength.domain.model.Sides
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.progression.NextTimeMode
@@ -511,6 +513,35 @@ class SetEditApplierTest {
             assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(it))
             assertEquals(startedAt, repo.openRunFlow.first()!!.startedAt)
         }
+    }
+
+    @Test
+    fun `a watch tick stores no sides for a row added after a sided hold`() = runTest {
+        repo.replaceProgram(Program(listOf(ProgramDay(
+            "T", "Holds", "", listOf(ProgramExercise("side_plank", targetSets = 1,
+                prescription = Prescription(PrescribedTarget.Hold(30)))),
+        ))))
+        val id = trackId("side_plank")
+        val plan = requireNotNull(repo.plans.planIdOfSlot(id))
+        repo.ensureSeeded(plan, "T")
+        repo.startRun(plan, "T")
+        val run = requireNotNull(repo.dayTracksFlow(plan, "T").first().runId)
+        val sides = Sides(SideResult(0.0, 0, 30), SideResult(0.0, 0, 20))
+        repo.applyToRun(run, plan, "T", listOf(TrackEdit(id, Slot.MAIN) { rows ->
+            SetEditor.addSet(SetEditor.edit(rows, 0, SetEdit(done = true, sides = sides)))
+        }))
+        val extra = tTrack(id).last()
+        assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(SetEditDelta(
+            dayId = "T", programExerciseId = id, slot = Slot.MAIN, setIndex = 1,
+            weightLb = extra.weightLb, reps = extra.reps, seconds = extra.seconds,
+            done = true, editedAtMillis = 100L, planId = plan, runId = run, exerciseId = "side_plank",
+        )))
+        val stored = tTrack(id)
+        assertEquals(sides, stored.first().sides)
+        assertEquals(SetKind.EXTRA, stored.last().kind)
+        assertTrue(stored.last().done)
+        assertEquals(20, stored.last().seconds)
+        assertNull(stored.last().sides)
     }
 
     @Test

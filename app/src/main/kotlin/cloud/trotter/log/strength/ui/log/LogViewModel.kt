@@ -304,8 +304,7 @@ class LogViewModel @Inject constructor(
         viewModelScope.launch {
             val changed = editMutex.withLock {
                 val current = expandedSets.value[sessionId]?.firstOrNull { it.id == setId } ?: return@withLock false
-                val updated = transform(current)
-                repo.updateSessionSet(updated)
+                val updated = repo.updateSessionSet(transform(current))
                 expandedSets.update { cache ->
                     cache + (sessionId to cache.getValue(sessionId).map { if (it.id == setId) updated else it })
                 }

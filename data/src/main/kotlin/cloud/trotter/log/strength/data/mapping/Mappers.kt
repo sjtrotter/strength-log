@@ -1,5 +1,11 @@
 package cloud.trotter.log.strength.data.mapping
 
+import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
+import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SideResult
+import cloud.trotter.log.strength.domain.model.Sides
+import cloud.trotter.log.strength.domain.model.sidesAfter
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
@@ -106,3 +112,24 @@ fun CustomExerciseEntity.toEntry(): ExerciseEntry =
         },
         subRank = ExerciseCatalog.CUSTOM_SUBRANK,
     )
+
+/** Partial and legacy rows are side unknown; never invent a side from a single value (#644). */
+fun SessionSetEntity.sides(): Sides? {
+    val lw = leftWeightLb ?: return null
+    val lr = leftReps ?: return null
+    val ls = leftSeconds ?: return null
+    val rw = rightWeightLb ?: return null
+    val rr = rightReps ?: return null
+    val rs = rightSeconds ?: return null
+    return Sides(SideResult(lw, lr, ls), SideResult(rw, rr, rs))
+}
+
+fun SessionSetEntity.withSides(sides: Sides?): SessionSetEntity = copy(
+    leftWeightLb = sides?.left?.weightLb, leftReps = sides?.left?.reps, leftSeconds = sides?.left?.seconds,
+    rightWeightLb = sides?.right?.weightLb, rightReps = sides?.right?.reps, rightSeconds = sides?.right?.seconds,
+)
+
+fun SessionSetEntity.carryingSidesFrom(before: SessionSetEntity): SessionSetEntity =
+    withSides(before.values().sidesAfter(values()))
+
+private fun SessionSetEntity.values(): LoggedSet = LoggedSet(weightLb, reps, SetKind.WORK, done, seconds, sides = sides())

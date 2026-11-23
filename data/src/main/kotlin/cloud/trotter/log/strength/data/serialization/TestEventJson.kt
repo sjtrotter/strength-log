@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.data.serialization
 
 import cloud.trotter.log.strength.domain.standards.TestEvent
+import cloud.trotter.log.strength.domain.standards.TestRef
 import cloud.trotter.log.strength.domain.standards.TestSetType
 import kotlinx.serialization.Serializable
 
@@ -36,5 +37,12 @@ object TestEventJson {
 
     fun decode(json: String?): TestEvent? = json?.let {
         runCatching { SetJson.decode(TestEventDto.serializer(), it).toDomain() }.getOrNull()
+    }
+
+    /** Historical snapshots must remain readable when catalog constructor rules change. */
+    fun validateSnapshot(json: String, ref: TestRef, exerciseId: String) {
+        val rules = SetJson.decode(TestEventDto.serializer(), json)
+        require(rules.id == ref.eventId && rules.version == ref.version && rules.exerciseId == exerciseId &&
+            rules.windowSeconds == ref.windowSeconds)
     }
 }

@@ -313,12 +313,21 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             })
         }
         // Future fields stay unknown in old versions, even when they have the wrong type.
+        val withTests = if (version < 35) {
+            JsonObject(shaped.toMutableMap().apply {
+                remove("testResults")
+                val plans = get("plans") as? JsonArray
+                if (plans != null) {
+                    put("plans", JsonArray(plans.map { if (it is JsonObject) JsonObject(it - "testGoalJson") else it }))
+                }
+            })
+        } else shaped
         val withGoals = if (version < 25) {
-            val plans = shaped["plans"] as? JsonArray
-            if (plans == null) shaped else JsonObject(shaped + ("plans" to JsonArray(
+            val plans = withTests["plans"] as? JsonArray
+            if (plans == null) withTests else JsonObject(withTests + ("plans" to JsonArray(
                 plans.map { if (it is JsonObject) JsonObject(it - "goalJson") else it },
             )))
-        } else shaped
+        } else withTests
         val withCardioNotes = if (version < 22) {
             val sessions = withGoals["cardioSessions"] as? JsonArray
             if (sessions == null) withGoals else JsonObject(withGoals + ("cardioSessions" to JsonArray(
@@ -713,11 +722,14 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             if ((result.count == null) == (result.seconds == null)) {
                 throw BackupError.Inconsistent("test result ${result.id} needs exactly one number")
             }
-            if (TestEventJson.decode(result.rulesJson) == null) {
-                throw BackupError.Inconsistent("invalid rulesJson of test result ${result.id}")
+            if ((result.count != null && result.count < 0) || (result.seconds != null && result.seconds < 0)) {
+                throw BackupError.Inconsistent("negative number on test result ${result.id}")
             }
-            if (runCatching { TestRef(result.eventId, result.eventVersion, result.windowSeconds) }.isFailure) {
+            val ref = runCatching { TestRef(result.eventId, result.eventVersion, result.windowSeconds) }.getOrElse {
                 throw BackupError.Inconsistent("invalid identity of test result ${result.id}")
+            }
+            if (runCatching { TestEventJson.validateSnapshot(result.rulesJson, ref, result.exerciseId) }.isFailure) {
+                throw BackupError.Inconsistent("invalid or mismatched rulesJson of test result ${result.id}")
             }
         }
     }

@@ -151,6 +151,85 @@ class TestGoalBackupTest {
         assertEquals(emptyList<TestResultEntity>(), decoded.toSnapshot().testResults)
     }
 
+    @Test fun `pre v35 documents ignore wrong typed test results`() {
+        for (version in listOf(1, 25, 32, 33, 34)) {
+            val source = if (version == 1) {
+                checkNotNull(javaClass.getResourceAsStream("/backup/v1_backup.json")).use { it.readBytes().toString(Charsets.UTF_8) }
+            } else atVersion(document(), version)
+            val root = Json.parseToJsonElement(source).jsonObject
+            for (future in listOf(JsonObject(emptyMap()), JsonPrimitive("future"), JsonPrimitive(1))) {
+                val decoded = codec.decode(JsonObject(root + ("testResults" to future)).toString())
+                assertEquals(version, decoded.schemaVersion)
+                assertEquals(emptyList<TestResultBackup>(), decoded.testResults)
+                assertEquals(emptyList<TestResultEntity>(), decoded.toSnapshot().testResults)
+                assertTrue(decoded.plans.all { it.testGoalJson == null })
+            }
+        }
+    }
+
+    @Test fun `a result whose identity differs from its stored rules is inconsistent`() {
+        val row = result()
+        val mismatches = listOf(
+            row.copy(eventId = "other_event"),
+            row.copy(eventVersion = 2),
+            row.copy(exerciseId = "plank"),
+            row.copy(windowSeconds = 60),
+            row.copy(windowSeconds = null),
+            row.copy(count = null, seconds = 192, rulesJson = TestEventJson.encode(TestEvents.get("aft_plank"))),
+        )
+        for (mismatch in mismatches) {
+            assertFailsWith<BackupError.Inconsistent> {
+                codec.decode(codec.encode(document().copy(testResults = listOf(mismatch))))
+            }
+        }
+    }
+
+    @Test fun `historical rules with an unknown set type and non https source restore verbatim`() = runTest {
+        val rules = Json.parseToJsonElement(result().rulesJson).jsonObject
+        val historical = JsonObject(rules + mapOf(
+            "version" to JsonPrimitive(2),
+            "setType" to JsonPrimitive("HISTORICAL_WINDOW"),
+            "sourceUrl" to JsonPrimitive("http://example.com/rules"),
+            "sourceDate" to JsonPrimitive("June 2025"),
+            "futureRule" to JsonPrimitive("preserved"),
+        ))
+        val row = result().copy(eventVersion = 2, rulesJson = "\n$historical\n")
+        val backup = codec.encode(document().copy(testResults = listOf(row)))
+        val decoded = codec.decode(backup)
+        assertEquals(row, decoded.testResults.single())
+        assertEquals(row.rulesJson, decoded.toSnapshot().testResults.single().rulesJson)
+        service.import(backup)
+        assertEquals(row.rulesJson, db.testResultDao().all().single().rulesJson)
+        assertEquals(row, codec.decode(service.export()).testResults.single())
+    }
+
+    @Test fun `rules snapshots require display fields and typed values`() {
+        val rules = Json.parseToJsonElement(result().rulesJson).jsonObject
+        val invalid = listOf("name", "setType", "form", "faults", "rest", "scoring", "sourceUrl", "sourceDate")
+            .map { JsonObject(rules - it) } + listOf(
+                JsonObject(rules + ("setType" to JsonObject(emptyMap()))),
+                JsonObject(rules + ("windowSeconds" to JsonPrimitive("later"))),
+            )
+        for (snapshot in invalid) {
+            assertFailsWith<BackupError.Inconsistent> {
+                codec.decode(codec.encode(document().copy(testResults = listOf(result().copy(rulesJson = snapshot.toString())))))
+            }
+        }
+    }
+
+    @Test fun `negative test counts and seconds are inconsistent and zero restores`() {
+        val hold = result().copy(exerciseId = "plank", eventId = "aft_plank", windowSeconds = null,
+            count = null, seconds = 0, stop = "STOPPED", rulesJson = TestEventJson.encode(TestEvents.get("aft_plank")))
+        for (row in listOf(result().copy(count = -3), hold.copy(seconds = -1))) {
+            assertFailsWith<BackupError.Inconsistent> {
+                codec.decode(codec.encode(document().copy(testResults = listOf(row))))
+            }
+        }
+        for (row in listOf(result().copy(count = 0), hold)) {
+            assertEquals(row, codec.decode(codec.encode(document().copy(testResults = listOf(row)))).testResults.single())
+        }
+    }
+
     @Test fun `an unknown stop or a result with two numbers is inconsistent`() {
         for (row in listOf(result().copy(stop = "FELL"), result().copy(seconds = 192), result().copy(count = null))) {
             assertFailsWith<BackupError.Inconsistent> { codec.decode(codec.encode(document().copy(testResults = listOf(row)))) }

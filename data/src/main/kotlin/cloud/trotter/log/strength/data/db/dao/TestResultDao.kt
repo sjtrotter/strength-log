@@ -24,6 +24,7 @@ interface TestResultDao {
     @Query("DELETE FROM test_result")
     suspend fun deleteAll()
 
+    // Matches only rows with a non-null run, slot and set index.
     @Query("DELETE FROM test_result WHERE runId = :runId AND programExerciseId = :programExerciseId AND setIndex = :setIndex")
     suspend fun deleteForSet(runId: String, programExerciseId: Long, setIndex: Int)
 

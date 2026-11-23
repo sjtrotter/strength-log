@@ -78,6 +78,7 @@ import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
@@ -2305,8 +2306,9 @@ class TrackerRepository(
             val actual = SetJson.decodeSets(track.setsJson)
             if (track.dropped && actual.none { it.done }) continue
             val opening = OpeningJson.decode(track.openingJson)
-            // Recalibration must persist through a light opening; other light openings are views.
-            if (opening?.light == true && opening.layoff != OpeningDto.RECALIBRATE) {
+            val window = if (track.slot == Slot.MAIN) repWindowOf(slots[track.programExerciseId]?.prescriptionJson) else null
+            // Non-window light openings are views; recalibration must persist.
+            if (window == null && opening?.light == true && opening.layoff != OpeningDto.RECALIBRATE) {
                 val planned = SetJson.decodeSets(track.plannedJson)
                 val reached = WorkingRows.workSetIndices(planned).any { i -> actual.any { it.plannedIndex == i && it.done } }
                 reasons[track.id] = ReasonCode.encode(if (reached) Reason.LightCycle else Reason.NoSets)
@@ -2346,7 +2348,7 @@ class TrackerRepository(
             // A malformed row must never block Finish; an opened track keeps its stored load.
             val prepared = try {
                 val outcome = Progression.afterSession(rule, working, Progression.Exposure(planned, actual, today, layoff = layoff),
-                    Progression.Context(unit, entry?.equipment.orEmpty().toSet(), steps, today, light = opening?.light == true))
+                    Progression.Context(unit, entry?.equipment.orEmpty().toSet(), steps, today, light = opening?.light == true), window)
                 val writtenRule = if (automatic) outcome.rule else outcome.rule.copy(target = rule.target,
                     state = outcome.rule.state.copy(calibrating = rule.state.calibrating))
                 Prepared(outcome, writtenRule, SlotRuleJson.encode(writtenRule), offerOf(outcome, if (opening == null) planned else WorkingRows.cleared(working), working, rule))
@@ -2357,14 +2359,14 @@ class TrackerRepository(
             }
             val outcome = prepared.outcome
             reasons[track.id] = ReasonCode.encode(outcome.reason)
-            val writtenRows = if (automatic) outcome.rows else WorkingRows.cleared(working)
+            val writtenRows = if (automatic || outcome.reason == Reason.Measured) outcome.rows else WorkingRows.cleared(working)
             writeLog(slot, track.slot, writtenRows)
             writeRule(slot, track.slot, requireNotNull(stored), prepared.encodedRule)
             if (track.slot == Slot.MAIN) shareProgression(slot, writtenRows, prepared.rule)
             if (outcome.reason == Reason.Stall) stalled = true
             prepared.offer?.let { offers[track.id] = it }
             // MaxSet blocks an increase and therefore gives no shared credit.
-            if (outcome.reason in setOf(Reason.AllMade, Reason.EasySession, Reason.Streak, Reason.AddWeight)) {
+            if (window == null && outcome.reason in setOf(Reason.AllMade, Reason.EasySession, Reason.Streak, Reason.AddWeight)) {
                 credits.add(Triple(slot.id, track.exerciseId, rule.target.reps))
             }
         }
@@ -2375,6 +2377,7 @@ class TrackerRepository(
                 if (other.id == sourceId || other.dayId == day.dayId || other.keepToPlan) continue
                 for (name in listOf(Slot.MAIN, Slot.SS)) {
                     if (name == Slot.MAIN && other.id in shared) continue
+                    if (name == Slot.MAIN && repWindowOf(other.prescriptionJson) != null) continue
                     if (other.exerciseIdFor(name) != exerciseId || (other.id to name) in credited) continue
                     val stored = other.ruleJsonFor(name) ?: continue
                     val rule = SlotRuleJson.decode(stored) ?: continue
@@ -2558,6 +2561,10 @@ class TrackerRepository(
             }
         }.distinct().size
     }
+
+    /** A slot's reps-in-time prescription; a malformed one reads as none so it never blocks Finish. */
+    private fun repWindowOf(prescriptionJson: String?): PrescribedTarget.RepsInTime? =
+        runCatching { PrescriptionJson.decode(prescriptionJson)?.target as? PrescribedTarget.RepsInTime }.getOrNull()
 
     private fun offerOf(outcome: Outcome, planned: List<LoggedSet>, working: List<LoggedSet>, rule: SlotRule): OfferDto? {
         val from = WorkingRows.workingWeight(planned) ?: return null

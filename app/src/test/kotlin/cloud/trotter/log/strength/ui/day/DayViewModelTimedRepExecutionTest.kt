@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.data.convertTestPlans
+import cloud.trotter.log.strength.data.storeTestRows
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.cardio.CardioBlocks
 import kotlinx.coroutines.flow.map
@@ -19,6 +20,8 @@ import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.CardioSuggestion
+import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.Program
@@ -153,6 +156,18 @@ class DayViewModelTimedRepExecutionTest {
 
     private fun recreateHandle(handle: SavedStateHandle): SavedStateHandle =
         SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
+
+    @Test
+    fun aProgressedAimReachesTheCardBeforeAndDuringTheWorkout() = test {
+        prepare()
+        val id = repo.plans.daySlotsFlow("A").first().single().programExerciseId
+        db.storeTestRows("A", id, Slot.MAIN, List(2) { LoggedSet(0.0, 41, SetKind.WORK) })
+        val vm = readyVm()
+        assertEquals(41, vm.uiState.value.exercises.single().timedRepAim)
+        vm.startWorkout()
+        runCurrent()
+        assertEquals(41, vm.uiState.value.exercises.single().timedRepAim)
+    }
 
     @Test
     fun timedRepCountLogsOnlyMainAndPartnerTickStartsRest() = test {
@@ -295,7 +310,7 @@ class DayViewModelTimedRepExecutionTest {
         assertEquals(0, alarm.buzzes)
         val remaining = vm.uiState.value.exercises.single().rows.single()
         assertFalse(remaining.done)
-        assertEquals(0, remaining.reps)
+        assertEquals(40, remaining.reps) // #642: an unlogged window row carries the rep aim
         vm.start()
         runCurrent()
         assertEquals(120, vm.uiState.value.timedRep?.remainingSeconds)
@@ -317,7 +332,7 @@ class DayViewModelTimedRepExecutionTest {
         runCurrent()
         val remaining = repo.dayTracksFlow(repo.plans.selectedPlanIdFlow.first()!!, "A").map { it.tracks }.first().single { it.slot == Slot.MAIN }.sets.single()
         assertFalse(remaining.done)
-        assertEquals(0, remaining.reps)
+        assertEquals(40, remaining.reps) // #642: an unlogged window row carries the rep aim
     }
 
     @Test
@@ -345,7 +360,7 @@ class DayViewModelTimedRepExecutionTest {
         assertTimedRepCleared(vm)
         vm.logTimedRepCount()
         runCurrent()
-        assertEquals(0, vm.uiState.value.exercises.single().rows.single().reps)
+        assertEquals(40, vm.uiState.value.exercises.single().rows.single().reps) // #642: an unlogged window row carries the rep aim
     }
 
     @Test
@@ -373,7 +388,7 @@ class DayViewModelTimedRepExecutionTest {
         assertTimedRepCleared(vm)
         vm.logTimedRepCount()
         runCurrent()
-        assertTrue(vm.uiState.value.exercises.single().rows.all { !it.done && it.reps == 0 })
+        assertTrue(vm.uiState.value.exercises.single().rows.all { !it.done && it.reps == 40 }) // #642: an unlogged window row carries the rep aim
     }
 
     @Test
@@ -412,7 +427,7 @@ class DayViewModelTimedRepExecutionTest {
         assertTimedRepCleared(vm)
         vm.logTimedRepCount()
         runCurrent()
-        assertTrue(vm.uiState.value.exercises.single().rows.all { !it.done && it.reps == 0 })
+        assertTrue(vm.uiState.value.exercises.single().rows.all { !it.done && it.reps == 40 }) // #642: an unlogged window row carries the rep aim
     }
 
     @Test
@@ -443,7 +458,7 @@ class DayViewModelTimedRepExecutionTest {
         runCurrent()
         val rows = vm.uiState.value.exercises.single().rows
         assertFalse(rows[0].done)
-        assertEquals(0, rows[0].reps)
+        assertEquals(40, rows[0].reps) // #642: an unlogged window row carries the rep aim
         assertTrue(rows[1].done)
         assertEquals(38, rows[1].reps)
         assertTimedRepCleared(vm)

@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.progression.WorkingRows
+import cloud.trotter.log.strength.domain.progression.Progression
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 
 data class PerformedTrack(
@@ -41,6 +42,9 @@ data class PerformedTrack(
     /** Whether this hold takes an added load: the prescription's, else the catalog's, never the current rows. */
     val showsLoad: Boolean get() = tracking == TrackingType.TIMED && if (performed.prescription == null)
         ((performed.entry?.goal as? GoalSource.Time)?.addedWeightLb ?: 0.0) > 0.0 else loadLb > 0.0
+    /** A reps-in-time set's aim ([Progression.repAim]): the run's planned rows, else the rows Start opens with. */
+    val repAim: Int?
+        get() = (performed.prescription?.target as? PrescribedTarget.RepsInTime)?.let { Progression.repAim(it, planned ?: sets) }
 }
 
 data class PerformedSlot(val slot: ProgramSlot, val main: PerformedTrack, val partner: PerformedTrack?)

@@ -28,7 +28,7 @@ data class ReceiptLiftLine(
 
 object ReceiptLines {
     private fun storedLine(rows: List<LoggedSet>, session: SlotSession?, keepToPlan: Boolean, rule: SlotRule?): ReceiptLiftLine? {
-        if (keepToPlan || rule == null || session == null || session.retired || session.reason == "NO_SETS" ||
+        if (keepToPlan || rule == null || session == null || session.retired || session.reason == "NO_SETS" || session.reason == "MEASURED" ||
             session.actual.none { it.done }) return null
         val weight = WorkingRows.workingWeight(rows) ?: return null
         val anchor = WorkingRows.workingIndices(rows).firstOrNull()?.let { rows[it] } ?: return null

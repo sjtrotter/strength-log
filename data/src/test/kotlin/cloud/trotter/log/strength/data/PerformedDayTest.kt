@@ -44,6 +44,19 @@ class PerformedDayTest {
         assertNull(day(listOf(slot)).slots.single().main.planned)
     }
 
+    @Test fun `a rep window aim follows the planned rows then the opening rows then the authored aim`() {
+        val performed = PerformedExercise("pushup", null, Prescription(PrescribedTarget.RepsInTime(60, 20)))
+        fun rows(reps: Int) = List(3) { LoggedSet(0.0, reps, SetKind.WORK) }
+        val track = PerformedTrack(performed, null, rows(23).map { it.copy(done = true) }, null, planned = rows(22))
+        assertEquals(22, track.repAim)
+        assertEquals(21, track.copy(stored = rows(21), planned = null).repAim)
+        assertEquals(21, track.copy(opening = rows(21), planned = null).repAim)
+        assertEquals(20, track.copy(stored = rows(0), planned = null).repAim)
+        assertEquals(20, track.copy(stored = null, planned = null).repAim)
+        assertNull(track.copy(performed = performed.copy(prescription = Prescription(PrescribedTarget.RepsInTime(60)))).repAim)
+        assertNull(track.copy(performed = performed.copy(prescription = Prescription(PrescribedTarget.Reps(12)))).repAim)
+    }
+
     @Test fun `stored rows win including a deliberately empty track`() {
         val rows = listOf(LoggedSet(37.5, 9, SetKind.EXTRA, done = true))
         val partnerRows = listOf(LoggedSet(20.0, 12, SetKind.WORK))

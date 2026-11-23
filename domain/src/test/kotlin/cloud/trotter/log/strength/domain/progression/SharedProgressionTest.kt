@@ -89,7 +89,7 @@ class SharedProgressionTest {
             incrementPct = 0.025, dropPct = 0.0, restSeconds = 90, nextTime = NextTimeMode.ASK)
         val from = rule(target = RepTarget.Range(8, 12, 10)).copy(everyExposures = 2,
             state = SlotState(calibrating = true, successStreak = 1, repMissStreak = 2, effortMissStreak = 3,
-                resetEpochDays = listOf(100L, 120L), exposures = 16, pendingIncrease = true))
+                resetEpochDays = listOf(100L, 120L), exposures = 16)) // #647: the shared-credit flag no longer exists
         assertEquals(into.copy(target = from.target, everyExposures = from.everyExposures, state = from.state),
             SharedProgression.copied(into, from))
     }

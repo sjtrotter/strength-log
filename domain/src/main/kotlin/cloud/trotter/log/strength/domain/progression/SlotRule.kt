@@ -20,19 +20,15 @@ sealed interface RepTarget {
     }
 }
 
-/** Progression state. Finish copies it to the slots that share this one's progression ([SharedProgression])
- *  and grants other slots of the exercise at the same rep target shared success credit. */
+/** Progression state. Finish copies it to the slots that share this one's progression ([SharedProgression]). */
 data class SlotState(
     val calibrating: Boolean = false,
-    /** Successes toward cadence; consuming a pending increase starts a fresh cadence. */
     val successStreak: Int = 0,
     val repMissStreak: Int = 0,
     val effortMissStreak: Int = 0,
     /** Epoch days of the last two stalls, oldest first. */
     val resetEpochDays: List<Long> = emptyList(),
     val exposures: Int = 0,
-    /** Shared credit earned an increase to apply on this slot's next successful Finish. */
-    val pendingIncrease: Boolean = false,
 )
 
 data class SlotRule(

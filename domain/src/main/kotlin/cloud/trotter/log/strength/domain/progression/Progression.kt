@@ -220,7 +220,7 @@ object Progression {
             Judgment.SUCCESS -> success(current, base, done.map { it.second }, doneAnchors, anchor, step, bodyweight, coarse, ctx)
             Judgment.REP_MISS -> {
                 val misses = current.state.repMissStreak + 1
-                current = current.copy(state = current.state.copy(successStreak = 0, repMissStreak = misses, effortMissStreak = 0, pendingIncrease = false))
+                current = current.copy(state = current.state.copy(successStreak = 0, repMissStreak = misses, effortMissStreak = 0))
                 if (misses < 2) return result(Reason.RepMiss)
                 val recentStall = current.state.resetEpochDays.any { exposure.epochDay - it <= 42 }
                 current = current.copy(
@@ -245,7 +245,7 @@ object Progression {
                 }
             }
             Judgment.INCOMPLETE -> {
-                current = current.copy(state = current.state.copy(successStreak = 0, pendingIncrease = false))
+                current = current.copy(state = current.state.copy(successStreak = 0))
                 result(Reason.Incomplete)
             }
             Judgment.EFFORT_MISS -> {
@@ -541,7 +541,7 @@ object Progression {
         ceiling: Int,
         ctx: Context,
     ): Outcome {
-        val unmet = rule.copy(state = rule.state.copy(successStreak = 0, pendingIncrease = false))
+        val unmet = rule.copy(state = rule.state.copy(successStreak = 0))
         if (done.any { (i, row) -> row.seconds < exposure.planned[i].seconds }) return Outcome(base, unmet, Change.Hold, Reason.RepMiss)
         if (done.size < plannedHolds) return Outcome(base, unmet, Change.Hold, Reason.Incomplete)
         val (current, increaseDue) = cadence(rule, ctx)
@@ -565,7 +565,7 @@ object Progression {
 
     private fun effectiveRir(set: LoggedSet, rule: SlotRule): Int = set.rir ?: rule.rir
 
-    private fun SlotState.resetStreaks(): SlotState = copy(successStreak = 0, repMissStreak = 0, effortMissStreak = 0, pendingIncrease = false)
+    private fun SlotState.resetStreaks(): SlotState = copy(successStreak = 0, repMissStreak = 0, effortMissStreak = 0)
 
     private fun RepTarget.atReps(reps: Int): RepTarget = when (this) {
         is RepTarget.Fixed -> RepTarget.Fixed(reps)
@@ -608,7 +608,7 @@ object Progression {
         return when {
             done.any { it.reps < aim } -> held(counted.copy(state = counted.state.resetStreaks()), Reason.RepMiss)
             done.size < work.size ->
-                held(counted.copy(state = counted.state.copy(successStreak = 0, pendingIncrease = false)), Reason.Incomplete)
+                held(counted.copy(state = counted.state.copy(successStreak = 0)), Reason.Incomplete)
             else -> {
                 val (cadenced, increaseDue) = cadence(counted, ctx)
                 if (!increaseDue) held(cadenced, Reason.Streak)
@@ -618,13 +618,13 @@ object Progression {
         }
     }
 
-    /** One more success toward the slot's cadence: a pending shared increase starts a fresh streak, and a slowed cadence
-     *  speeds back up after four in a row. Returns the rule and whether an increase is due now. */
+    /** One more success toward the slot's cadence; a slowed cadence speeds back up after four in a row.
+     *  Returns the rule and whether an increase is due now. */
     private fun cadence(rule: SlotRule, ctx: Context): Pair<SlotRule, Boolean> {
         var current = rule.copy(state = rule.state.resetStreaks().copy(
-            successStreak = if (rule.state.pendingIncrease) 0 else rule.state.successStreak + 1,
+            successStreak = rule.state.successStreak + 1,
         ))
-        val increaseDue = rule.state.pendingIncrease || current.state.successStreak % current.everyExposures == 0
+        val increaseDue = current.state.successStreak % current.everyExposures == 0
         if (current.everyExposures > ctx.baseCadence && current.state.successStreak >= 4) {
             current = current.copy(everyExposures = current.everyExposures - 1, state = current.state.copy(successStreak = 0))
         }
@@ -636,8 +636,7 @@ object Progression {
         val misses = rule.state.effortMissStreak + 1
         return rule.copy(
             everyExposures = if (misses >= 2) minOf(3, rule.everyExposures + 1) else rule.everyExposures,
-            state = rule.state.copy(successStreak = 0, repMissStreak = 0, effortMissStreak = if (misses >= 2) 0 else misses,
-                pendingIncrease = false),
+            state = rule.state.copy(successStreak = 0, repMissStreak = 0, effortMissStreak = if (misses >= 2) 0 else misses),
         )
     }
 

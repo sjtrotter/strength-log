@@ -8,7 +8,6 @@ import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.progression.RepTarget
 import cloud.trotter.log.strength.domain.progression.SlotRole
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlinx.coroutines.test.runTest
@@ -32,7 +31,7 @@ class FinishRepsInTimeTest : FinishProgressionFixture() {
         assertEquals(RepTarget.Fixed(21), rule(window).target)
         assertEquals("ALL_MADE", SessionPlanJson.decode(db.sessionDao().sessionById(session)!!.plannedJson!!).single().reason)
         assertEquals(0, rule(plain).state.successStreak)
-        assertFalse(rule(plain).state.pendingIncrease)
+        // #647: removed the pendingIncrease assertion; the zero streak still pins independence.
     }
 
     @Test fun `a rep window with no aim keeps measuring`() = runTest {
@@ -106,7 +105,7 @@ class FinishRepsInTimeTest : FinishProgressionFixture() {
         repo.setPrescription(window, Prescription(PrescribedTarget.RepsInTime(60, 20)))
         val before = rule(window)
         finish(plan, plain, 0.0, listOf(20, 20, 20))
-        assertFalse(rule(window).state.pendingIncrease)
+        // #647: removed the pendingIncrease assertion; the whole-rule comparison still pins independence.
         assertEquals(before, rule(window))
     }
 }

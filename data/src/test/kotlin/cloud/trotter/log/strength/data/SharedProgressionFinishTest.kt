@@ -58,7 +58,7 @@ class SharedProgressionFinishTest : FinishProgressionFixture() {
         assertEquals(work(n = 2, w = 165.0), rows(plan, b, "B"))
         assertEquals(RepTarget.Fixed(5), rule(b).target)
         assertEquals(3, rule(b).rir)
-        assertEquals(1, rule(b).state.successStreak)
+        assertEquals(0, rule(b).state.successStreak) // #647: unlike slots earn no cross-day credit
     }
 
     @Test fun `Ask acceptance reaches the matching slot and a revert follows it`() = runTest {
@@ -139,6 +139,6 @@ class SharedProgressionFinishTest : FinishProgressionFixture() {
         lifter(plan, b, work(n = 4), day = "B")
         finish(plan, a)
         assertEquals(work(n = 4), rows(plan, b, "B"))
-        assertEquals(1, rule(b).state.successStreak)
+        assertEquals(0, rule(b).state.successStreak) // #647: unlike slots earn no cross-day credit
     }
 }

@@ -69,7 +69,8 @@ class PartnerRuleTest : OpeningFixture() {
         assertEquals(rows(plan, a), rows(plan, b, "B"))
         assertEquals(rule(a).state, rule(b).state)
         assertEquals(work(w = 120.0, r = 10), rows(plan, row, "B"))
-        assertEquals(1, rule(row).state.successStreak)
+        // #647: Day A's superset partner no longer credits Day B's cable row; it earns only its own successes.
+        assertEquals(0, rule(row).state.successStreak)
     }
 
     @Test fun `a partner rule follows add, swap and remove of the partner and survives a main swap and Plan mode`() = runTest {
@@ -183,7 +184,7 @@ class PartnerRuleTest : OpeningFixture() {
         assertNull(ssOffer(plan, b))
     }
 
-    @Test fun `credit crosses between a partner and a main slot of the same exercise and rep target`() = runTest {
+    @Test fun `a partner's success leaves other slots of its exercise alone`() = runTest { // #647: credit is removed in both directions
         val plan = converted(day("bb_bench"), day("cable_row", id = "B"), day("cable_row", id = "C"))
         val a = id(plan, "bb_bench")
         val b = id(plan, "cable_row", "B")
@@ -195,13 +196,13 @@ class PartnerRuleTest : OpeningFixture() {
         lifter(plan, c, work(w = 120.0, r = 12), rule(SlotRole.ACCESSORY, 12), "C")
         val cRule = db.programDao().exercise(c)!!.ruleJson
         finishBoth(plan, a)
-        assertEquals(1, rule(b).state.successStreak)
-        assertFalse(rule(b).state.pendingIncrease)
+        assertEquals(0, rule(b).state.successStreak) // #647: the partner gives no cross-day credit
+        // #647: pendingIncrease no longer exists; independence is pinned by the streak and rows.
         assertEquals(work(3, 120.0, 10), rows(plan, b, "B"))
         assertEquals(cRule, db.programDao().exercise(c)!!.ruleJson)
         finish(plan, b, 120.0, listOf(10, 10, 10), "B")
-        assertEquals(NextOffer(120.0, 130.0), offer(plan, "cable_row", "B"))
-        assertEquals(2, partnerRule(a)!!.state.successStreak)
+        assertNull(offer(plan, "cable_row", "B")) // #647: one own success is below cadence two
+        assertEquals(1, partnerRule(a)!!.state.successStreak) // #647: the main gives no credit back to the partner
     }
 
     @Test fun `undo restores a partner rule and its rows after a restart`() = runTest {

@@ -49,14 +49,14 @@ class FinishHoldProgressionTest : FinishProgressionFixture() {
         assertEquals("HOLD_STEP", repo.history.slotSessionsById(automatic, "A").getValue(a to Slot.MAIN).reason)
         assertEquals(holdRows(30), rows(automatic, b, "B"))
         assertEquals(before.state.successStreak, rule(b).state.successStreak)
-        assertEquals(before.state.pendingIncrease, rule(b).state.pendingIncrease)
+        // #647: removed the pendingIncrease comparison; the field no longer exists.
 
         lifter(automatic, a, holdRows(45), rule(SlotRole.CORE, 10).copy(everyExposures = 2))
         finishHold(automatic, a)
         assertEquals("STREAK", repo.history.slotSessionsById(automatic, "A").getValue(a to Slot.MAIN).reason)
         assertEquals(holdRows(30), rows(automatic, b, "B"))
         assertEquals(before.state.successStreak, rule(b).state.successStreak)
-        assertEquals(before.state.pendingIncrease, rule(b).state.pendingIncrease)
+        // #647: removed the pendingIncrease comparison; the field no longer exists.
 
         val ask = converted(day("plank"))
         val id = id(ask, "plank")

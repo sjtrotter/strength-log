@@ -295,7 +295,7 @@ class FinishProgressionTest : FinishProgressionFixture() {
         assertNotNull(repo.finishRun(run))
     }
 
-    @Test fun `success credits matching targets across days without changing their load`() = runTest {
+    @Test fun `a success leaves the other prescriptions of its exercise alone`() = runTest { // #647: unlike prescriptions earn their own successes
         val plan = converted(day("bb_back_squat"), day("bb_back_squat", id = "B"), day("bb_back_squat", id = "C"))
         val a = id(plan, "bb_back_squat")
         val b = id(plan, "bb_back_squat", "B")
@@ -303,12 +303,14 @@ class FinishProgressionTest : FinishProgressionFixture() {
         val cadence = rule(inc = 0.025).copy(everyExposures = 2)
         lifter(plan, a, work(w = 95.0), cadence)
         lifter(plan, b, work(w = 95.0, r = 10), cadence.copy(target = RepTarget.Fixed(10)), "B")
-        lifter(plan, c, work(w = 95.0), cadence.copy(rir = 3), "C") // #629: identical slots now share; an effort difference keeps this a shared-credit test
+        lifter(plan, c, work(w = 95.0), cadence.copy(rir = 3), "C") // #647: an effort difference keeps these prescriptions independent under #629
         finish(plan, a, 95.0)
-        assertEquals(1, rule(c).state.successStreak)
+        assertEquals(0, rule(c).state.successStreak) // #647: another prescription earns no cross-day credit
         assertEquals(0, rule(b).state.successStreak)
         assertEquals(work(w = 95.0), rows(plan, c, "C"))
         finish(plan, c, 95.0, day = "C")
+        assertNull(offer(plan, "bb_back_squat", "C")) // #647: one own success is below cadence two
+        finish(plan, c, 95.0, day = "C") // #647: the second own success earns the increase
         assertEquals(NextOffer(95.0, 100.0), offer(plan, "bb_back_squat", "C"))
     }
 
@@ -432,65 +434,6 @@ class FinishProgressionTest : FinishProgressionFixture() {
         assertEquals(beforeRule, db.programDao().exercise(id)!!.ruleJson)
     }
 
-    @Test fun `shared credit preserves a due increase from recipient streak zero or one`() = runTest {
-        for (initial in listOf(0, 1)) {
-            val plan = converted(day("bb_back_squat"), day("bb_back_squat", id = "C"))
-            val a = id(plan, "bb_back_squat")
-            val c = id(plan, "bb_back_squat", "C")
-            val cadence = rule(inc = 0.025).copy(everyExposures = 2)
-            lifter(plan, a, rule = cadence)
-            lifter(plan, c, rule = cadence.copy(rir = 3, state = SlotState(successStreak = initial)), day = "C") // #629: identical slots now share; an effort difference keeps this a shared-credit test
-            finish(plan, a)
-            assertEquals(initial + 1, rule(c).state.successStreak)
-            assertEquals(work(), rows(plan, c, "C"))
-            finish(plan, c, day = "C")
-            assertEquals(NextOffer(185.0, 190.0), offer(plan, "bb_back_squat", "C"))
-        }
-    }
-
-    @Test fun `a pending shared increase applies once then cadence resumes`() = runTest {
-        for (automatic in listOf(false, true)) {
-            val plan = converted(day("bb_back_squat"), day("bb_back_squat", id = "C"))
-            db.planDao().updatePlan(db.planDao().plan(plan)!!.copy(autoApply = automatic))
-            val a = id(plan, "bb_back_squat")
-            val c = id(plan, "bb_back_squat", "C")
-            val cadence = rule(inc = 0.025).copy(everyExposures = 2)
-            lifter(plan, a, rule = cadence)
-            lifter(plan, c, rule = cadence.copy(rir = 3, state = SlotState(successStreak = 1)), day = "C") // #629: identical slots now share; an effort difference keeps this a shared-credit test
-            finish(plan, a)
-            finish(plan, c, day = "C")
-            assertEquals(NextOffer(185.0, 190.0), offer(plan, "bb_back_squat", "C"))
-            assertEquals(work(w = if (automatic) 190.0 else 185.0), rows(plan, c, "C"))
-            if (!automatic) repo.setWorkingWeight(db.programDao().day(plan, "C")!!.nextRunId,
-                plan, "C", c, Slot.MAIN, 190.0)
-            finish(plan, c, weight = 190.0, day = "C")
-            assertNull(offer(plan, "bb_back_squat", "C"))
-            assertEquals(work(w = 190.0), rows(plan, c, "C"))
-            finish(plan, c, weight = 190.0, day = "C")
-            assertEquals(NextOffer(190.0, 195.0), offer(plan, "bb_back_squat", "C"))
-        }
-    }
-
-    @Test fun `a recipient miss clears its pending shared increase`() = runTest {
-        val plan = converted(day("bb_back_squat"), day("bb_back_squat", id = "C"))
-        val a = id(plan, "bb_back_squat")
-        val c = id(plan, "bb_back_squat", "C")
-        val cadence = rule(inc = 0.025).copy(everyExposures = 2)
-        lifter(plan, a, rule = cadence)
-        lifter(plan, c, rule = cadence.copy(rir = 3, state = SlotState(successStreak = 1)), day = "C") // #629: identical slots now share; an effort difference keeps this a shared-credit test
-        finish(plan, a)
-        assertTrue("\"pendingIncrease\":true" in SlotRuleJson.encode(rule(c)))
-        finish(plan, c, reps = listOf(5, 5, 4), day = "C")
-        assertTrue("pendingIncrease" !in SlotRuleJson.encode(rule(c)))
-        assertEquals(0, rule(c).state.successStreak)
-        assertEquals(1, rule(c).state.repMissStreak)
-        assertNull(offer(plan, "bb_back_squat", "C"))
-        finish(plan, c, day = "C")
-        assertNull(offer(plan, "bb_back_squat", "C"))
-        finish(plan, c, day = "C")
-        assertEquals(NextOffer(185.0, 190.0), offer(plan, "bb_back_squat", "C"))
-    }
-
     @Test fun `bodyweight above the cap keeps its target through Automatic and Ask Finish`() = runTest {
         for (automatic in listOf(false, true)) {
             val plan = converted(day("pushup"))
@@ -529,7 +472,7 @@ class FinishProgressionTest : FinishProgressionFixture() {
         assertNull(repo.openRunFlow.first())
     }
 
-    @Test fun `duplicate exercise slots keep their own offers and grant shared credit once`() = runTest {
+    @Test fun `duplicate exercise slots keep their own offers`() = runTest { // #647: cross-day credit is removed
         val plan = converted(day("db_row", "db_row"), day("db_row", id = "C"))
         val slots = db.programDao().exercisesForDay(plan, "A")
         val first = slots[0].id
@@ -537,7 +480,7 @@ class FinishProgressionTest : FinishProgressionFixture() {
         val c = id(plan, "db_row", "C")
         lifter(plan, first, work(w = 40.0, r = 10), rule(reps = 10))
         lifter(plan, second, work(w = 40.0, r = 12), rule(reps = 12))
-        lifter(plan, c, work(w = 40.0, r = 10), rule = rule(reps = 10).copy(everyExposures = 2, rir = 3), day = "C") // #629: identical slots now share; an effort difference keeps this a shared-credit test
+        lifter(plan, c, work(w = 40.0, r = 10), rule = rule(reps = 10).copy(everyExposures = 2, rir = 3), day = "C") // #647: an effort difference keeps these prescriptions independent under #629
         val run = start(plan)
         perform(run, plan, first, 40.0, listOf(10, 10, 10))
         perform(run, plan, second, 40.0, listOf(12, 12, 12))
@@ -550,15 +493,15 @@ class FinishProgressionTest : FinishProgressionFixture() {
         repo.setWorkingWeight(next, plan, "A", second, Slot.MAIN, 40.0)
         assertEquals(work(w = 40.0, r = 13), rows(plan, second))
         assertEquals(work(w = 40.0, r = 11), rows(plan, first))
-        assertEquals(1, rule(c).state.successStreak)
+        assertEquals(0, rule(c).state.successStreak) // #647: another prescription earns no cross-day credit
         lifter(plan, first, work(w = 40.0, r = 10), rule(reps = 10))
         lifter(plan, second, work(w = 40.0, r = 10), rule(reps = 10))
-        lifter(plan, c, work(w = 40.0, r = 10), rule = rule(reps = 10).copy(everyExposures = 2, rir = 3), day = "C") // #629: identical slots now share; an effort difference keeps this a shared-credit test
+        lifter(plan, c, work(w = 40.0, r = 10), rule = rule(reps = 10).copy(everyExposures = 2, rir = 3), day = "C") // #647: an effort difference keeps these prescriptions independent under #629
         val both = start(plan)
         perform(both, plan, first, 40.0, listOf(10, 10, 10))
         perform(both, plan, second, 40.0, listOf(10, 10, 10))
         repo.finishRun(both)
-        assertEquals(1, rule(c).state.successStreak)
+        assertEquals(0, rule(c).state.successStreak) // #647: another prescription earns no cross-day credit
     }
 
 }

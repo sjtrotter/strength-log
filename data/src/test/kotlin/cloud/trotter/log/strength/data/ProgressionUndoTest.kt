@@ -88,19 +88,6 @@ class ProgressionUndoTest : FinishProgressionFixture() {
         assertEquals(UndoResult.Nothing, repo.undoFinish(aSession, null))
         assertEquals(UndoResult.DayOpen, repo.undoFinish(bSession, null))
     }
-    @Test fun `undo also restores cross-day success credit`() = runTest {
-        val plan = converted(day("bb_back_squat"), day("bb_back_squat", id = "C"))
-        val a = id(plan, "bb_back_squat")
-        val c = id(plan, "bb_back_squat", "C")
-        lifter(plan, a, work(w = 95.0), rule(inc = 0.025))
-        lifter(plan, c, work(w = 95.0), rule(inc = 0.025).copy(rir = 3), "C") // #629: identical slots now share; an effort difference keeps this a shared-credit test
-        val before = db.programDao().exercise(c)!!.ruleJson
-        val session = finish(plan, a, 95.0)
-        assertEquals(1, rule(c).state.successStreak)
-        assertEquals(UndoResult.Undone, repo.undoFinish(session, null))
-        assertEquals(before, db.programDao().exercise(c)!!.ruleJson)
-    }
-
     @Test fun `an unreadable undo record stays untouched`() = runTest {
         val (plan, s, c) = fixture()
         val id = finishBoth(plan, s, c)

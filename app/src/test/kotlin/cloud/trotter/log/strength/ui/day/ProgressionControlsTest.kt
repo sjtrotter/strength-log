@@ -198,4 +198,28 @@ class ProgressionControlsTest {
         rule.runOnIdle { rir.value = 2; scale.value = EffortScale.REPS_LEFT }
         rule.onNodeWithText("2 left").assertExists()
     }
+    @Test fun loadSourceListsOwnResultsAndEachEligibleDayAndReportsTheChoice() {
+        var edited: Pair<String, RuleEdit>? = null
+        val lift = LiftOptionsState(Slot.MAIN, "Squat", 180, 180, false, 2, 0.025, null,
+            sourceDays = listOf("A", "C"), loadSource = "A", loadRatio = 0.92)
+        val slot = mutableStateOf(DayEditSlotState(1, 0, "bb_back_squat", "Squat", null, false, lifts = listOf(lift)))
+        rule.setContent { AppTheme {
+            SlotOptionsScreen(slot.value, {}, {}, {}, {}, {}, {}, false, {}, {}, {}, {},
+                onRuleEdit = { half, edit -> edited = half to edit })
+        } }
+        rule.onNodeWithText("Load source").assertExists()
+        rule.onNodeWithText("Own results").assertIsNotSelected()
+        rule.onNodeWithText("Day A").assertIsSelected()
+        rule.onNodeWithText("Day C").assertExists()
+        rule.onNodeWithText("92% of Day A's load. Changing the load here changes the percentage.").assertExists()
+        rule.onNodeWithText("Own results").performClick()
+        rule.runOnIdle { assertEquals(Slot.MAIN to RuleEdit.LoadSource(null), edited) }
+        rule.onNodeWithText("Day C").performClick()
+        rule.runOnIdle {
+            assertEquals(Slot.MAIN to RuleEdit.LoadSource("C"), edited)
+            slot.value = slot.value.copy(lifts = listOf(lift.copy(sourceDays = emptyList())))
+        }
+        rule.onNodeWithText("Load source").assertDoesNotExist()
+    }
+
 }

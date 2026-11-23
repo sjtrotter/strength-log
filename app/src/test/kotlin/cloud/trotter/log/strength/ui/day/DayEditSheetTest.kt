@@ -660,4 +660,15 @@ class DayEditSheetTest {
         composeTestRule.onNodeWithText("Sprint sets follow the plan.").assertIsDisplayed()
     }
 
+    @Test fun `a following slot says so under its summary`() {
+        val slot = mutableStateOf(DayEditSlotState(1, 0, "bb_back_squat", "Squat", null, false, follows = "A"))
+        composeTestRule.setContent { AppTheme {
+            DayEditSheet(state = DayEditUiState(slots = listOf(slot.value)), actions = ladderActions(),
+                accent = Color.White, onDismiss = {}, onCreateExercise = {})
+        } }
+        composeTestRule.onNodeWithText("Follows Day A").assertIsDisplayed()
+        composeTestRule.runOnIdle { slot.value = slot.value.copy(follows = null) }
+        composeTestRule.onNodeWithText("Follows Day A").assertDoesNotExist()
+    }
+
 }

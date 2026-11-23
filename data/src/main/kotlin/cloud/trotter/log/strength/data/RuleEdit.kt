@@ -3,6 +3,8 @@ package cloud.trotter.log.strength.data
 import cloud.trotter.log.strength.domain.progression.NextTimeMode
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 
+enum class RuleEditResult { Applied, UnavailableSource, RatioOutOfRange }
+
 sealed interface RuleEdit {
     /** Null is Own results; a day id follows that day's load. MAIN only. */
     data class LoadSource(val dayId: String?) : RuleEdit

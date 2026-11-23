@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.day.DayScreenBuilder
+import cloud.trotter.log.strength.ui.day.loadSourcePercent
 import cloud.trotter.log.strength.ui.day.NextTime
 import kotlin.math.abs
 
@@ -24,6 +25,8 @@ data class ReceiptLiftLine(
     val reason: String?,
     val cadence: Int,
     val hasOffer: Boolean,
+    val followsDay: String? = null,
+    val ratio: Double? = null,
 )
 
 object ReceiptLines {
@@ -33,7 +36,8 @@ object ReceiptLines {
         val weight = WorkingRows.workingWeight(rows) ?: return null
         val anchor = WorkingRows.workingIndices(rows).firstOrNull()?.let { rows[it] } ?: return null
         return ReceiptLiftLine(weight, anchor.reps.takeIf { weight == 0.0 && anchor.seconds == 0 },
-            anchor.seconds.takeIf { it > 0 }, null, false, session.reason, rule.everyExposures, session.offer != null)
+            anchor.seconds.takeIf { it > 0 }, null, false, session.reason, rule.everyExposures, session.offer != null,
+            followsDay = rule.loadSource?.dayId, ratio = rule.loadSource?.ratio)
     }
 
     fun strength(rows: List<LoggedSet>, session: SlotSession?, keepToPlan: Boolean, rule: SlotRule?,
@@ -79,6 +83,12 @@ object ReceiptLines {
         return resources.getString(R.string.receipt_next_time, changed)
     }
 
+    fun followerLabel(follower: ReceiptFollower, unit: WeightUnit, resources: Resources): String {
+        val weight = SetFormatter.weight(follower.weightLb, unit)
+        val value = follower.delta?.let { resources.getString(R.string.next_time_applied, weight, signedDelta(it)) } ?: weight
+        return resources.getString(R.string.receipt_follower_line, follower.dayId, value)
+    }
+
     fun spoken(line: ReceiptLiftLine, unit: WeightUnit, resources: Resources): String {
         val unitWord = resources.getString(if (unit == WeightUnit.LB) R.string.receipt_say_pounds else R.string.receipt_say_kilograms)
         val value = when {
@@ -102,6 +112,7 @@ object ReceiptLines {
         if (ReasonCode.decode(line.reason) == null) return null
         val repChange = line.reps != null && line.hasOffer
         val key = when (line.reason) {
+            "FOLLOWED" -> if (line.delta != null) R.string.receipt_why_followed_change else R.string.receipt_why_followed
             "ALL_MADE" -> if (repChange) R.string.receipt_why_all_made_reps else R.string.receipt_why_all_made
             "EASY_SESSION" -> R.string.receipt_why_easy
             "STREAK" -> R.string.receipt_why_streak
@@ -122,6 +133,7 @@ object ReceiptLines {
         val value = if (repChange || line.reason == "ADD_WEIGHT") line.reps?.toString() ?: value(line, unit, resources)
             else value(line, unit, resources)
         val nextWord = resources.getString(if (line.offered) R.string.receipt_why_offered else R.string.receipt_why_next_time)
-        return resources.getString(key, name, value, line.delta?.let(::signedDelta).orEmpty(), line.cadence, nextWord)
+        return resources.getString(key, name, value, line.delta?.let(::signedDelta).orEmpty(), line.cadence, nextWord,
+            line.followsDay.orEmpty(), line.ratio?.let(::loadSourcePercent).orEmpty())
     }
 }

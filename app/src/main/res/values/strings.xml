@@ -653,6 +653,7 @@
     <string name="lift_sheet_last">Last time %1$s.</string>
     <string name="lift_sheet_last_date">Last time %1$s, %2$s.</string>
     <string name="lift_sheet_superset_with">Superset with %1$s.</string>
+    <string name="lift_sheet_follows">Follows Day %1$s.</string>
     <string name="lift_sheet_now">Now</string>
     <string name="day_sheet_progress">%1$d of %2$d sets</string>
     <string name="day_sheet_pair">%1$s + %2$s</string>
@@ -989,6 +990,9 @@
     <string name="receipt_why_calibrating">%1$s %2$s %5$s: still finding the weight.</string>
     <string name="receipt_why_calibrated">%1$s %2$s %5$s: found from today\'s sets.</string>
     <string name="receipt_why_add_weight">%1$s %2$s reps: the most reps this plan counts.</string>
+    <string name="receipt_why_followed">%1$s %2$s %5$s: follows Day %6$s at %7$s.</string>
+    <string name="receipt_why_followed_change">%1$s %2$s %5$s (%3$s): follows Day %6$s at %7$s.</string>
+    <string name="receipt_follower_line">Day %1$s: %2$s</string>
     <string name="receipt_why_hold_step">%1$s %2$s %5$s: all holds made.</string>
     <string name="receipt_why_hold_ceiling">%1$s %2$s: the longest hold this plan counts.</string>
     <string name="receipt_why_light_done">Light week done.</string>
@@ -1027,6 +1031,11 @@
     <string name="lift_options_increase">Increase</string>
     <string name="lift_options_increase_value">%1$s, at least %2$s</string>
     <string name="lift_options_increase_detail">Capped at 10%% per change.</string>
+    <string name="lift_options_load_source">Load source</string>
+    <string name="lift_options_load_source_own">Own results</string>
+    <string name="lift_options_load_source_own_detail">Progresses on this day\'s sets.</string>
+    <string name="lift_options_load_source_follow_detail">%1$s of Day %2$s\'s load. Changing the load here changes the percentage.</string>
+    <string name="day_edit_follows">Follows Day %1$s</string>
     <string name="settings_effort_scale">Effort scale</string>
     <string name="settings_effort_words">Words</string>
     <string name="settings_effort_reps_left">Reps left</string>

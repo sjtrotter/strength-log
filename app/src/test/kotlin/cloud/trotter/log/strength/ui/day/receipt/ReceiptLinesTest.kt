@@ -199,4 +199,21 @@ class ReceiptLinesTest {
         }
     }
 
+    @Test fun `Why names the day a follower follows and its percentage`() {
+        val rule = rule.copy(loadSource = cloud.trotter.log.strength.domain.progression.LoadSource("A", 170.0 / 185.0))
+        val stored = line(175.0, session(offer = null, reason = "FOLLOWED"), inputRule = rule)
+        assertEquals("Squat 175 lb next time: follows Day A at 92%.",
+            ReceiptLines.why("Squat", stored, WeightUnit.LB, resources))
+        assertEquals("Squat 175 lb next time (+5): follows Day A at 92%.",
+            ReceiptLines.why("Squat", stored.copy(delta = 5.0), WeightUnit.LB, resources))
+        assertEquals("A", stored.followsDay)
+        assertEquals(170.0 / 185.0, stored.ratio)
+    }
+
+    @Test fun `a follower label carries the day and the delta`() {
+        assertEquals("Day C: 175 lb (+5)", ReceiptLines.followerLabel(ReceiptFollower("C", 175.0, 5.0), WeightUnit.LB, resources))
+        assertEquals("Day C: 175 lb", ReceiptLines.followerLabel(ReceiptFollower("C", 175.0, null), WeightUnit.LB, resources))
+        assertEquals("Day C: 175 lb (−5)", ReceiptLines.followerLabel(ReceiptFollower("C", 175.0, -5.0), WeightUnit.LB, resources))
+    }
+
 }

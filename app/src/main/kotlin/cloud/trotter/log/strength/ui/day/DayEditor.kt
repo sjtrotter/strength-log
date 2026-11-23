@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.data.RuleEdit
 import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.progression.NextTimeMode
+import cloud.trotter.log.strength.domain.progression.LoadFollowing
 import cloud.trotter.log.strength.domain.progression.LoadSteps
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.RestPolicy
@@ -83,12 +84,12 @@ internal class DayEditor(
                 Pair(tracks.runOpen, tracks.tracks
                     .mapNotNull { track -> track.exerciseId?.let { (track.programExerciseId to track.slot) to it } }.toMap())
             }.distinctUntilChanged(),
-            repo.observePlanRows(plan.id, dayId),
+            combine(repo.observePlanRows(plan.id, dayId), repo.observeLoadSourceDays(plan.id), ::Pair),
             combine(unitFlow, restSettingsFlow, ::Pair),
-        ) { slots, planSettings, (runOpen, performed), rows, (unit, rest) ->
+        ) { slots, planSettings, (runOpen, performed), (rows, sources), (unit, rest) ->
             val day = ctx.program.days.firstOrNull { it.id == dayId }
             val block = day?.cardioBlock
-            buildEditState(slots, ctx.catalog, planSettings.equipmentOrAll, rows, plan, unit, rest).copy(
+            buildEditState(slots, ctx.catalog, planSettings.equipmentOrAll, rows, plan, unit, rest, ctx.program, dayId, sources).copy(
                 planId = plan.id, dayId = dayId, cardioBlock = block,
                 runOpen = runOpen,
                 cardioLadder = day?.cardioRule?.ladderLevel != null,
@@ -450,11 +451,18 @@ internal class DayEditor(
         plan: PlanEntity,
         unit: WeightUnit,
         rest: RestSettings,
+        program: Program,
+        dayId: String,
+        sources: Map<Long, List<String>>,
     ): DayEditUiState {
         val slotStates = slots.mapIndexed { index, slot ->
             val pe = slot.exercise
             val entry = catalog.find(pe.exerciseId)
             val partnerId = pe.superset?.exerciseId
+            val tracking = pe.prescription?.tracking ?: entry?.tracking ?: TrackingType.WEIGHTED
+            val follows = LoadFollowing.followedDay(program, dayId, pe, tracking)
+            val candidates = sources[slot.programExerciseId].orEmpty() + listOfNotNull(follows)
+            val sourceDays = program.strengthDays.map { it.id }.filter { it in candidates }
             DayEditSlotState(
                 programExerciseId = slot.programExerciseId,
                 position = slot.position,
@@ -469,14 +477,14 @@ internal class DayEditor(
                 nextTime = pe.rule?.nextTime ?: if (plan.autoApply) NextTimeMode.AUTO else NextTimeMode.ASK,
                 lifts = listOfNotNull(
                     liftOptionsState(Slot.MAIN, entry?.name ?: pe.exerciseId, pe.rule,
-                        pe.prescription?.tracking ?: entry?.tracking ?: TrackingType.WEIGHTED,
-                        entry?.equipment.orEmpty(), plan, unit, rest),
+                        tracking, entry?.equipment.orEmpty(), plan, unit, rest, sourceDays),
                     partnerId?.let { id ->
                         val partner = catalog.find(id)
                         liftOptionsState(Slot.SS, partner?.name ?: id, pe.superset?.rule,
                             partner?.tracking ?: TrackingType.WEIGHTED, partner?.equipment.orEmpty(), plan, unit, rest)
                     },
                 ),
+                follows = follows,
                 structure = pe.structure,
                 weightedTarget = entry?.tracking == TrackingType.WEIGHTED &&
                     pe.prescription.let { it == null || it.target is PrescribedTarget.LoadReps },
@@ -516,7 +524,7 @@ internal class DayEditor(
 
 internal fun liftOptionsState(half: String, title: String, rule: SlotRule?,
                               tracking: TrackingType, equipment: Collection<Equipment>, plan: PlanEntity,
-                              unit: WeightUnit, rest: RestSettings): LiftOptionsState? {
+                              unit: WeightUnit, rest: RestSettings, sourceDays: List<String> = emptyList()): LiftOptionsState? {
     rule ?: return null
     val goal = plan.planSettings.defaultsFor
     return LiftOptionsState(half, title,
@@ -524,5 +532,7 @@ internal fun liftOptionsState(half: String, title: String, rule: SlotRule?,
         RestPolicy.effectiveRestSeconds(SetKind.WORK, tracking, rest.overrides, rule.copy(restSeconds = null), goal),
         rule.restSeconds != null, rule.rir, rule.incrementPct,
         if (tracking == TrackingType.WEIGHTED) SetFormatter.weight(
-            (plan.planSettings.loadSteps ?: LoadSteps.defaults(unit)).stepLb(equipment), unit) else null)
+            (plan.planSettings.loadSteps ?: LoadSteps.defaults(unit)).stepLb(equipment), unit) else null,
+        sourceDays = sourceDays, loadSource = rule.loadSource?.dayId?.takeIf { it in sourceDays },
+        loadRatio = rule.loadSource?.ratio)
 }

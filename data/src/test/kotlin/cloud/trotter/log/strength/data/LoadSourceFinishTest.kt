@@ -13,6 +13,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -286,6 +287,55 @@ class LoadSourceFinishTest : FinishProgressionFixture() {
         finish(plan, c, 175.0, listOf(5, 5, 4), "C")
         val held = finish(plan, a, 190.0)
         assertTrue(repo.followedWrites(held).isEmpty())
+    }
+
+    @Test fun `source edits refuse an excessive ratio and the picker omits that day`() = runTest {
+        val (plan, _, c) = linked()
+        repo.editRule(c, Slot.MAIN, RuleEdit.LoadSource(null))
+        lifter(plan, c, work(w = 800.0), rule().copy(rir = 3), "C")
+        assertEquals(RuleEditResult.RatioOutOfRange, repo.editRule(c, Slot.MAIN, RuleEdit.LoadSource("A")))
+        assertNull(rule(c).loadSource)
+        assertEquals(work(w = 800.0), rows(plan, c, "C"))
+        assertTrue(repo.observeLoadSourceDays(plan).first().getValue(c).isEmpty())
+        lifter(plan, c, work(w = 740.0), rule().copy(rir = 3), "C")
+        assertEquals(listOf("A"), repo.observeLoadSourceDays(plan).first().getValue(c))
+        assertEquals(RuleEditResult.Applied, repo.editRule(c, Slot.MAIN, RuleEdit.LoadSource("A")))
+        assertEquals(LoadSource("A", 4.0), rule(c).loadSource)
+    }
+
+    @Test fun `a hand edit outside the ratio bound leaves the stored ratio intact`() = runTest {
+        val (plan, _, c) = linked()
+        val prior = rule(c).loadSource
+        weight(plan, c, "C", 800.0)
+        assertEquals(work(w = 800.0), rows(plan, c, "C"))
+        assertEquals(prior, rule(c).loadSource)
+        val run = start(plan, "C")
+        repo.setWorkingWeight(run, plan, "C", c, Slot.MAIN, 900.0)
+        assertEquals(work(w = 900.0), rows(plan, c, "C"))
+        assertEquals(prior, rule(c).loadSource)
+    }
+
+    @Test fun `a copied source skips a follower with its own track in the run`() = runTest {
+        val plan = authored()
+        repo.addDay(plan, "Day B")
+        val a = add(plan, "bb_back_squat")
+        val b = add(plan, "bb_back_squat", "B")
+        repo.addExercise("A", ProgramExercise("bb_back_squat", targetSets = 3), plan)
+        val follower = db.programDao().exercisesForDay(plan, "A").last().id
+        lifter(plan, a)
+        lifter(plan, b, day = "B")
+        lifter(plan, follower, work(w = 170.0), rule().copy(rir = 3))
+        repo.editRule(follower, Slot.MAIN, RuleEdit.LoadSource("B"))
+        val link = rule(follower).loadSource
+        val run = start(plan)
+        perform(run, plan, a, 185.0)
+        perform(run, plan, follower, 170.0, listOf(5, 5, 4))
+        val session = requireNotNull(repo.finishRun(run))
+        assertEquals(work(w = 190.0), rows(plan, b, "B"))
+        assertEquals(work(w = 170.0), rows(plan, follower))
+        assertEquals(link, rule(follower).loadSource)
+        assertEquals(1, rule(follower).state.repMissStreak)
+        assertTrue(repo.followedWrites(session).isEmpty())
     }
 
 }

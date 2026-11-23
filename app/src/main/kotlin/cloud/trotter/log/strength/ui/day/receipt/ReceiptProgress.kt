@@ -37,7 +37,9 @@ data class ReceiptProgress(val sessionId: Long?, val cardioSessionId: Long?, val
 data class ReceiptSlotRef(val groupIndex: Int, val rowIndex: Int, val programExerciseId: Long, val slot: String) : Parcelable
 
 data class ReceiptLiftProgress(val ref: ReceiptSlotRef, val name: String, val line: ReceiptLiftLine,
-                               val whyLine: ReceiptLiftLine?)
+                               val whyLine: ReceiptLiftLine?, val followers: List<ReceiptFollower> = emptyList())
+
+data class ReceiptFollower(val dayId: String, val weightLb: Double, val delta: Double?)
 
 data class ReceiptReplan(val phase: RunPhase?, val offered: Boolean)
 
@@ -107,6 +109,7 @@ internal object ReceiptProgressBuilder {
         if (plan == null) return ReceiptProgressState(cardioSets = cardioSets, cardioLastTimes = cardioLastTimes)
         val undo = repo.finishUndoState(identity.sessionId, identity.cardioSessionId)
         val sessions = history.slotSessionsById(plan.id, identity.dayId)
+        val followed = identity.sessionId?.let { repo.followedWrites(it) }.orEmpty()
         val lifts = identity.slots.mapNotNull { ref ->
             val slot = slots.firstOrNull { it.programExerciseId == ref.programExerciseId } ?: return@mapNotNull null
             val row = receipt.groups.getOrNull(ref.groupIndex)?.rows?.getOrNull(ref.rowIndex) ?: return@mapNotNull null
@@ -117,7 +120,12 @@ internal object ReceiptProgressBuilder {
             val line = ReceiptLines.strength(rows, session, slot.exercise.keepToPlan,
                 rule, receipt.unit, NextTimeGate.strength(plan, rule.nextTime))
                 ?: return@mapNotNull null
-            ReceiptLiftProgress(ref, row.name, line, ReceiptLines.whyLine(rows, session, rule, receipt.unit))
+            ReceiptLiftProgress(ref, row.name, line, ReceiptLines.whyLine(rows, session, rule, receipt.unit),
+                followers = if (ref.slot == Slot.MAIN) followed[ref.programExerciseId].orEmpty().map {
+                    ReceiptFollower(it.dayId, it.toLb, it.fromLb?.let { from ->
+                        DayScreenBuilder.offerDelta(it.toLb, from, receipt.unit)
+                    }?.takeIf { delta -> delta != 0.0 })
+                } else emptyList())
         }
         val day = program.days.firstOrNull { it.id == identity.dayId }
         val run = entry?.runResult()

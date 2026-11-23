@@ -33,6 +33,9 @@ interface ProgramDao {
     @Query("SELECT * FROM program_day WHERE cardioJson IS NOT NULL ORDER BY planId, position")
     suspend fun daysWithLegacyCardio(): List<ProgramDayEntity>
 
+    @Query("SELECT * FROM exercise_log WHERE planId = :planId")
+    fun observeLogsForPlan(planId: Long): Flow<List<ExerciseLogEntity>>
+
     // --- one-shot reads ------------------------------------------------------
 
     @Query("SELECT * FROM exercise_log WHERE planId = :planId ORDER BY dayId, programExerciseId, slot")

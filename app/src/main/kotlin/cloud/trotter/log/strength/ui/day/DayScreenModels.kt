@@ -437,6 +437,7 @@ data class ExerciseCardState(
     val lastTimeDate: String? = null,
     /** The day [lastTimeDisplay] came from when it is not this day (#629). */
     val lastTimeSource: LastSource? = null,
+    val follows: String? = null,
     val partnerHeaderTarget: HeaderTarget? = null,
     val partnerLastTimeDisplay: String? = null,
     val partnerLastTimeDate: String? = null,

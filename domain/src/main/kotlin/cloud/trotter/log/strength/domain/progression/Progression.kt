@@ -184,7 +184,9 @@ object Progression {
             val adopted = requireNotNull(carried)
             base = loaded(adopted)
             current = current.copy(state = current.state.resetStreaks(),
-                loadSource = following?.copy(ratio = adopted / requireNotNull(ctx.sourceLoadLb)) ?: current.loadSource)
+                loadSource = following?.let { link ->
+                    (adopted / requireNotNull(ctx.sourceLoadLb)).takeIf(LoadFollowing::validRatio)?.let { link.copy(ratio = it) }
+                } ?: current.loadSource)
             if (adopted < priorAnchor && !lowerBlocked) {
                 return result(Reason.Lowered, Change.KeptLowered(adopted), base)
             }

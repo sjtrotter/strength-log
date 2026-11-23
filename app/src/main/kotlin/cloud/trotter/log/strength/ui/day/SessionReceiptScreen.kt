@@ -192,7 +192,10 @@ internal fun SessionReceiptScreen(
                                 if (group.rounds != null) stringResource(R.string.receipt_superset_gutter, rowIndex + 1) else null,
                                 backoffLines = backoffLabels?.takeIf { it.sessionId == receipt.sessionId }?.lines.orEmpty()
                                     .filter { it.groupIndex == groupIndex && it.rowIndex == rowIndex }.map { it.lineIndex }.toSet(),
-                                nextTime = progress.lifts.firstOrNull { it.ref.groupIndex == groupIndex && it.ref.rowIndex == rowIndex }?.line)
+                                nextTime = progress.lifts.firstOrNull { it.ref.groupIndex == groupIndex && it.ref.rowIndex == rowIndex }?.line,
+                                followers = progress.lifts.firstOrNull {
+                                    it.ref.groupIndex == groupIndex && it.ref.rowIndex == rowIndex
+                                }?.followers.orEmpty())
                         }
                     }
                 }

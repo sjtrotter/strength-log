@@ -234,6 +234,7 @@ internal fun StrengthReceiptRow(
     gutter: String? = null,
     nextTime: ReceiptLiftLine? = null,
     backoffLines: Set<Int> = emptySet(),
+    followers: List<ReceiptFollower> = emptyList(),
 ) {
     if (row.shape == ReceiptRow.Shape.SKIPPED) {
         SkippedReceiptRow(row.name, gutter)
@@ -279,6 +280,10 @@ internal fun StrengthReceiptRow(
             if (row.lighterSets > 0) ValueLabel(pluralStringResource(R.plurals.receipt_lighter_sets, row.lighterSets, row.lighterSets))
             if (row.shape == ReceiptRow.Shape.HEAVIEST_NO_TOP) ValueLabel(stringResource(R.string.receipt_top_set_not_logged))
             if (nextTime != null) ValueLabel(ReceiptLines.label(nextTime, unit, LocalContext.current.resources))
+            followers.forEach {
+                Text(ReceiptLines.followerLabel(it, unit, LocalContext.current.resources),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }, children = {
             row.sets.forEachIndexed { index, set ->
                 val mark = row.record?.takeIf { it.setIndex == index }

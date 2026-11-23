@@ -619,3 +619,12 @@ val MIGRATION_32_33 = object : Migration(32, 33) {
         db.execSQL("ALTER TABLE session_set ADD COLUMN rightSeconds INTEGER")
     }
 }
+
+/** v33 → v34: a fitness-test goal beside the cardio goal, and results with their rules (#646). */
+val MIGRATION_33_34 = object : Migration(33, 34) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE plan ADD COLUMN testGoalJson TEXT")
+        db.execSQL("CREATE TABLE IF NOT EXISTS `test_result` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `completedAt` INTEGER NOT NULL, `planId` INTEGER, `dayId` TEXT, `runId` TEXT, `programExerciseId` INTEGER, `setIndex` INTEGER, `exerciseId` TEXT NOT NULL, `eventId` TEXT NOT NULL, `eventVersion` INTEGER NOT NULL, `windowSeconds` INTEGER, `count` INTEGER, `seconds` INTEGER, `stop` TEXT NOT NULL, `rulesJson` TEXT NOT NULL)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_test_result_eventId_eventVersion` ON `test_result` (`eventId`, `eventVersion`)")
+    }
+}

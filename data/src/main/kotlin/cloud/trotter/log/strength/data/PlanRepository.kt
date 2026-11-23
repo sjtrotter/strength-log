@@ -23,6 +23,8 @@ import cloud.trotter.log.strength.data.serialization.LegacyCardio
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.domain.model.PlanGoal
+import cloud.trotter.log.strength.domain.model.TestGoal
+import cloud.trotter.log.strength.data.serialization.TestGoalJson
 import cloud.trotter.log.strength.domain.model.PlanGoalDate
 import cloud.trotter.log.strength.domain.model.ShuttleAttempt
 import cloud.trotter.log.strength.data.serialization.V1Recipe
@@ -251,6 +253,9 @@ class PlanRepository(
         } else goal
         planDao.updateGoal(planId, next?.let(PlanGoalJson::encode))
     }
+
+    suspend fun setTestGoal(planId: Long, goal: TestGoal?) =
+        planDao.updateTestGoal(planId, goal?.let(TestGoalJson::encode))
 
     suspend fun logShuttleAttempt(planId: Long, shuttles: Int) = db.withTransaction {
         val goal = PlanGoalJson.decode(planDao.plan(planId)?.goalJson) as? PlanGoal.Shuttle

@@ -310,7 +310,10 @@ class TrackerRepository(
             val row = programDao.exercise(programExerciseId) ?: return@withTransaction
             val count = sets ?: row.targetSets
             require(count in 1..20)
-            val json = PrescriptionJson.encode(prescription)
+            val stored = PrescriptionJson.decode(row.prescriptionJson)
+            val kept = if (prescription.test == null && stored?.test != null &&
+                stored.target::class == prescription.target::class) prescription.copy(test = stored.test) else prescription
+            val json = PrescriptionJson.encode(kept)
             if (structure != null && structure.name != row.structure) {
                 programDao.setStructure(row.id, structure.name)
             }

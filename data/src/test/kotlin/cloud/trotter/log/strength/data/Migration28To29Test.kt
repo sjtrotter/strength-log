@@ -11,6 +11,7 @@ import cloud.trotter.log.strength.data.db.MIGRATION_29_30
 import cloud.trotter.log.strength.data.db.MIGRATION_30_31
 import cloud.trotter.log.strength.data.db.MIGRATION_31_32
 import cloud.trotter.log.strength.data.db.MIGRATION_32_33
+import cloud.trotter.log.strength.data.db.MIGRATION_33_34
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.ProgramDayEntity
@@ -40,7 +41,7 @@ class Migration28To29Test {
         createV28().close()
         repeat(2) { reopen ->
             val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-                .addMigrations(MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33).allowMainThreadQueries().build()
+                .addMigrations(MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34).allowMainThreadQueries().build()
             try {
                 val expected = CardioSessionEntity(12, "A", "OUTDOOR_RUN", false, "Run", 1000, 901000, 900, 1,
                     planId = 1, planName = "Plan", activity = "ROAD_RUN", note = "Steady", effort = "GOOD",

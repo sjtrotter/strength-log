@@ -17,6 +17,10 @@ import cloud.trotter.log.strength.data.serialization.SlotRuleJson
 import cloud.trotter.log.strength.domain.progression.CardioEffort
 import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.data.serialization.ParkedLogsJson
+import cloud.trotter.log.strength.data.serialization.TestGoalJson
+import cloud.trotter.log.strength.data.serialization.TestEventJson
+import cloud.trotter.log.strength.domain.standards.TestRef
+import cloud.trotter.log.strength.domain.standards.TestStop
 import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
@@ -107,6 +111,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         val version = (obj["schemaVersion"] as? JsonPrimitive)?.intOrNull
             ?: throw BackupError.Malformed("missing or non-integer schemaVersion")
 
+        if (version in 1..34) requireV35ShapesAbsent(obj)
         if (version in 1..32) requireSidesAbsent(obj)
         if (version in 1..33) requireV34ShapesAbsent(obj)
         if (version in 1..31) requireV32ShapesAbsent(obj)
@@ -154,7 +159,7 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             // program shape is valid and how it restores. A newer version is
             // still rejected loudly rather than silently misread.
             1, 2, 3, 4 -> withLegacyUnknownBodyweight(decodeCurrent(requireLegacySessionBodyweights(obj), version))
-            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33,
+            5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
             CURRENT_SCHEMA_VERSION -> decodeCurrent(obj, version)
             else -> throw BackupError.UnsupportedSchemaVersion(version, CURRENT_SCHEMA_VERSION)
         }
@@ -181,6 +186,40 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
             }
         }
         visit(root)
+    }
+
+    /** Earlier writers cannot produce test goals, links, answers or results (#646). */
+    private fun requireV35ShapesAbsent(root: JsonObject) {
+        if ((root["testResults"] as? JsonArray)?.isNotEmpty() == true) {
+            throw BackupError.Inconsistent("test results require schema v35")
+        }
+        (root["plans"] as? JsonArray)?.forEach { element ->
+            val plan = element as? JsonObject ?: return@forEach
+            if (plan["testGoalJson"] != null && plan["testGoalJson"] != JsonNull) {
+                throw BackupError.Inconsistent("test goal requires schema v35")
+            }
+            val recipe = (plan["recipeJson"] as? JsonPrimitive)?.content?.let {
+                runCatching { json.parseToJsonElement(it) as? JsonObject }.getOrNull()
+            }
+            if ((recipe?.get("tests") as? JsonArray)?.isNotEmpty() == true) {
+                throw BackupError.Inconsistent("test answers require schema v35")
+            }
+            forEachPrescription(plan) { prescription ->
+                if (prescription["testEventId"] != null && prescription["testEventId"] != JsonNull) {
+                    throw BackupError.Inconsistent("test link requires schema v35")
+                }
+            }
+        }
+    }
+
+    private fun forEachPrescription(plan: JsonObject, action: (JsonObject) -> Unit) {
+        (plan["days"] as? JsonArray)?.forEach { day ->
+            ((day as? JsonObject)?.get("exercises") as? JsonArray)?.forEach { element ->
+                val text = ((element as? JsonObject)?.get("prescriptionJson") as? JsonPrimitive)?.content
+                val prescription = text?.let { runCatching { json.parseToJsonElement(it) as? JsonObject }.getOrNull() }
+                if (prescription != null) action(prescription)
+            }
+        }
     }
 
     private fun requireV34ShapesAbsent(root: JsonObject) {
@@ -616,6 +655,15 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
                         }
                     }
                 }
+                if (doc.schemaVersion >= 35) {
+                    plan.testGoalJson?.let { goal ->
+                        try {
+                            TestGoalJson.validate(goal)
+                        } catch (_: IllegalArgumentException) {
+                            throw BackupError.Inconsistent("invalid testGoalJson of plan ${plan.id}")
+                        }
+                    }
+                }
                 if (doc.schemaVersion >= 9) {
                     plan.recipeJson?.let { recipe ->
                         if (doc.schemaVersion < 28 && SetupRecipeJson.isV2(recipe)) {
@@ -650,6 +698,28 @@ class BackupCodec(private val maxBytes: Long = DEFAULT_MAX_BYTES) {
         if (doc.schemaVersion >= 12) validateCardioSets(doc.cardioSessions, doc.schemaVersion)
         if (doc.schemaVersion >= 13) validateRuns(doc)
         validateSides(doc)
+        validateTestResults(doc.testResults)
+    }
+
+    private fun validateTestResults(results: List<TestResultBackup>) {
+        val ids = HashSet<Long>()
+        for (result in results) {
+            if (result.id <= 0 || !ids.add(result.id)) {
+                throw BackupError.Inconsistent("invalid or duplicate test result id ${result.id}")
+            }
+            if (TestStop.entries.none { it.name == result.stop }) {
+                throw BackupError.Inconsistent("unknown test stop '${result.stop}' on result ${result.id}")
+            }
+            if ((result.count == null) == (result.seconds == null)) {
+                throw BackupError.Inconsistent("test result ${result.id} needs exactly one number")
+            }
+            if (TestEventJson.decode(result.rulesJson) == null) {
+                throw BackupError.Inconsistent("invalid rulesJson of test result ${result.id}")
+            }
+            if (runCatching { TestRef(result.eventId, result.eventVersion, result.windowSeconds) }.isFailure) {
+                throw BackupError.Inconsistent("invalid identity of test result ${result.id}")
+            }
+        }
     }
 
     private fun validateVersion27(doc: BackupDocument) {

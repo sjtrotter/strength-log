@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.data.run.LegacyLog
 import cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity
 import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
+import cloud.trotter.log.strength.data.db.entity.TestResultEntity
 import cloud.trotter.log.strength.data.db.entity.CardioRouteEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSetResultEntity
@@ -67,4 +68,5 @@ data class FullSnapshot(
     val legacyLogs: List<LegacyLog> = emptyList(),
     val effortScale: EffortScale = EffortScale.WORDS,
     val cardioRoutes: List<CardioRouteEntity> = emptyList(),
+    val testResults: List<TestResultEntity> = emptyList(),
 )

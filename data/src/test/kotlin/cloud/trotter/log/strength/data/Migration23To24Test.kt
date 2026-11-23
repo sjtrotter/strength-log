@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.data.db.MIGRATION_29_30
 import cloud.trotter.log.strength.data.db.MIGRATION_30_31
 import cloud.trotter.log.strength.data.db.MIGRATION_31_32
 import cloud.trotter.log.strength.data.db.MIGRATION_32_33
+import cloud.trotter.log.strength.data.db.MIGRATION_33_34
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
@@ -42,7 +43,7 @@ class Migration23To24Test {
         createV23().close()
         repeat(2) { reopen ->
             val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-                .addMigrations(MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33).allowMainThreadQueries().build()
+                .addMigrations(MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34).allowMainThreadQueries().build()
             try {
                 val slot = db.programDao().allExercises().single()
                 val track = db.runDao().allTracks().single()

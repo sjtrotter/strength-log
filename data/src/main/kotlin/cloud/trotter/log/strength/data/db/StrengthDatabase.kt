@@ -13,6 +13,7 @@ import cloud.trotter.log.strength.data.db.dao.ProgramDao
 import cloud.trotter.log.strength.data.db.dao.RestoreMarkerDao
 import cloud.trotter.log.strength.data.db.dao.RunDao
 import cloud.trotter.log.strength.data.db.dao.SessionDao
+import cloud.trotter.log.strength.data.db.dao.TestResultDao
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.CardioRouteEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
@@ -24,6 +25,7 @@ import cloud.trotter.log.strength.data.db.entity.ProgramExerciseEntity
 import cloud.trotter.log.strength.data.db.entity.RestoreMarkerEntity
 import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
+import cloud.trotter.log.strength.data.db.entity.TestResultEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 
@@ -42,8 +44,9 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
         PlanEntity::class,
         WorkoutRunEntity::class,
         RunTrackEntity::class,
+        TestResultEntity::class,
     ],
-    version = 33,
+    version = 34,
     exportSchema = true,
 )
 abstract class StrengthDatabase : RoomDatabase() {
@@ -58,6 +61,7 @@ abstract class StrengthDatabase : RoomDatabase() {
     abstract fun cardioSessionDao(): CardioSessionDao
     abstract fun cardioRouteDao(): CardioRouteDao
     abstract fun planDao(): PlanDao
+    abstract fun testResultDao(): TestResultDao
 
     companion object {
         private const val NAME = "strength.db"
@@ -104,6 +108,7 @@ abstract class StrengthDatabase : RoomDatabase() {
                     MIGRATION_30_31,
                     MIGRATION_31_32,
                     MIGRATION_32_33,
+                    MIGRATION_33_34,
                 )
                 .build()
     }

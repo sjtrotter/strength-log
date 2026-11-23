@@ -107,11 +107,14 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
+import cloud.trotter.log.strength.data.mapping.withSides
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioBlock
@@ -131,6 +134,9 @@ import cloud.trotter.log.strength.ui.day.LiftOptionsState
 import cloud.trotter.log.strength.ui.day.SessionReceiptScreen
 import cloud.trotter.log.strength.ui.day.SlotOptionsScreen
 import cloud.trotter.log.strength.ui.day.WorkoutSetHost
+import cloud.trotter.log.strength.ui.day.SetEditSheet
+import cloud.trotter.log.strength.ui.day.UndoOffer
+import cloud.trotter.log.strength.ui.day.workoutActions
 import cloud.trotter.log.strength.ui.day.receipt.PlannedSets
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptGroup
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptFollower
@@ -140,12 +146,18 @@ import cloud.trotter.log.strength.ui.day.receipt.ReceiptMutation
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptProgressState
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptRow
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptSet
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptSides
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptSideSet
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptSideGap
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptSlotRef
 import cloud.trotter.log.strength.ui.day.receipt.ValueLine
 import cloud.trotter.log.strength.ui.day.receipt.receiptFixture
 import cloud.trotter.log.strength.ui.day.receipt.timeTargetFixture
 import cloud.trotter.log.strength.ui.day.workoutSetLoggedFixture
 import cloud.trotter.log.strength.ui.day.workoutSetSingleFixture
+import cloud.trotter.log.strength.ui.day.workoutSetEachSideFixture
+import cloud.trotter.log.strength.ui.day.withWorkoutSelection
+import cloud.trotter.log.strength.ui.log.logSessionFixture
 import cloud.trotter.log.strength.ui.plan.PlanActions
 import cloud.trotter.log.strength.ui.plan.PlanDay
 import cloud.trotter.log.strength.ui.plan.PlanScreen
@@ -676,9 +688,9 @@ class ProgressionPreviewShotsTest {
         capture(name)
     }
     @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
-    fun liftOptionsLoadSource() = liftOptionsLoadSource("p90-lift-options-load-source.png", 1f)
+    fun liftOptionsLoadSource() = liftOptionsLoadSource("p97-lift-options-load-source.png", 1f)
     @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
-    fun liftOptionsLoadSourceLargeFont() = liftOptionsLoadSource("p91-lift-options-load-source-2x.png", 2f)
+    fun liftOptionsLoadSourceLargeFont() = liftOptionsLoadSource("p98-lift-options-load-source-2x.png", 2f)
 
     private fun dayEditorFollows(name: String, scale: Float) {
         val slot = DayEditSlotState(1, 0, "bb_back_squat", "Barbell Back Squat", null, false,
@@ -690,8 +702,8 @@ class ProgressionPreviewShotsTest {
         rule.onNodeWithText("Follows Day A").assertIsDisplayed()
         capture(name)
     }
-    @Test fun dayEditorFollows() = dayEditorFollows("p92-day-editor-follows.png", 1f)
-    @Test fun dayEditorFollowsLargeFont() = dayEditorFollows("p93-day-editor-follows-2x.png", 2f)
+    @Test fun dayEditorFollows() = dayEditorFollows("p99-day-editor-follows.png", 1f)
+    @Test fun dayEditorFollowsLargeFont() = dayEditorFollows("p100-day-editor-follows-2x.png", 2f)
 
     private fun receiptFollowers(name: String, scale: Float) {
         val row = ReceiptRow("Barbell Back Squat", TrackingType.WEIGHTED, ReceiptRow.Shape.STRAIGHT,
@@ -708,9 +720,92 @@ class ProgressionPreviewShotsTest {
         capture(name)
     }
     @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
-    fun receiptFollowers() = receiptFollowers("p94-receipt-followers.png", 1f)
+    fun receiptFollowers() = receiptFollowers("p101-receipt-followers.png", 1f)
     @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
-    fun receiptFollowersLargeFont() = receiptFollowers("p95-receipt-followers-2x.png", 2f)
+    fun receiptFollowersLargeFont() = receiptFollowers("p102-receipt-followers-2x.png", 2f)
+
+    private fun eachSideEditor(name: String, scale: Float) {
+        val state = workoutSetEachSideFixture(split = true)
+        val card = state.exercises.single()
+        render(scale) {
+            WorkoutSetHost(state)
+            SetEditSheet(card, card.rows.first(), state.unit, state.dayIndex, workoutActions(), {})
+        }
+        rule.onNodeWithTag("set-edit-each-side").assertIsDisplayed()
+        rule.onNodeWithTag("set-edit-left-and-right").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Left, Reps").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Right, Reps").assertIsDisplayed()
+        capture(name, sheet = true)
+    }
+
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun eachSideEditor() = eachSideEditor("p93-each-side-editor.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun eachSideEditorLargeFont() = eachSideEditor("p93-each-side-editor-2x.png", 2f)
+
+    private fun eachSideLoggedSnackbar(name: String, scale: Float) {
+        val base = workoutSetEachSideFixture(split = true)
+        val card = base.exercises.single()
+        val row = card.rows.first()
+        val logged = LoggedSet(0.0, row.reps, SetKind.WORK, done = true, completedAtMillis = 100_000L, sides = row.sides)
+        val state = base.copy(exercises = listOf(card.copy(rows = card.rows.map {
+            if (it.index == row.index) it.copy(done = true) else it
+        }))).withWorkoutSelection()
+        render(scale) {
+            WorkoutSetHost(state.copy(workout = state.workout?.copy(
+                undo = UndoOffer(card.programExerciseId, Slot.MAIN, row.index, card.title, logged, card.tracking, state.unit),
+            )), nowMillis = { rule.mainClock.currentTime })
+        }
+        rule.onNodeWithText("✓ Set 1 · L 10 · R 8 reps").assertIsDisplayed()
+        rule.onNodeWithText("Undo").assertIsDisplayed()
+        capture(name)
+    }
+
+    @Test fun eachSideLoggedSnackbar() = eachSideLoggedSnackbar("p94-each-side-logged-snackbar.png", 1f)
+    @Test fun eachSideLoggedSnackbarLargeFont() = eachSideLoggedSnackbar("p94-each-side-logged-snackbar-2x.png", 2f)
+
+    private fun eachSideReceipt(name: String, scale: Float) {
+        val row = ReceiptRow("Skater Squat", TrackingType.REPS, ReceiptRow.Shape.STRAIGHT,
+            listOf(ReceiptSet(0.0, 8, 0), ReceiptSet(0.0, 9, 0)),
+            listOf(ValueLine(null, listOf(0, 1))), 0, null, null)
+        val receipt = receiptFixture().copy(minutes = 8, groups = listOf(ReceiptGroup(null, listOf(row))))
+        val sides = ReceiptSides(receipt.sessionId, row.sets.mapIndexed { index, set ->
+            ReceiptSideSet(0, 0, index, set, ReceiptSet(0.0, 10, 0))
+        }, listOf(ReceiptSideGap(0, 0, true)))
+        render(scale) { SessionReceiptScreen(receipt, {}, {}, sides = sides) }
+        rule.onNodeWithContentDescription("Skater Squat.", substring = true).performScrollTo().performClick()
+        rule.onNodeWithText("L 8 · R 10 reps", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("L 9 · R 10 reps", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("Left side lower the last 3 sessions", useUnmergedTree = true).assertIsDisplayed()
+        capture(name)
+    }
+
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun eachSideReceipt() = eachSideReceipt("p95-each-side-receipt-expanded-gap.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun eachSideReceiptLargeFont() = eachSideReceipt("p95-each-side-receipt-expanded-gap-2x.png", 2f)
+
+    private fun eachSideHistory(name: String, scale: Float) {
+        val sides = requireNotNull(workoutSetEachSideFixture(split = true).exercises.single().rows.first().sides)
+        val base = logSessionFixture(expanded = true)
+        val legacy = SessionSetEntity(id = 2, sessionId = base.sessionId, exerciseId = "pullup", exerciseName = "Pull-up",
+            slot = Slot.MAIN, setIndex = 0, kind = SetKind.WORK.name, weightLb = 0.0, reps = 8, done = true)
+        val split = legacy.copy(id = 1, exerciseId = "skater_squat", exerciseName = "Skater Squat").withSides(sides)
+        val session = base.copy(setCount = 2,
+            exerciseGroups = LogScreenBuilder.groupByExercise(listOf(split, legacy), base.unit))
+        render(scale) {
+            LogScreen(LogUiState(sessions = listOf(session)),
+                LogActions({}, {}, {}, {}, {}, {}, {}, onStartSession = {}, onSetUpProgram = {}))
+        }
+        rule.onNodeWithText("1: L ×10 · R ×8").assertIsDisplayed()
+        rule.onNodeWithText("1: ×8").assertIsDisplayed()
+        capture(name)
+    }
+
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun eachSideHistory() = eachSideHistory("p96-each-side-history-and-legacy.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun eachSideHistoryLargeFont() = eachSideHistory("p96-each-side-history-and-legacy-2x.png", 2f)
 
     private fun twoLegsSet() = CardioSetResult(CardioSetSpec(CardioRole.WORK, Measure.Time(1500)),
         CardioSetStatus.FINISHED, 1690, 5600, DistanceSource.MANUAL, metresAtEnd = 5000,

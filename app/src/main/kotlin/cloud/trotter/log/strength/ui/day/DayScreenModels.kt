@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.domain.standards.HoldClock
 import cloud.trotter.log.strength.domain.routine.Move
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.Sides
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.EffortScale
@@ -496,6 +497,8 @@ data class SetRowState(
     /** One-based among RAMP sets; zero for every other kind. */
     val rampIndex: Int = 0,
     val rir: Int? = null,
+    /** The MAIN row's left and right (#644). */
+    val sides: Sides? = null,
 ) {
     val complete: Boolean get() = done && partner?.done != false
     val nextSlot: String get() = if (done && partner?.done == false) Slot.SS else Slot.MAIN

@@ -287,4 +287,19 @@ class HistoryCsvWriterTest {
         assertEquals(List(6) { "" }, strength[2].drop(26))
         assertEquals(List(6) { "" }, rows.single { it[5] == "cardio" }.drop(26))
     }
+    @Test fun `a hold with a side at zero exports as a hold`() {
+        val session = WorkoutSessionEntity(1, "A", "Day A", null, 1000, 180.0)
+        val hold = set(1, 1, "Side Plank", 0, 0.0, 0)
+            .withSides(Sides(SideResult(0.0, 0, 18), SideResult(0.0, 0, 0)))
+        val row = Csv.parse(HistoryCsvWriter.export(listOf(session), listOf(hold), WeightUnit.LB, zone))[1]
+        fun cell(name: String) = row[HISTORY_CSV_HEADER.indexOf(name)]
+        assertEquals("0", cell("Seconds"))
+        assertEquals("", cell("Reps"))
+        assertEquals("", cell("Weight"))
+        assertEquals("18", cell("Left Seconds"))
+        assertEquals("0", cell("Right Seconds"))
+        assertEquals("", cell("Left Reps"))
+        assertEquals("", cell("Right Reps"))
+    }
+
 }

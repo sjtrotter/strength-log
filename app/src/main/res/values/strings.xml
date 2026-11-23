@@ -1516,4 +1516,10 @@
     <string name="log_cardio_trend_heading">%1$s %2$s</string>
     <string name="log_cardio_trend_latest">Latest %1$s</string>
     <string name="log_cardio_trend_description">%1$s: %2$s, %3$s; %4$s, %5$s.</string>
+    <string name="set_edit_left_and_right">Left and right</string>
+    <string name="set_edit_left">Left</string>
+    <string name="set_edit_right">Right</string>
+    <string name="receipt_side_gap_left">Left side lower the last %1$d sessions</string>
+    <string name="receipt_side_gap_right">Right side lower the last %1$d sessions</string>
+    <string name="receipt_say_sides">left %1$s, right %2$s</string>
 </resources>

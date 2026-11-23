@@ -20,6 +20,11 @@ import cloud.trotter.log.strength.transfer.health.SessionPublisher
 import cloud.trotter.log.strength.ui.day.receipt.FinishAttempt
 import cloud.trotter.log.strength.ui.day.receipt.NoteSave
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptBuilder
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptSides
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptSideGap
+import cloud.trotter.log.strength.ui.day.receipt.receiptSideSets
+import cloud.trotter.log.strength.domain.standards.SideGap
+import cloud.trotter.log.strength.domain.model.Side
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptBackoffLabels
 import cloud.trotter.log.strength.ui.day.receipt.receiptBackoffLabels
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptSetCounts
@@ -72,6 +77,7 @@ internal class SessionFinisher(
 ) {
     val attempt = savedState.getStateFlow<FinishAttempt?>(KEY_FINISH, null)
     val receipt = savedState.getStateFlow<WorkoutReceipt?>(KEY_WORKOUT_RECEIPT, null)
+    val receiptSides = savedState.getStateFlow<ReceiptSides?>(KEY_RECEIPT_SIDES, null)
     val backoffLabels = savedState.getStateFlow<ReceiptBackoffLabels?>(KEY_RECEIPT_BACKOFF_LABELS, null)
     val receiptSetCounts = savedState.getStateFlow<ReceiptSetCounts?>(KEY_RECEIPT_SET_COUNTS, null)
     val receiptProgress = savedState.getStateFlow<ReceiptProgress?>(KEY_RECEIPT_PROGRESS, null)
@@ -190,6 +196,14 @@ internal class SessionFinisher(
         afterCommit(dayId, nextDayId)
         val allPlansDone = allPlansDone(completedAt)
         savedState[KEY_RECEIPT_BACKOFF_LABELS] = receiptBackoffLabels(sessionId, groupsWithTracks)
+        savedState[KEY_RECEIPT_SIDES] = ReceiptSides(sessionId, receiptSideSets(groupsWithTracks),
+            groupsWithTracks.flatMapIndexed { groupIndex, (_, rowTracks) ->
+                rowTracks.mapIndexedNotNull { rowIndex, track ->
+                    if (track.sets.none { it.done && it.sides != null }) null
+                    else SideGap.repeated(historyRepository.recentSessionSets(track.exerciseId, sessionId, completedAt, SideGap.SESSIONS))
+                        ?.let { ReceiptSideGap(groupIndex, rowIndex, it == Side.LEFT) }
+                }
+            })
         savedState[KEY_RECEIPT_SET_COUNTS] = ReceiptSetCounts(sessionId, counts.total, counts.remaining)
         savedState[KEY_RECEIPT_PROGRESS] = ReceiptProgress(sessionId, cardioUndoId, planId, dayId,
             groupsWithTracks.flatMapIndexed { groupIndex, (_, rowTracks) -> rowTracks.mapIndexedNotNull { rowIndex, track ->
@@ -295,6 +309,7 @@ internal class SessionFinisher(
         if (executionActive() || receipt.value == null) return false
         savedState[KEY_WORKOUT_RECEIPT] = null
         savedState[KEY_RECEIPT_BACKOFF_LABELS] = null
+        savedState[KEY_RECEIPT_SIDES] = null
         savedState[KEY_RECEIPT_SET_COUNTS] = null
         savedState[KEY_RECEIPT_PROGRESS] = null
         return true
@@ -388,6 +403,7 @@ internal class SessionFinisher(
     private fun showCardioReceipt(receipt: WorkoutReceipt, planId: Long?) {
         if (executionActive()) return
         savedState[KEY_RECEIPT_BACKOFF_LABELS] = null
+        savedState[KEY_RECEIPT_SIDES] = null
         savedState[KEY_RECEIPT_SET_COUNTS] = null
         savedState[KEY_WORKOUT_RECEIPT] = receipt
         savedState[KEY_RECEIPT_PROGRESS] = ReceiptProgress(null, receipt.sessionId, planId, receipt.dayId, emptyList())
@@ -401,6 +417,7 @@ internal class SessionFinisher(
     private companion object {
         const val KEY_FINISH = "day_finish"
         const val KEY_WORKOUT_RECEIPT = "day_workout_receipt"
+        const val KEY_RECEIPT_SIDES = "day_receipt_sides"
         const val KEY_RECEIPT_BACKOFF_LABELS = "day_receipt_backoff_labels"
         const val KEY_RECEIPT_SET_COUNTS = "day_receipt_set_counts"
         const val KEY_RECEIPT_PROGRESS = "day_receipt_progress"

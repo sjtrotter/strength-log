@@ -60,6 +60,10 @@ import cloud.trotter.log.strength.domain.glance.DayProgress
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.sync.WatchSnapshotBuilder
 import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.model.Side
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptSides
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptSideGap
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptSet
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -2064,6 +2068,71 @@ class DayViewModelReceiptTest {
         assertTrue(vm.dayEditState.value.slots.single().lifts.single().sourceDays.isEmpty())
         assertNull(vm.dayEditState.value.slots.single().follows)
         assertNull(vm.uiState.value.exercises.single().follows)
+    }
+
+    private suspend fun TestScope.finishSidedSession(vm: DayViewModel, lower: Side) {
+        vm.selectDay("A")
+        advanceUntilIdle()
+        vm.startWorkout()
+        advanceUntilIdle()
+        val id = slotId()
+        vm.setEachSide(id, 0, true)
+        advanceUntilIdle()
+        vm.changeSide(id, 0, Side.LEFT, null, if (lower == Side.LEFT) 8 else 10, null)
+        vm.changeSide(id, 0, Side.RIGHT, null, if (lower == Side.RIGHT) 8 else 10, null)
+        advanceUntilIdle()
+        vm.logFocusedSet()
+        advanceUntilIdle()
+        vm.completeDay()
+        advanceUntilIdle()
+    }
+
+    private suspend fun eachSideProgram() {
+        repo.replaceProgram(Program(listOf(ProgramDay("A", "Sides", "", listOf(
+            ProgramExercise("skater_squat", targetSets = 1,
+                prescription = Prescription(PrescribedTarget.Reps(10), eachSide = true)),
+        )))))
+    }
+
+    @Test fun `Finish saves each side sets and a repeated gap`() = runVmTest {
+        eachSideProgram()
+        val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        repeat(3) { index ->
+            finishSidedSession(vm, Side.LEFT)
+            val sides = requireNotNull(vm.finisher.receiptSides.value)
+            assertEquals(vm.finisher.receipt.value?.sessionId, sides.sessionId)
+            assertEquals(ReceiptSet(0.0, 8, 0), sides.sets.single().left)
+            assertEquals(ReceiptSet(0.0, 10, 0), sides.sets.single().right)
+            assertEquals(if (index == 2) listOf(ReceiptSideGap(0, 0, true)) else emptyList<ReceiptSideGap>(), sides.gaps)
+            assertTrue(vm.finisher.dismissReceipt())
+            assertNull(vm.finisher.receiptSides.value)
+        }
+        finishSidedSession(vm, Side.RIGHT)
+        assertTrue(requireNotNull(vm.finisher.receiptSides.value).gaps.isEmpty())
+    }
+
+    @Test fun `the receipt sides survive process death`() = runVmTest {
+        eachSideProgram()
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        vm.viewModelScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        finishSidedSession(vm, Side.LEFT)
+        val sides = requireNotNull(vm.finisher.receiptSides.value)
+        vm.viewModelScope.cancel()
+        val parcel = Parcel.obtain()
+        val restoredHandle = try {
+            parcel.writeBundle(handle.savedStateProvider().saveState())
+            parcel.setDataPosition(0)
+            SavedStateHandle.createHandle(parcel.readBundle(ReceiptSides::class.java.classLoader), null)
+        } finally { parcel.recycle() }
+        assertEquals(sides, restoredHandle.get<ReceiptSides>("day_receipt_sides"))
+        val restored = newViewModel(restoredHandle)
+        advanceUntilIdle()
+        assertEquals(sides, restored.finisher.receiptSides.value)
+        assertTrue(restored.finisher.dismissReceipt())
+        assertNull(restored.finisher.receiptSides.value)
     }
 
 }

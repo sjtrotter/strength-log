@@ -2,7 +2,8 @@ package cloud.trotter.log.strength.domain.standards
 
 /**
  * A timed hold's clock, read the same way on the phone and the watch (#628): it counts whole seconds up from
- * the start, fills toward the target and ends at the target. A set held once per side logs its shorter side.
+ * the start, fills toward the target and ends at the target. A set held once per side keeps both sides, left first,
+ * and logs its shorter side as the set's value.
  */
 object HoldClock {
     fun heldSeconds(elapsedMillis: Long, targetSeconds: Int): Int =

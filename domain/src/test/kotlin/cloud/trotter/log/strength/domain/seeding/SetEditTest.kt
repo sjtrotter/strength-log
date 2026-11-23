@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.domain.seeding
 
+import cloud.trotter.log.strength.domain.model.SideResult
+import cloud.trotter.log.strength.domain.model.Sides
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
@@ -123,4 +125,40 @@ class SetEditTest {
         SetStructure.RAMP_TOP_BACKOFF, top, 5, 6, WeightUnit.LB,
         listOf(Equipment.BARBELL, Equipment.RACK), Scheme.PROTOTYPE,
     )
+
+    private val split = LoggedSet(25.0, 8, SetKind.WORK, done = true,
+        sides = Sides(SideResult(25.0, 10, 0), SideResult(25.0, 8, 0)))
+
+    @Test fun `a sides edit writes the weaker side as the row's values`() {
+        val sides = Sides(SideResult(25.0, 10, 40), SideResult(30.0, 8, 52))
+        val after = SetEditor.edit(listOf(row), 0, SetEdit(sides = sides)).single()
+        assertEquals(row.copy(weightLb = 25.0, reps = 8, seconds = 40, sides = sides), after)
+    }
+
+    @Test fun `a value edit on a shared field moves both sides`() {
+        val after = SetEditor.edit(listOf(split), 0, SetEdit(weightLb = 30.0, reps = 8, seconds = 0, done = true)).single()
+        assertEquals(Sides(SideResult(30.0, 10, 0), SideResult(30.0, 8, 0)), after.sides)
+        assertEquals(8, after.reps)
+    }
+
+    @Test fun `a value edit on a field the sides differ on drops them`() {
+        assertNull(SetEditor.edit(listOf(split), 0, SetEdit(reps = 9)).single().sides)
+    }
+
+    @Test fun `unticking keeps the sides`() {
+        val after = SetEditor.edit(listOf(split), 0, SetEdit(done = false)).single()
+        assertEquals(split.sides, after.sides)
+        assertFalse(after.done)
+    }
+
+    @Test fun `a sides edit at an unchanged TOP weight leaves hand edited ramps alone`() {
+        val rows = SetEditor.edit(prototypeSquat(), 0, SetEdit(weightLb = 123.0))
+        val top = rows[4]
+        val sides = Sides(SideResult(top.weightLb, 7, 0), SideResult(top.weightLb, 5, 0))
+        val after = SetEditor.edit(rows, 4, SetEdit(sides = sides))
+        assertEquals(123.0, after[0].weightLb)
+        assertEquals(rows.take(4), after.take(4))
+        assertEquals(sides, after[4].sides)
+    }
+
 }

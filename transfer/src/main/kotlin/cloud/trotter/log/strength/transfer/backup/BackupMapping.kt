@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.transfer.backup
 
+import cloud.trotter.log.strength.data.mapping.sides
+import cloud.trotter.log.strength.data.mapping.withSides
+import cloud.trotter.log.strength.data.serialization.SidesDto
 import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import cloud.trotter.log.strength.data.run.LegacyLog
 import cloud.trotter.log.strength.data.serialization.SetJson
@@ -190,6 +193,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                         trackPosition = set.trackPosition,
                         plannedIndex = set.plannedIndex,
                         rir = set.rir,
+                        sides = set.sides()?.let(SidesDto::of),
                     )
                 },
                 planId = s.planId,
@@ -341,7 +345,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 trackPosition = if (schemaVersion >= 13) set.trackPosition else null,
                 plannedIndex = if (schemaVersion >= 13) set.plannedIndex else null,
                 rir = if (schemaVersion >= 27) set.rir else null,
-            )
+            ).withSides(if (schemaVersion >= 33) set.sides?.toDomain() else null)
         }
     }
 

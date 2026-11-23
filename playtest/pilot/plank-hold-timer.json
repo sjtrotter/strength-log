@@ -141,7 +141,7 @@
     },
     {
       "expect": {
-        "text": "Each side"
+        "text": "Each side, left first"
       }
     },
     {
@@ -157,7 +157,7 @@
     },
     {
       "expect": {
-        "text": "Side 1 of 2"
+        "text": "Left side"
       }
     },
     {
@@ -168,7 +168,7 @@
     },
     {
       "expect": {
-        "text": "Side 2 of 2"
+        "text": "Right side"
       }
     },
     {
@@ -188,7 +188,7 @@
     },
     {
       "expect": {
-        "text": "✓ Set 1 · 12s"
+        "text": "✓ Set 1 · L 20 s · R 12 s"
       }
     },
     {

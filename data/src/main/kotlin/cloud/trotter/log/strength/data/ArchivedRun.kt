@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.data.mapping.sides
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
@@ -17,7 +18,7 @@ data class ArchivedRun(val tracks: List<RunTrack>, val slots: List<ProgramSlot>)
                     .sortedBy { it.setIndex }.map { row ->
                         LoggedSet(row.weightLb, row.reps, SetKind.valueOf(row.kind), row.done, seconds = row.seconds,
                             startedAtMillis = row.startedAtMillis, completedAtMillis = row.completedAtMillis,
-                            plannedIndex = row.plannedIndex, rir = row.rir)
+                            plannedIndex = row.plannedIndex, rir = row.rir, sides = row.sides())
                     }
                 val count = dto.liveSetCount ?: actual.size
                 val rows = if (dto.retired || dto.dropped) actual else actual + List((count - actual.size).coerceAtLeast(0)) { index ->

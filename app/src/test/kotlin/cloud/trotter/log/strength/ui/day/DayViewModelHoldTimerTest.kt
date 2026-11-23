@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.day
 
+import cloud.trotter.log.strength.domain.model.SideResult
+import cloud.trotter.log.strength.domain.model.Sides
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.cardio.CardioBlocks
 import android.content.Context
@@ -609,4 +611,27 @@ class DayViewModelHoldTimerTest {
         override fun cancel() = Unit
         override fun complete() = true
     }
+
+    @Test fun `case 39 an each side hold keeps both sides left first`() = test {
+        prepare(Prescription(PrescribedTarget.Hold(30), eachSide = true))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.startHold()
+        runCurrent()
+        tick(30_000)
+        vm.startHold()
+        runCurrent()
+        tick(20_000)
+        vm.stopHold()
+        runCurrent()
+        assertTrue(row().done)
+        assertEquals(20, row().seconds)
+        assertEquals(Sides(SideResult(0.0, 0, 30), SideResult(0.0, 0, 20)), row().sides)
+        vm.undoLastLog()
+        runCurrent()
+        assertNull(row().sides)
+        assertFalse(row().done)
+    }
+
 }

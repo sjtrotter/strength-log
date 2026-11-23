@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.ui.log
 
+import cloud.trotter.log.strength.domain.model.SideResult
+import cloud.trotter.log.strength.domain.model.Sides
+import cloud.trotter.log.strength.data.mapping.withSides
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.SetKind
@@ -141,4 +144,13 @@ class LogScreenBuilderTest {
         val groups = LogScreenBuilder.groupByExercise(sets, WeightUnit.LB)
         assertEquals("×45", groups.single().sets.single().weightRepsDisplay)
     }
+
+    @Test fun `a set with sides reads left then right`() {
+        val legacy = set("side_plank", "Side Plank", SetKind.WORK, 0.0, 0, seconds = 40)
+        val split = legacy.withSides(Sides(SideResult(0.0, 0, 40), SideResult(0.0, 0, 52)))
+        val rows = LogScreenBuilder.groupByExercise(listOf(split, legacy), WeightUnit.LB).single().sets
+        assertEquals("L 40 s · R 52 s", rows[0].weightRepsDisplay)
+        assertEquals("40s", rows[1].weightRepsDisplay)
+    }
+
 }

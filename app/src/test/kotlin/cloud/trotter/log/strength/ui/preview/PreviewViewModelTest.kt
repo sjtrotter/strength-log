@@ -43,6 +43,8 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.ui.Routes
 import cloud.trotter.log.strength.ui.day.DaySelection
 import cloud.trotter.log.strength.ui.day.NextTime
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -309,29 +311,62 @@ class PreviewViewModelTest : OverviewFixture() {
         assertNull(vm.uiState.value.lifts.single().nextTime)
     }
 
-    @Test fun lastPrefersTheSamePlanDayAndSlotAndLabelsTheFallbackDay() = runTest(dispatcher) {
+    @Test fun lastReadsTheNewestSessionAnywhereAndNamesItsDayAndDate() = runTest(dispatcher) {
         insertProgram()
         val plan = repo.plans.selectedPlanIdFlow.first()!!
-        val own = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Squat", null, 1000, 235.0, planId = plan))
+        val earlier = Instant.parse("2026-11-16T12:00:00Z").toEpochMilli()
+        val later = Instant.parse("2026-11-18T12:00:00Z").toEpochMilli()
+        val own = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Squat", null, earlier, 235.0, planId = plan))
         db.sessionDao().insertSets(listOf(SessionSetEntity(0, own, "bb_back_squat", "Squat", Slot.MAIN, 0,
             SetKind.TOP.name, 235.0, 5, true)))
-        val elsewhere = db.sessionDao().insertSession(WorkoutSessionEntity(0, "B", "Other day", null, 2000, 235.0, planId = plan))
+        val elsewhere = db.sessionDao().insertSession(WorkoutSessionEntity(0, "B", "Other day", null, later, 235.0, planId = plan))
         db.sessionDao().insertSets(listOf(SessionSetEntity(0, elsewhere, "bb_back_squat", "Squat", Slot.MAIN, 0,
             SetKind.TOP.name, 225.0, 6, true)))
-        val vm = preview(plan, "A")
+        val vm = preview(plan, "A", Clock.systemUTC())
         advanceUntilIdle()
-        assertEquals("235 lb × 5", vm.uiState.value.lifts.single().previous.single().last)
-        assertNull(vm.uiState.value.lifts.single().previous.single().source)
+        val previous = vm.uiState.value.lifts.single().previous.single()
+        // #645: the newest session anywhere wins over this day's own
+        assertEquals("225 lb × 6", previous.last)
+        // #645: the newest session anywhere wins over this day's own
+        assertEquals("B", previous.source)
+        assertNull(previous.sourcePlanName)
+        assertEquals("Nov 18", previous.date)
 
-        repo.history.deleteSession(own)
+        repo.history.deleteSession(elsewhere)
         advanceUntilIdle()
-        val fallback = vm.uiState.value.lifts.single().previous.single()
-        assertEquals("225 lb × 6", fallback.last)
-        assertEquals("B", fallback.source)
-        assertNull(fallback.sourcePlanName)
+        val remaining = vm.uiState.value.lifts.single().previous.single()
+        // #645: deleting the newest session reveals this day's older session
+        assertEquals("235 lb × 5", remaining.last)
+        // #645: the remaining session ran on this day of this plan, so it needs no label
+        assertNull(remaining.source)
+        assertNull(remaining.sourcePlanName)
+        assertNull(remaining.date)
     }
 
-    @Test fun aSquatElsewhereNeverOffersOnDayAAndAMissElsewhereDoesNotChangeLast() = runTest(dispatcher) {
+    @Test fun theLiftSheetAndThePreviewShowTheSameLast() = runTest(dispatcher) {
+        insertProgram()
+        val plan = repo.plans.selectedPlanIdFlow.first()!!
+        val earlier = Instant.parse("2026-11-16T12:00:00Z").toEpochMilli()
+        val later = Instant.parse("2026-11-18T12:00:00Z").toEpochMilli()
+        val own = db.sessionDao().insertSession(WorkoutSessionEntity(0, "A", "Squat", null, earlier, 235.0, planId = plan))
+        db.sessionDao().insertSets(listOf(SessionSetEntity(0, own, "bb_back_squat", "Squat", Slot.MAIN, 0,
+            SetKind.TOP.name, 235.0, 5, true)))
+        val elsewhere = db.sessionDao().insertSession(WorkoutSessionEntity(0, "B", "Other day", null, later, 235.0, planId = plan))
+        db.sessionDao().insertSets(listOf(SessionSetEntity(0, elsewhere, "bb_back_squat", "Squat", Slot.MAIN, 0,
+            SetKind.TOP.name, 225.0, 6, true)))
+        val vm = preview(plan, "A", Clock.systemUTC())
+        val workout = day(SavedStateHandle(mapOf("day_view_selection" to DaySelection(plan, "A"))))
+        advanceUntilIdle()
+        val card = workout.uiState.value.exercises.single()
+        val previous = vm.uiState.value.lifts.single().previous.single()
+        assertEquals(card.lastTimeDisplay, previous.last)
+        assertEquals(card.lastTimeSource?.dayId, previous.source)
+        assertEquals(card.lastTimeSource?.planName, previous.sourcePlanName)
+        assertEquals(card.lastTimeDate, previous.date)
+        assertEquals("225 lb × 6", previous.last)
+    }
+
+    @Test fun aSquatElsewhereNeverOffersOnDayAAndLastFollowsTheNewestSession() = runTest(dispatcher) {
         repo.replaceProgram(Program(listOf("A", "B").map { day ->
             ProgramDay(day, "Squat", "", listOf(ProgramExercise("bb_back_squat", targetSets = 3,
                 prescription = Prescription(PrescribedTarget.LoadReps(if (day == "A") 45.0 else 50.0, 5)))))
@@ -356,8 +391,10 @@ class PreviewViewModelTest : OverviewFixture() {
         assertEquals(NextTime.Repeat, vm.uiState.value.lifts.single().nextTime)
         assertEquals(NextTime.Repeat, workout.uiState.value.exercises.single().nextTime)
         assertEquals("3 × 5 · 45 lb", vm.uiState.value.lifts.single().working)
-        assertEquals("45 lb × 4, 4, 4", vm.uiState.value.lifts.single().previous.single().last)
-        assertNull(vm.uiState.value.lifts.single().previous.single().source)
+        // #645: Last follows the newest session anywhere
+        assertEquals("55 lb × 5, 5, 5", vm.uiState.value.lifts.single().previous.single().last)
+        // #645: Last follows the newest session anywhere
+        assertEquals("B", vm.uiState.value.lifts.single().previous.single().source)
 
         val miss = repo.startRun(plan, "B") as RunStartResult.Started
         db.storeTestRows("B", b, Slot.MAIN,
@@ -366,8 +403,10 @@ class PreviewViewModelTest : OverviewFixture() {
         advanceUntilIdle()
         assertEquals(NextTime.Repeat, vm.uiState.value.lifts.single().nextTime)
         assertEquals(NextTime.Repeat, workout.uiState.value.exercises.single().nextTime)
-        assertEquals("45 lb × 4, 4, 4", vm.uiState.value.lifts.single().previous.single().last)
-        assertNull(vm.uiState.value.lifts.single().previous.single().source)
+        // #645: Last follows the newest session anywhere
+        assertEquals("60 lb × 4, 4, 4", vm.uiState.value.lifts.single().previous.single().last)
+        // #645: Last follows the newest session anywhere
+        assertEquals("B", vm.uiState.value.lifts.single().previous.single().source)
     }
 
     @Test fun anUnperformedDayAShowsDayBLastAndNoOffer() = runTest(dispatcher) {
@@ -396,7 +435,7 @@ class PreviewViewModelTest : OverviewFixture() {
 
     }
 
-    @Test fun lastLabelsAnotherPlanAndDoesNotTreatAnotherSlotAsItsOwn() = runTest(dispatcher) {
+    @Test fun lastLabelsAnotherPlanButNotThisDay() = runTest(dispatcher) {
         insertProgram()
         val plan = repo.plans.selectedPlanIdFlow.first()!!
         val other = repo.plans.duplicatePlan(plan, "Other plan")
@@ -416,7 +455,8 @@ class PreviewViewModelTest : OverviewFixture() {
         advanceUntilIdle()
         val otherSlot = vm.uiState.value.lifts.single().previous.single()
         assertEquals("230 lb × 5", otherSlot.last)
-        assertEquals("A", otherSlot.source)
+        // #645: the newest session ran on this day of this plan, so it needs no label
+        assertNull(otherSlot.source)
         assertNull(otherSlot.sourcePlanName)
     }
 

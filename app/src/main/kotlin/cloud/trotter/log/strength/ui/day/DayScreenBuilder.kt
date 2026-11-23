@@ -317,6 +317,9 @@ object DayScreenBuilder {
         if (sets.isNotEmpty()) SetFormatter.performed(sets, unit)
         else last?.let { SetFormatter.summaryOfValues(it.weightLb, it.reps, it.seconds, unit, spaced = true) }
 
+    fun lastTimeDate(millis: Long, zone: ZoneId): String =
+        java.time.format.DateTimeFormatter.ofPattern("MMM d", Locale.US).format(Instant.ofEpochMilli(millis).atZone(zone))
+
     /**
      * The "Best: …" chip's value (docs/briefs/performance-profile.md Phase 1)
      * — `null` when [record] is `null` (never performed), and also `null`

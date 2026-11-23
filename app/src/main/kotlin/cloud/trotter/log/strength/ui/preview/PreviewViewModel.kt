@@ -8,7 +8,6 @@ import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.data.PlanRepository
 import cloud.trotter.log.strength.data.RunWriteResult
 import cloud.trotter.log.strength.data.TrackerRepository
-import cloud.trotter.log.strength.data.db.entity.PlanEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.prefs.SettingsStore
 import cloud.trotter.log.strength.domain.model.Program
@@ -53,8 +52,7 @@ class PreviewViewModel @Inject constructor(
     val workoutStart = WorkoutStart(repo, savedState, viewModelScope, phoneRest)
     private val history = dayHistoryKeys(repo.observeDay(planId, dayId), historyRepository.sessionSummariesFor(planId)).flatMapLatest { ids ->
         flow {
-            emit(Pair(historyRepository.lastPerformedForSlots(planId, dayId, ids),
-                historyRepository.slotSessionsById(planId, dayId)))
+            emit(Pair(historyRepository.lastTimes(ids, planId, dayId), historyRepository.slotSessionsById(planId, dayId)))
         }
     }
 
@@ -96,22 +94,20 @@ class PreviewViewModel @Inject constructor(
                         slot.main.performed.exerciseId == slot.slot.exercise.exerciseId
                     }, slot.slot.exercise.keepToPlan, unit,
                     offersOn = cloud.trotter.log.strength.ui.day.NextTimeGate.strength(plan, slot.slot.exercise.rule?.nextTime), rule = slot.slot.exercise.rule)
-                val previousResults = listOfNotNull(Slot.MAIN to slot.main, slot.partner?.let { Slot.SS to it }).map { (slotName, track) ->
-                    val slotLast = last[track.performed.exerciseId to slotName]
-                    val previous = slotLast?.last
+                val previousResults = listOfNotNull(slot.main, slot.partner).map { track ->
+                    val exerciseId = track.performed.exerciseId
+                    val previous = last.performed[exerciseId]
                     val comparable = previous == null ||
                         SetFormatter.trackingOfValues(previous.weightLb, previous.reps, previous.seconds) == track.tracking
-                    val source = slotLast?.takeUnless { it.sameSlot }
-                    val samePlan = source?.planId == planId || (planId == PlanEntity.LEGACY_ID && source?.planId == null)
+                    val source = last.sources[exerciseId]
                     PreviewPreviousResult(
-                        last = previous?.takeIf { comparable }?.let {
-                            slotLast?.sets?.takeIf { sets -> sets.isNotEmpty() }?.let { sets -> SetFormatter.performed(sets, unit) }
-                                ?: SetFormatter.display(track.tracking, it.weightLb, it.reps, it.seconds, unit)
-                        },
+                        last = DayScreenBuilder.lastTimeDisplay(previous, last.sets[exerciseId].orEmpty(), unit)
+                            ?.takeIf { comparable },
                         comparable = comparable,
-                        exerciseName = track.performed.entry?.name ?: track.performed.exerciseId,
+                        exerciseName = track.performed.entry?.name ?: exerciseId,
                         source = source?.dayId,
-                        sourcePlanName = source?.takeUnless { samePlan }?.planName?.takeIf { it.isNotBlank() },
+                        sourcePlanName = source?.planName,
+                        date = source?.let { last.dates[exerciseId] }?.let { DayScreenBuilder.lastTimeDate(it, clock.zone) },
                     )
                 }
                 PreviewLift(tracks.joinToString(" + ") { it.performed.entry?.name ?: it.performed.exerciseId },

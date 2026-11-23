@@ -187,8 +187,8 @@
     },
     {
       "tap": {
-        "tag": "workout-action-filled",
-        "role": "Button"
+        "text": "End rest",
+        "tag": "workout-action-tonal"
       }
     },
     {

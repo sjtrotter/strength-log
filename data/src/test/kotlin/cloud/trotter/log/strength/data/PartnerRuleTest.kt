@@ -69,7 +69,8 @@ class PartnerRuleTest : OpeningFixture() {
         assertEquals(rows(plan, a), rows(plan, b, "B"))
         assertEquals(rule(a).state, rule(b).state)
         assertEquals(work(w = 120.0, r = 10), rows(plan, row, "B"))
-        assertEquals(1, rule(row).state.successStreak)
+        // #647: Day A's superset partner no longer credits Day B's cable row; it earns only its own successes.
+        assertEquals(0, rule(row).state.successStreak)
     }
 
     @Test fun `a partner rule follows add, swap and remove of the partner and survives a main swap and Plan mode`() = runTest {

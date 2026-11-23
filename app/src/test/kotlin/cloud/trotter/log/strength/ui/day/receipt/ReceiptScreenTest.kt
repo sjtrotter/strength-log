@@ -1322,5 +1322,59 @@ class ReceiptScreenTest {
         rule.onNodeWithText("Starting dose: 2 more sessions.").performScrollTo().assertIsDisplayed()
     }
 
+    @Test fun `an each side set line reads left then right`() {
+        val row = ReceiptRow("Side Plank", TrackingType.TIMED, ReceiptRow.Shape.STRAIGHT,
+            listOf(ReceiptSet(0.0, 0, 40)), listOf(ValueLine(null, listOf(0))), 0, null, null)
+        val sides = ReceiptSideSet(0, 0, 0, ReceiptSet(0.0, 0, 40), ReceiptSet(0.0, 0, 52))
+        val receipt = receiptFixture().copy(groups = listOf(ReceiptGroup(null, listOf(row))))
+        rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {},
+            sides = ReceiptSides(receipt.sessionId, listOf(sides), emptyList())) } }
+        rule.onNodeWithContentDescription("Side Plank. Holds of 40 seconds.").performScrollTo().performClick()
+        rule.onNodeWithText("L 40 s · R 52 s", useUnmergedTree = true).assertExists()
+        rule.onNodeWithContentDescription("Set 1, left 40 seconds, right 52 seconds").assertExists()
+    }
+
+    @Test fun `sided top and ramp receipts expand without changing the collapsed summary`() {
+        val shape = mutableStateOf(ReceiptRow.Shape.TOP_SET)
+        val sides = ReceiptSideSet(0, 0, 0, ReceiptSet(25.0, 8, 0), ReceiptSet(30.0, 10, 0))
+        rule.setContent { AppTheme {
+            val row = ReceiptRow("Bulgarian Split Squat", TrackingType.WEIGHTED, shape.value,
+                listOf(ReceiptSet(25.0, 8, 0)), listOf(ValueLine(25.0, listOf(0))), 0, null, null)
+            StrengthReceiptRow(row, WeightUnit.LB, 0, shape.value.name, { 0f }, sideSets = mapOf(0 to sides))
+        } }
+        for (candidate in listOf(ReceiptRow.Shape.TOP_SET, ReceiptRow.Shape.HEAVIEST_NO_TOP)) {
+            rule.runOnIdle { shape.value = candidate }
+            rule.onNodeWithText("25 lb × 8", useUnmergedTree = true).assertExists()
+            rule.onNodeWithText("L 25 lb × 8 · R 30 lb × 10", useUnmergedTree = true).assertDoesNotExist()
+            rule.onNodeWithContentDescription("Bulgarian Split Squat.", substring = true).assertHasClickAction().performClick()
+            rule.onNodeWithText("25 lb × 8", useUnmergedTree = true).assertExists()
+            rule.onNodeWithText("L 25 lb × 8 · R 30 lb × 10", useUnmergedTree = true).assertExists()
+            rule.onNodeWithContentDescription("Set 1, left 25 pounds for 8 reps, right 30 pounds for 10 reps").assertExists()
+        }
+    }
+
+    @Test fun `a repeated gap is named once in neutral words`() {
+        val gap = mutableStateOf<ReceiptSideGap?>(ReceiptSideGap(0, 0, true))
+        val row = ReceiptRow("Side Plank", TrackingType.TIMED, ReceiptRow.Shape.STRAIGHT,
+            listOf(ReceiptSet(0.0, 0, 40)), listOf(ValueLine(null, listOf(0))), 0, null, null)
+        rule.setContent { AppTheme { StrengthReceiptRow(row, WeightUnit.LB, 0, "side-gap", { 0f }, gap = gap.value) } }
+        rule.onAllNodesWithText("Left side lower the last 3 sessions", useUnmergedTree = true).assertCountEquals(1)
+        rule.onNodeWithContentDescription("Left side lower the last 3 sessions", substring = true).assertExists()
+        rule.runOnIdle { gap.value = null }
+        rule.onNodeWithText("Left side lower the last 3 sessions", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test fun `receipt sides from another session do not label the shown receipt`() {
+        val row = ReceiptRow("Side Plank", TrackingType.TIMED, ReceiptRow.Shape.STRAIGHT,
+            listOf(ReceiptSet(0.0, 0, 40)), listOf(ValueLine(null, listOf(0))), 0, null, null)
+        val receipt = receiptFixture().copy(groups = listOf(ReceiptGroup(null, listOf(row))))
+        rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}, sides = ReceiptSides(receipt.sessionId + 1,
+            listOf(ReceiptSideSet(0, 0, 0, ReceiptSet(0.0, 0, 40), ReceiptSet(0.0, 0, 52))),
+            listOf(ReceiptSideGap(0, 0, true)))) } }
+        rule.onNodeWithContentDescription("Side Plank. Holds of 40 seconds.").performScrollTo().performClick()
+        rule.onNodeWithText("L 40 s · R 52 s", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithText("Left side lower the last 3 sessions", useUnmergedTree = true).assertDoesNotExist()
+    }
+
 }
 

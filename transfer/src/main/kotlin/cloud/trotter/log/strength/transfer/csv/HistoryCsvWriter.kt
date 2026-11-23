@@ -2,6 +2,10 @@ package cloud.trotter.log.strength.transfer.csv
 
 import cloud.trotter.log.strength.data.mapping.sides
 import cloud.trotter.log.strength.domain.model.SideResult
+import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
@@ -94,8 +98,10 @@ object HistoryCsvWriter {
                 // has seconds, a pure-reps set has reps but no load, everything
                 // else is weight×reps. TIMED writes Seconds with a blank Reps;
                 // REPS writes Reps with a blank Weight; WEIGHTED is unchanged.
-                val isTimed = set.seconds > 0
-                val isReps = !isTimed && set.weightLb == 0.0 && set.reps > 0
+                val tracking = SetFormatter.trackingOfSet(LoggedSet(set.weightLb, set.reps, SetKind.WORK,
+                    set.done, set.seconds, sides = set.sides()))
+                val isTimed = tracking == TrackingType.TIMED
+                val isReps = tracking == TrackingType.REPS
                 // A REPS set has no load; a TIMED hold with no added load has no
                 // load either. Every other set writes its weight.
                 val weightCell =

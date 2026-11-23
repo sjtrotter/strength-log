@@ -74,6 +74,10 @@ import cloud.trotter.log.strength.domain.model.CardioSetResult
 import cloud.trotter.log.strength.domain.model.CardioRole
 import cloud.trotter.log.strength.domain.model.CardioSetStatus
 import cloud.trotter.log.strength.domain.model.Measure
+import cloud.trotter.log.strength.domain.model.SideResult
+import cloud.trotter.log.strength.domain.model.Sides
+import cloud.trotter.log.strength.domain.standards.SetFormatter
+import cloud.trotter.log.strength.domain.standards.SideGap
 import cloud.trotter.log.strength.domain.records.PrKind
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -234,12 +238,16 @@ internal fun StrengthReceiptRow(
     gutter: String? = null,
     nextTime: ReceiptLiftLine? = null,
     backoffLines: Set<Int> = emptySet(),
+    sideSets: Map<Int, ReceiptSideSet> = emptyMap(),
+    gap: ReceiptSideGap? = null,
 ) {
     if (row.shape == ReceiptRow.Shape.SKIPPED) {
         SkippedReceiptRow(row.name, gutter)
         return
     }
-    ExpandableReceiptRow(rowKey, row.name, spokenRow(row, unit, nextTime, backoffLines), row.shape == ReceiptRow.Shape.STRAIGHT,
+    val gapText = gap?.let { stringResource(if (it.left) R.string.receipt_side_gap_left else R.string.receipt_side_gap_right, SideGap.SESSIONS) }
+    val spoken = listOfNotNull(spokenRow(row, unit, nextTime, backoffLines), gapText).joinToString(" ")
+    ExpandableReceiptRow(rowKey, row.name, spoken, row.shape == ReceiptRow.Shape.STRAIGHT || sideSets.isNotEmpty(),
         dayIndex, row.record?.kind, gutter, values = {
             row.lines.forEachIndexed { lineIndex, line ->
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -277,12 +285,20 @@ internal fun StrengthReceiptRow(
                 }
             }
             if (row.lighterSets > 0) ValueLabel(pluralStringResource(R.plurals.receipt_lighter_sets, row.lighterSets, row.lighterSets))
+            if (gapText != null) ValueLabel(gapText)
             if (row.shape == ReceiptRow.Shape.HEAVIEST_NO_TOP) ValueLabel(stringResource(R.string.receipt_top_set_not_logged))
             if (nextTime != null) ValueLabel(ReceiptLines.label(nextTime, unit, LocalContext.current.resources))
         }, children = {
             row.sets.forEachIndexed { index, set ->
                 val mark = row.record?.takeIf { it.setIndex == index }
-                ReceiptSetLine(index, visibleSet(set, set.tracking(), unit), spokenSetLine(row, index, unit), dayIndex,
+                val sides = sideSets[index]?.let {
+                    Sides(SideResult(it.left.weightLb, it.left.reps, it.left.seconds),
+                        SideResult(it.right.weightLb, it.right.reps, it.right.seconds))
+                }
+                val value = sides?.let { SetFormatter.sides(row.tracking, it, unit) } ?: visibleSet(set, set.tracking(), unit)
+                val spokenLine = if (sides == null) spokenSetLine(row, index, unit) else
+                    spokenSetLine(row, index, unit, spokenSides(sides, row.tracking, unit))
+                ReceiptSetLine(index, value, spokenLine, dayIndex,
                     mark?.let { stringResource(R.string.receipt_set_pr_note, visibleSet(it.previous, row.tracking, unit)) })
             }
             row.planned?.let { ReceiptAfter(visiblePlan(it, unit), spokenPlan(it, unit)) }

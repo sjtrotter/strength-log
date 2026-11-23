@@ -259,7 +259,7 @@ strength day; the shipped cardio vectors stay pinned.
   buzzes once and logs the target when it gets there. Stop logs the whole seconds held; a Stop under one second
   logs nothing. A set done each side runs one hold per side, left first, each started with its own tap; it keeps both
   sides and its value is the shorter side (#644). Each side comes from the authored prescription, else the catalog entry. A hold in a superset still logs
-  with its round, and leaving the day drops a hold in progress.
+  with its round, and leaving the day drops a hold in progress. Ending between sides records the side not held as 0 s (#644).
 - **Reps in time (#642).** The window stays fixed. With a rep aim, the rows open at the aim; when every window reaches
   it for the full duration, including at Max, the aim rises one rep at the lift's cadence, and any miss repeats it.
   Counts beyond the aim never become the aim (council 2026-11-23 Q2). Without an aim the set records the count and
@@ -439,7 +439,9 @@ unknown; nothing invents two results from one. An edit to a value both sides sha
 they differ on drops the sides. Room v33, backup v33 and the CSV's six side columns carry them; the watch shows and
 sends the single value. A comparison against a published norm follows the protocol behind the norm: Springer 2007
 measured a leg the subject chose, so a unipedal stance comparison uses the leg the lifter names, not the weaker or
-the better side by default.
+the better side by default. On the phone, Log stays one tap and logs one value; Left and right on an each-side
+set, or in its set editor, records each side. A hold ended after its left side records the right at 0 s. The receipt
+names a side only when it was lower in each of the exercise's last 3 sessions with sides, in neutral words.
 
 ### A22. Load source (owner council, 2026-11-21 and 2026-11-23, #647)
 

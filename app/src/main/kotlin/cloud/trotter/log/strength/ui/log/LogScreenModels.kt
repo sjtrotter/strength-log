@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.log
 
+import cloud.trotter.log.strength.domain.model.Sides
+
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.model.CardioActivity
@@ -121,4 +123,5 @@ data class SessionSetSummary(
     val seconds: Int = 0,
     val done: Boolean = false,
     val tracking: TrackingType = TrackingType.WEIGHTED,
+    val sides: Sides? = null,
 )

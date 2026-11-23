@@ -145,6 +145,23 @@ interface SessionDao {
     @Query("SELECT * FROM session_set WHERE sessionId = :sessionId ORDER BY id")
     suspend fun setsForSession(sessionId: Long): List<SessionSetEntity>
 
+    /** Done sets in the newest [limit] sessions up to and including [sessionId], newest first. */
+    @Query(
+        """
+        SELECT ss.* FROM session_set ss
+        INNER JOIN workout_session ws ON ws.id = ss.sessionId
+        WHERE ss.exerciseId = :exerciseId AND ss.done = 1 AND ss.sessionId IN (
+            SELECT w.id FROM workout_session w
+            WHERE (w.completedAt < :completedAt OR (w.completedAt = :completedAt AND w.id <= :sessionId))
+              AND EXISTS (SELECT 1 FROM session_set t WHERE t.sessionId = w.id AND t.exerciseId = :exerciseId AND t.done = 1)
+            ORDER BY w.completedAt DESC, w.id DESC
+            LIMIT :limit
+        )
+        ORDER BY ws.completedAt DESC, ws.id DESC, ss.id
+        """,
+    )
+    suspend fun recentDoneSets(exerciseId: String, completedAt: Long, sessionId: Long, limit: Int): List<SessionSetEntity>
+
     @Query("SELECT * FROM session_set WHERE id = :id")
     suspend fun setById(id: Long): SessionSetEntity?
 

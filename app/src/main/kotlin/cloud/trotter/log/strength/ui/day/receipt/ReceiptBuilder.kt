@@ -113,7 +113,7 @@ object ReceiptBuilder {
                 val lighterSets = if (rest.map { done[it].weightLb }.distinct().size > 2) rest.size - 1 else 0
                 return ReceiptRow(name, tracking, ReceiptRow.Shape.TOP_SET, sets, lines, lighterSets, planned, record)
             }
-            // With no top set, a record set must be the one shown: these rows never open.
+            // With no top set, keep the record set in the collapsed summary.
             val index = record?.setIndex ?: requireNotNull(highestIndex(done, indices))
             return ReceiptRow(name, tracking, ReceiptRow.Shape.HEAVIEST_NO_TOP, sets, listOf(ValueLine(done[index].weightLb, listOf(index))), 0, planned, record)
         }

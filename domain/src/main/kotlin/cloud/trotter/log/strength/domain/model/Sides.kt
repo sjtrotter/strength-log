@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.domain.model
 
+enum class Side { LEFT, RIGHT }
+
 /** A side at zero reps, or zero seconds for a hold, was not done. */
 data class SideResult(val weightLb: Double, val reps: Int, val seconds: Int)
 
@@ -10,6 +12,10 @@ data class Sides(val left: SideResult, val right: SideResult) {
     val seconds: Int get() = minOf(left.seconds, right.seconds)
     val valid: Boolean
         get() = listOf(left, right).all { it.weightLb.isFinite() && it.weightLb >= 0.0 && it.reps >= 0 && it.seconds >= 0 }
+
+    companion object {
+        fun same(set: LoggedSet): Sides = SideResult(set.weightLb, set.reps, set.seconds).let { Sides(it, it) }
+    }
 }
 
 /** True without sides; every write and import keeps this agreement. */

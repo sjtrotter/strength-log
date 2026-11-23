@@ -22,6 +22,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -33,8 +36,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -44,6 +50,8 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.Side
+import cloud.trotter.log.strength.domain.model.Sides
 import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.domain.units.WeightStepper
@@ -103,18 +111,33 @@ internal fun SetEditSheet(
             }
         },
         body = {
-            SetFields(
-                card = card,
-                row = row,
-                slot = Slot.MAIN,
-                weight = row.weightDisplay,
-                reps = row.reps,
-                seconds = row.seconds,
-                tracking = card.tracking,
-                timedWeight = card.timedShowsWeight,
-                unit = unit,
-                actions = actions,
-            )
+            if (card.headerTarget.eachSide) {
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    listOf(false, true).forEachIndexed { position, split ->
+                        SegmentedButton(
+                            selected = (row.sides != null) == split,
+                            onClick = { actions.onEachSide(card.programExerciseId, row.index, split) },
+                            shape = SegmentedButtonDefaults.itemShape(position, 2),
+                            modifier = Modifier.heightIn(min = 48.dp)
+                                .testTag(if (split) "set-edit-left-and-right" else "set-edit-each-side"),
+                        ) { Text(stringResource(if (split) R.string.set_edit_left_and_right else R.string.day_target_each_side)) }
+                    }
+                }
+            }
+            if (row.sides != null) SideFields(card, row, row.sides, unit, actions) else {
+                SetFields(
+                    card = card,
+                    row = row,
+                    slot = Slot.MAIN,
+                    weight = row.weightDisplay,
+                    reps = row.reps,
+                    seconds = row.seconds,
+                    tracking = card.tracking,
+                    timedWeight = card.timedShowsWeight,
+                    unit = unit,
+                    actions = actions,
+                )
+            }
             if (row.done && showsEffort(row.kind, card.tracking, row.seconds)) {
                 SetEffortRow(row.rir, effortScale.forTracking(card.tracking), {
                     actions.onSetEffort(card.programExerciseId, Slot.MAIN, row.index, it)
@@ -236,6 +259,44 @@ private fun SetFields(
     }
 }
 
+@Composable
+private fun SideFields(card: ExerciseCardState, row: SetRowState, sides: Sides, unit: WeightUnit, actions: DayActions) {
+    for (side in Side.entries) {
+        val result = if (side == Side.LEFT) sides.left else sides.right
+        val label = stringResource(if (side == Side.LEFT) R.string.set_edit_left else R.string.set_edit_right)
+        val identity = "${card.programExerciseId}:main:${row.index}:${side.name.lowercase()}:"
+        Text(label, style = MaterialTheme.typography.titleSmall)
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (card.tracking == TrackingType.WEIGHTED || card.timedShowsWeight) {
+                NumericSetField(
+                    identity = identity + "weight", value = unit.fromLb(result.weightLb),
+                    label = stringResource(R.string.sheet_weight, unit.name.lowercase()),
+                    field = stringResource(R.string.set_edit_weight_field), partnerName = label,
+                    modifier = Modifier.fillMaxWidth(), minimum = 0.0, decimal = true,
+                    step = { WeightStepper.increment(it, unit) }, round = { WeightStepper.round(it, unit) },
+                    onChange = { actions.onSideChange(card.programExerciseId, row.index, side, it, null, null) },
+                )
+            }
+            if (card.tracking == TrackingType.TIMED) {
+                NumericSetField(
+                    identity = identity + "seconds", value = result.seconds.toDouble(),
+                    label = stringResource(R.string.sheet_duration), field = stringResource(R.string.sheet_duration),
+                    partnerName = label, modifier = Modifier.fillMaxWidth(), minimum = 0.0,
+                    step = { 30.0 }, duration = true, round = { it },
+                    onChange = { actions.onSideChange(card.programExerciseId, row.index, side, null, null, it.toInt()) },
+                )
+            } else {
+                NumericSetField(
+                    identity = identity + "reps", value = result.reps.toDouble(),
+                    label = stringResource(R.string.set_edit_reps), field = stringResource(R.string.set_edit_reps),
+                    partnerName = label, modifier = Modifier.fillMaxWidth(), minimum = 0.0, step = { 1.0 },
+                    onChange = { actions.onSideChange(card.programExerciseId, row.index, side, null, it.toInt(), null) },
+                )
+            }
+        }
+    }
+}
+
 /** M3 has no numeric field with bounded stepping and buttons that reflow below large type. */
 @Composable
 internal fun NumericSetField(
@@ -285,7 +346,8 @@ internal fun NumericSetField(
             singleLine = true,
             enabled = enabled,
             isError = isError,
-            modifier = fieldModifier.heightIn(min = 80.dp),
+            modifier = fieldModifier.heightIn(min = 80.dp)
+                .then(if (partnerName != null) Modifier.semantics { contentDescription = trackField } else Modifier),
             interactionSource = interactionSource,
             keyboardOptions = KeyboardOptions(
                 keyboardType = when {

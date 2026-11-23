@@ -296,6 +296,7 @@ That needs no separate owner question unless it touches a hard constraint. Brief
 | 2026-11-20, cardio A | Timed intervals start after their recovery; a run day opens on its run; past-session errors sit by the start time | #536, #533 and playtest r5-p6 |
 | 2026-11-20, cardio B | Cardio pace on receipts and History; last-time line; cardio trend cards, two sessions, four at most | #531 and #532; comparisons use the records rule |
 | 2026-11-20, #628 | TIMED sets run a hold timer: Start, a count-up clock filling toward the target, an automatic log of the target at the target, Stop for the seconds held; each side runs two holds and logs the shorter | Owner: "The plank is not timing me"; playtest r5-p9 timed both legs herself; the watch's hold face already worked this way |
+| 2026-11-23, #643 | An outlined "Past target" beside a hold's Start runs it past the target: one buzz at the target, Stop logs the seconds held. The wall sit has no Past target and shows "Keep breathing" under its running clock, the one instruction on the workout page and an exception to "never advises" | Council 2026-11-21 on the 2026-11-21 evidence report: training holds end at target by default; the wall sit is a fixed submaximal dose and breath-holding raises pressure (Edwards 2023; resistant-hypertension wall-squat abstract) |
 
 ### Watch
 

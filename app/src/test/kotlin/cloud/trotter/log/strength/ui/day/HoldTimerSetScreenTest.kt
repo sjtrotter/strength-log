@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.day
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -32,13 +33,14 @@ import org.robolectric.annotation.Config
 class HoldTimerSetScreenTest {
     @get:Rule val rule = createComposeRule()
 
-    private fun state(hold: HoldState? = null, weight: Double = 0.0): DayUiState {
+    private fun state(hold: HoldState? = null, weight: Double = 0.0, caution: Boolean = false): DayUiState {
         val base = workoutSetSingleFixture()
         val card = base.exercises.single().copy(
             title = "Plank", exerciseId = "plank", tracking = TrackingType.TIMED,
             headerTarget = HeaderTarget.Prescribed("2 × 0:30", eachSide = true),
             rows = List(2) { SetRowState(it, "${it + 1}", false, weight, 0, false, seconds = 30) },
             focusIndex = 0,
+            holdPressureCaution = caution,
         )
         return base.copy(exercises = listOf(card), hold = hold, executionBusy = hold != null)
     }
@@ -147,4 +149,30 @@ class HoldTimerSetScreenTest {
         show(state(hold(), weight = 25.0))
         rule.onNodeWithText("at 25 lb").assertIsDisplayed()
     }
+    @Test fun `an idle hold offers Past target beside Start`() {
+        val starts = mutableListOf<Pair<Long, Int>>()
+        show(state(), workoutActions().copy(onStartHoldPastTarget = { id, index -> starts += id to index }))
+        rule.onNodeWithTag("workout-action-filled").assert(hasText("Start")).assertIsEnabled()
+        rule.onNodeWithText("Past target").assertIsDisplayed().assertIsEnabled().performClick()
+        rule.runOnIdle { assertEquals(listOf(1L to 0), starts) }
+    }
+
+    @Test fun `a wall sit offers no Past target and its running hold says Keep breathing`() {
+        val current = mutableStateOf(state(caution = true))
+        rule.setContent { AppTheme { WorkoutSetHost(current.value.withWorkoutSelection(), workoutActions()) } }
+        rule.onNodeWithText("Past target").assertDoesNotExist()
+        rule.runOnIdle { current.value = state(hold(), caution = true) }
+        rule.onNodeWithText("Keep breathing").assertIsDisplayed()
+        var node: SemanticsNode? = rule.onNodeWithText("Keep breathing", useUnmergedTree = true).fetchSemanticsNode()
+        while (node != null) {
+            assertFalse(node.config.contains(SemanticsProperties.LiveRegion))
+            node = node.parent
+        }
+    }
+
+    @Test fun `a running plank shows no breathing cue`() {
+        show(state(hold()))
+        rule.onNodeWithText("Keep breathing").assertDoesNotExist()
+    }
+
 }

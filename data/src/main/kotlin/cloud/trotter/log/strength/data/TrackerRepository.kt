@@ -2346,7 +2346,7 @@ class TrackerRepository(
             // A malformed row must never block Finish; an opened track keeps its stored load.
             val prepared = try {
                 val outcome = Progression.afterSession(rule, working, Progression.Exposure(planned, actual, today, layoff = layoff),
-                    Progression.Context(unit, entry?.equipment.orEmpty().toSet(), steps, today, light = opening?.light == true))
+                    Progression.Context(unit, entry?.equipment.orEmpty().toSet(), steps, today, light = opening?.light == true, holdCeilingSeconds = entry?.holdCeilingSeconds))
                 val writtenRule = if (automatic) outcome.rule else outcome.rule.copy(target = rule.target,
                     state = outcome.rule.state.copy(calibrating = rule.state.calibrating))
                 Prepared(outcome, writtenRule, SlotRuleJson.encode(writtenRule), offerOf(outcome, if (opening == null) planned else WorkingRows.cleared(working), working, rule))
@@ -2364,7 +2364,9 @@ class TrackerRepository(
             if (outcome.reason == Reason.Stall) stalled = true
             prepared.offer?.let { offers[track.id] = it }
             // MaxSet blocks an increase and therefore gives no shared credit.
-            if (outcome.reason in setOf(Reason.AllMade, Reason.EasySession, Reason.Streak, Reason.AddWeight)) {
+            // Holds earn no cross-day credit (#643): a hold's target is its seconds, which the credit cannot compare.
+            if (outcome.reason in setOf(Reason.AllMade, Reason.EasySession, Reason.Streak, Reason.AddWeight) &&
+                planned.none { it.seconds > 0 }) {
                 credits.add(Triple(slot.id, track.exerciseId, rule.target.reps))
             }
         }
@@ -2566,7 +2568,7 @@ class TrackerRepository(
             is Change.Decrease -> from to change.toLb
             is Change.KeptLowered -> from to change.lb
             is Change.Calibrated -> from to change.lb
-            is Change.RepsTo -> from to (WorkingRows.workingWeight(outcome.rows) ?: from)
+            is Change.RepsTo, is Change.SecondsTo -> from to (WorkingRows.workingWeight(outcome.rows) ?: from)
             else -> WorkingRows.workingWeight(outcome.rows)?.takeIf { it != from }?.let { from to it } ?: return null
         }
         return OfferDto(weights.first, weights.second, WorkingRows.cleared(working).map(SetDto::of),

@@ -1,0 +1,177 @@
+{
+  "seat": "plank-past-target",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "textContains": "General fitness"
+      }
+    },
+    {
+      "tap": {
+        "text": "Day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Edit"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plank"
+      }
+    },
+    {
+      "type": {
+        "text": "Duration",
+        "value": "0:20"
+      }
+    },
+    {
+      "tap": {
+        "text": "Save",
+        "role": "Button"
+      }
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "back": true
+    },
+    {
+      "tap": {
+        "text": "Today",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      },
+      "optional": true,
+      "timeoutMs": 1000
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 14 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Plank"
+      }
+    },
+    {
+      "tap": {
+        "text": "Past target"
+      }
+    },
+    {
+      "expect": {
+        "text": "Target 0:20"
+      }
+    },
+    {
+      "checkpoint": "plank-past-target-running"
+    },
+    {
+      "advance": "25s"
+    },
+    {
+      "expect": {
+        "text": "Target 0:20"
+      }
+    },
+    {
+      "tap": {
+        "text": "Stop",
+        "tag": "workout-action-tonal"
+      }
+    },
+    {
+      "expect": {
+        "text": "✓ Set 1 · 25s"
+      }
+    },
+    {
+      "expect": {
+        "text": "Set 2 of 2"
+      }
+    },
+    {
+      "checkpoint": "plank-past-target-logged"
+    }
+  ]
+}

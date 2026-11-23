@@ -586,6 +586,7 @@ data class DayActions(
     val onStartTimedRep: (Long, Int) -> Unit = { _, _ -> },
     val onStopTimedRep: () -> Unit = {},
     val onStartHold: (Long, Int) -> Unit = { _, _ -> },
+    val onStartHoldPastTarget: (Long, Int) -> Unit = { _, _ -> },
     val onStopHold: () -> Unit = {},
     val onRequestTimedRepCount: () -> Unit = {},
     val onOpenTimedRepCount: () -> Unit = {},

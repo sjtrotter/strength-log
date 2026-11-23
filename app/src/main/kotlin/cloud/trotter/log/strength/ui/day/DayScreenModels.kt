@@ -399,7 +399,7 @@ sealed interface HeaderTarget {
 @Immutable
 sealed interface NextTime {
     data object Repeat : NextTime
-    data class Offer(val label: String, val applied: Boolean, val offerLb: Double, val openingLb: Double, val reps: Int? = null, val calibration: Boolean = false) : NextTime
+    data class Offer(val label: String, val applied: Boolean, val offerLb: Double, val openingLb: Double, val reps: Int? = null, val calibration: Boolean = false, val seconds: Int? = null) : NextTime
 }
 
 /** One exercise card (spec §8.2). [Immutable] for the reason [DayUiState]
@@ -467,6 +467,8 @@ data class ExerciseCardState(
     val partnerNextTime: NextTime? = null,
     val rule: SlotRule? = null,
     val liftGoal: LiftGoal = LiftGoal.STRENGTH,
+    /** [cloud.trotter.log.strength.domain.library.ExerciseEntry.pressureCaution] of the performed exercise. */
+    val holdPressureCaution: Boolean = false,
 )
 
 /**

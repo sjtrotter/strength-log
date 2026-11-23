@@ -387,7 +387,9 @@ private fun WorkoutSetContent(
                                         stringResource(R.string.workout_hold_end), actions.onStopHold), guardKey = guardKey)
                                 resting -> WorkoutActionSpec(stringResource(R.string.workout_end_rest), true, true, actions.onContinueWorkout)
                                 else -> WorkoutActionSpec(stringResource(R.string.day_cardio_start_button), false,
-                                    !state.executionBusy && state.timedRep == null, { actions.onStartHold(card.programExerciseId, index) })
+                                    !state.executionBusy && state.timedRep == null, { actions.onStartHold(card.programExerciseId, index) },
+                                    secondary = if (card.holdPressureCaution) null else WorkoutSecondaryAction.Text(
+                                        stringResource(R.string.workout_hold_past_target)) { actions.onStartHoldPastTarget(card.programExerciseId, index) })
                             }
                         }
                         values != null && card != null -> if (resting) WorkoutActionSpec(
@@ -500,7 +502,7 @@ private fun WorkoutTimedRepHero(card: ExerciseCardState, timed: TimedRepState?, 
 }
 
 @Composable
-private fun WorkoutHoldHero(hold: HoldState, maxFontSize: TextUnit) {
+private fun WorkoutHoldHero(hold: HoldState, breathingCue: Boolean, maxFontSize: TextUnit) {
     val event = hold.event
     WorkoutHeroText(formatCardioTime(hold.heldSeconds), maxFontSize = maxFontSize)
     Text(stringResource(R.string.workout_hold_held), style = MaterialTheme.typography.bodyMedium,
@@ -511,6 +513,8 @@ private fun WorkoutHoldHero(hold: HoldState, maxFontSize: TextUnit) {
     if (event.sides > 1) Text(stringResource(R.string.workout_hold_side, event.sideNumber, event.sides),
         style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+    if (breathingCue && event.running) Text(stringResource(R.string.workout_hold_keep_breathing),
+        style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
 }
 
 @Composable
@@ -933,7 +937,7 @@ private fun WorkoutSetCard(
                 }
                 val hero: @Composable () -> Unit = {
                     if (timed) WorkoutTimedRepHero(card, event, index, actions, if (compact) 56.sp else SetNumerals.fontSize)
-                    else if (hold != null) WorkoutHoldHero(hold, if (compact) 56.sp else SetNumerals.fontSize)
+                    else if (hold != null) WorkoutHoldHero(hold, card.holdPressureCaution, if (compact) 56.sp else SetNumerals.fontSize)
                     else {
                         WorkoutEditableHero(card, slot, index, actions) {
                             Crossfade(values to tracking,

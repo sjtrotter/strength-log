@@ -18,4 +18,8 @@ sealed interface Reason {
     data object Incomplete : Reason
     data object AddWeight : Reason
     data object Timed : Reason
+    /** A met bodyweight hold gained time (#643). */
+    data object HoldStep : Reason
+    /** A met bodyweight hold is at its entry's ceiling (#643). */
+    data object HoldCeiling : Reason
 }

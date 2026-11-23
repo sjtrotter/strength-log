@@ -136,4 +136,32 @@ class ReceiptLinesTest {
         assertNull(ReasonCode.decode("BOGUS"))
         assertNull(ReasonCode.decode(null))
     }
+    @Test fun `a hold step reads as seconds in Next time and Why`() {
+        val timed = rows(0.0, 0).map { it.copy(seconds = 45) }
+        val session = SlotSession(timed, timed.map { it.copy(done = true) }, false,
+            NextOffer(0.0, 0.0, fromSeconds = 45, toSeconds = 50), reason = "HOLD_STEP")
+        for ((seconds, suffix) in listOf(50 to "", 45 to " offered")) {
+            val current = timed.map { it.copy(seconds = seconds) }
+            val line = assertNotNull(ReceiptLines.strength(current, session, false, rule, WeightUnit.LB, true))
+            assertEquals("Next time: 0:50$suffix", text(line))
+            val why = assertNotNull(ReceiptLines.whyLine(current, session, rule, WeightUnit.LB))
+            val word = if (seconds == 50) "next time" else "offered"
+            assertEquals("Plank 0:50 $word: all holds made.", ReceiptLines.why("Plank", why, WeightUnit.LB, resources))
+        }
+    }
+
+    @Test fun `a hold at its ceiling states the ceiling`() {
+        val timed = rows(0.0, 0).map { it.copy(seconds = 60) }
+        val session = SlotSession(timed, timed.map { it.copy(done = true) }, false, reason = "HOLD_CEILING")
+        val why = assertNotNull(ReceiptLines.whyLine(timed, session, rule, WeightUnit.LB))
+        assertEquals("Plank 1:00: the longest hold this plan counts.", ReceiptLines.why("Plank", why, WeightUnit.LB, resources))
+    }
+
+    @Test fun `hold reason codes are literal`() {
+        for ((reason, code) in listOf(Reason.HoldStep to "HOLD_STEP", Reason.HoldCeiling to "HOLD_CEILING")) {
+            assertEquals(code, ReasonCode.encode(reason))
+            assertEquals(reason, ReasonCode.decode(code))
+        }
+    }
+
 }

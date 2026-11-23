@@ -260,6 +260,12 @@ strength day; the shipped cardio vectors stay pinned.
   logs nothing. A set done each side runs one hold per side, each started with its own tap, and logs the shorter
   side. Each side comes from the authored prescription, else the catalog entry. A hold in a superset still logs
   with its round, and leaving the day drops a hold in progress.
+- **Hold progression and Past target (#643).** A bodyweight hold whose catalog entry has a ceiling gains 5 s when a
+  session meets every planned hold at the slot's cadence, up to the ceiling; misses keep the target. Loaded holds and
+  holds without a ceiling keep their seconds. "Past target" beside Start runs a hold past its target: one buzz at the
+  target, Stop logs the seconds held, and the clock ends itself at 10:00. The log keeps the held seconds beside the
+  planned target, and an overshoot counts as one success. The wall sit never runs past its target and shows "Keep
+  breathing" while it runs. Pinned as §11.2 cases 39 and 40.
 - **Before production:** plans, run identity, authored prescriptions and
   timed rep events, on phone and watch; a plan switcher on Today; and cardio
   as typed sets (warm-up, work, recovery, cool-down; time ends a set by

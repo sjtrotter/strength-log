@@ -215,14 +215,50 @@ class LoadSourceFinishTest : FinishProgressionFixture() {
         assertEquals(LoadSource("A", 170.0 / 185.0), rule(c).loadSource)
     }
 
+    @Test fun `source edits allow a chain without a cycle`() = runTest {
+        val (plan, a, c) = linked()
+        repo.editRule(c, Slot.MAIN, RuleEdit.LoadSource(null))
+        val b = add(plan, "bb_back_squat", "B")
+        lifter(plan, b, work(w = 180.0), day = "B")
+        repo.editRule(b, Slot.MAIN, RuleEdit.LoadSource("C"))
+        repo.editRule(a, Slot.MAIN, RuleEdit.LoadSource("B"))
+        assertEquals(LoadSource("B", 185.0 / 180.0), rule(a).loadSource)
+        assertEquals(LoadSource("C", 180.0 / 170.0), rule(b).loadSource)
+        assertNull(rule(c).loadSource)
+        assertEquals(work(), rows(plan, a))
+        assertEquals(work(w = 180.0), rows(plan, b, "B"))
+        assertEquals(work(w = 170.0), rows(plan, c, "C"))
+    }
+
+    @Test fun `source edits reject a two hop cycle`() = runTest {
+        val (plan, a, c) = linked()
+        val b = add(plan, "bb_back_squat", "B")
+        lifter(plan, b, work(w = 180.0), day = "B")
+        repo.editRule(c, Slot.MAIN, RuleEdit.LoadSource("B"))
+        repo.editRule(a, Slot.MAIN, RuleEdit.LoadSource("C"))
+        assertEquals(LoadSource("C", 185.0 / 170.0), rule(a).loadSource)
+        assertEquals(LoadSource("B", 170.0 / 180.0), rule(c).loadSource)
+        repo.editRule(b, Slot.MAIN, RuleEdit.LoadSource("A"))
+        assertNull(rule(b).loadSource)
+        assertEquals(LoadSource("C", 185.0 / 170.0), rule(a).loadSource)
+        assertEquals(LoadSource("B", 170.0 / 180.0), rule(c).loadSource)
+        assertEquals(work(), rows(plan, a))
+        assertEquals(work(w = 180.0), rows(plan, b, "B"))
+        assertEquals(work(w = 170.0), rows(plan, c, "C"))
+    }
+
     @Test fun `source edits reject a cycle and Plan slots`() = runTest {
         val (plan, a, c) = linked()
         repo.editRule(a, Slot.MAIN, RuleEdit.LoadSource("C"))
         assertNull(rule(a).loadSource)
         repo.editRule(c, Slot.MAIN, RuleEdit.LoadSource(null))
-        repo.setKeepToPlan(c, true)
+        assertNull(rule(c).loadSource)
+        repo.setPrescription(c, Prescription(PrescribedTarget.LoadReps(170.0, 5)))
+        assertTrue(repo.setKeepToPlan(c, true))
         repo.editRule(c, Slot.MAIN, RuleEdit.LoadSource("A"))
         assertNull(rule(c).loadSource)
+        repo.editRule(a, Slot.MAIN, RuleEdit.LoadSource("C"))
+        assertNull(rule(a).loadSource)
         assertEquals(work(), rows(plan, a))
     }
     @Test fun `a removed source leaves the follower alone`() = runTest {

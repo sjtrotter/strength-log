@@ -861,7 +861,7 @@ These decisions supersede the earlier Ask, carried-load, and success rules.
 ## 21. Revision 12 (PR 2b part two-b, partner rules, 2026-11-09)
 
 - A superset partner has its own rule in `program_exercise.partnerRuleJson` (Room 27, additive in backup v27), read through `SupersetPartner.rule`. Adding or swapping a partner seeds its rows and rule through `SlotSeeding`; conversion, a generated plan and Reset day write the rule only, its reps from the stored, then parked, partner rows, then the catalog. Removing or swapping the partner clears the rule; a main swap, a structure or prescription edit and Plan mode keep it.
-- Finish judges a partner track exactly as a main slot and records its offer on the archived partner track. Cross-day credit runs between any two tracks of the plan on different days with the same exercise and working-rep target, main or partner. A partner stall counts toward the reactive light cycle. Undo records which column a rule came from.
+- Finish judges a partner track exactly as a main slot and records its offer on the archived partner track. A partner stall counts toward the reactive light cycle. Undo records which column a rule came from.
 - Both halves of a superset open through `atStart`. When either half opened, the partner is fitted to the main's opened row count (trimmed from the end, or padded with its own last row), never reseeded. A partner whose count changed without an opening of its own opens as a Hold, so Finish leaves its rows and streaks as they were.
 
 ## 22. Revision 13 (PR 2b part three-a, lazy seeds, 2026-11-09)

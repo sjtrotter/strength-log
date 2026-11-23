@@ -26,4 +26,10 @@ class EstimateTest {
         assertEquals(2.631578947368421, Estimate.rirAt(357.5, 285.0, 5), 1e-9)
         assertEquals(0.2857142857142857, Estimate.rirAt(123.5, 105.0, 5), 1e-9)
     }
+    @Test fun `load ratio cancels the estimate and respects the ten rep limit`() {
+        assertEquals(37.0 / 38.0, requireNotNull(Estimate.loadRatio(5, 3, 5, 2)), 1e-12)
+        assertEquals(1.0, Estimate.loadRatio(5, 3, 5, 3))
+        assertNull(Estimate.loadRatio(8, 3, 5, 2))
+        assertNull(Estimate.loadRatio(5, 2, 12, 2))
+    }
 }

@@ -24,4 +24,5 @@ sealed interface Reason {
     data object HoldCeiling : Reason
     /** A reps-in-time set with no rep aim: it records the count and nothing progresses (#642). */
     data object Measured : Reason
+    data object Followed : Reason
 }

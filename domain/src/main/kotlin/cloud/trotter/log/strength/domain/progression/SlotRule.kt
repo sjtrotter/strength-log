@@ -46,6 +46,8 @@ data class SlotRule(
     val restSeconds: Int? = null,
     /** Null follows the plan. */
     val nextTime: NextTimeMode? = null,
+    /** Null progresses on this slot's own results. */
+    val loadSource: LoadSource? = null,
     val state: SlotState = SlotState(),
 ) {
     companion object {

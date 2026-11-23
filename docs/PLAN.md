@@ -22,7 +22,7 @@ is exactly right. **Nothing in §3–§6 or §8–§9 needs structural change.**
 amendments below are additions the new requirements force, plus gaps found in
 review.
 
-## Amendments (A1–A20)
+## Amendments (A1–A21)
 
 ### A1. Session history is now required (biggest change)
 
@@ -264,7 +264,7 @@ strength day; the shipped cardio vectors stay pinned.
   it for the full duration, including at Max, the aim rises one rep at the lift's cadence, and any miss repeats it.
   Counts beyond the aim never become the aim (council 2026-11-23 Q2). Without an aim the set records the count and
   nothing progresses. No rep ceiling, no weight offer,
-  no estimate and no automatic extra set, and a window neither gives nor takes another slot's shared credit.
+  no estimate and no automatic extra set.
   Identical windows on two days still share progression. Pinned as §11.2 case 39.
 - **Hold progression and Past target (#643).** A bodyweight hold whose catalog entry has a ceiling gains 5 s when a
   session meets every planned hold at the slot's cadence, up to the ceiling; misses keep the target. When every
@@ -421,6 +421,23 @@ Accepting or reverting an offer reaches the slots still holding what Finish copi
 other; there the log is evidence only, as decided 2026-10-19. The Lift sheet's and the Today preview's Last (#645)
 name the day, and the plan when it is another, that the newest session came from when that is not the day shown.
 For matching slots this supersedes design §19's "It never writes another slot's load."
+
+### A21. Load source (owner council, 2026-11-21 and 2026-11-23, #647)
+
+A weighted slot, at a fixed or a range rep target, may follow another day of its plan: it keeps a load ratio to that
+day's first linkable slot of the exercise and takes ratio × the source's load at the nearest step whenever the
+source's load moves, in the same undo record as the move. A link is made only while both ends sit inside Estimate's
+bound at their current reps plus target RIR; once made, reps climbing past the bound neither recompute the ratio
+nor end the link. The follower judges its own target: a success takes the derived load and never earns one, and a
+range follower still moves its reps (restarting at the bottom when the derived load rises); a rep miss holds it,
+counts, and never stalls or moves the source; a changed working load re-forms the ratio. The link and ratio live in
+the slot's rule. The generator ties each SECONDARY exposure to its MAIN at Estimate's ratio of the two doses
+(37/38 for Strength, 38/40 for an experienced Muscle plan; a New Muscle MAIN at 3 RIR sits outside the bound and
+ties nothing); hand-written slots, converted plans and older backups are Own results,
+and the user changes a slot's source in Lift options ("Load source": Own results or a day by name). Identical
+prescriptions still share (A20) when their sources match. The #502 success credit between unlike prescriptions is
+gone in both directions; the pending increases it set are dropped on read. Backup v34 carries the link; older
+documents with one are refused.
 
 ## Architecture
 

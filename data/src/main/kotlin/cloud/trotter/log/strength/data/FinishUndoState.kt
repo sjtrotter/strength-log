@@ -6,6 +6,9 @@ enum class UndoResult { Undone, UndoneLadderKept, UndoneReplanKept, DayOpen, Not
 
 enum class ReplanAccept { Moved, RunOpen, Gone, Waiting }
 
+/** A follower row this Finish moved: its day and working load before and after. */
+data class FollowedWrite(val dayId: String, val fromLb: Double?, val toLb: Double)
+
 data class FinishUndoState(
     val rough: Boolean,
     val hasStrengthRecord: Boolean,

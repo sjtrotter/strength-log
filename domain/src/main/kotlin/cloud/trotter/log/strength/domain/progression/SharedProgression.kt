@@ -12,7 +12,7 @@ object SharedProgression {
             a.structure == b.structure && a.targetSets == b.targetSets &&
             first.role == second.role && first.rir == second.rir && first.scheme == second.scheme &&
             first.automatic(planAutomatic) == second.automatic(planAutomatic) &&
-            dose(a, first) == dose(b, second)
+            first.loadSource == second.loadSource && dose(a, first) == dose(b, second)
     }
 
     fun copied(into: SlotRule, from: SlotRule): SlotRule =

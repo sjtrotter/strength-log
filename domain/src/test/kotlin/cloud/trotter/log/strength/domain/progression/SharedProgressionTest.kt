@@ -101,4 +101,10 @@ class SharedProgressionTest {
             assertFalse(rule().copy(nextTime = NextTimeMode.ASK).automatic(automatic))
         }
     }
+    @Test fun `a follower and an own results slot do not share`() {
+        val follower = slot(rule().copy(loadSource = LoadSource("A", 0.9)))
+        assertFalse(SharedProgression.shares(slot(), follower, true))
+        assertTrue(SharedProgression.shares(follower, follower, true))
+        assertFalse(SharedProgression.shares(follower, slot(rule().copy(loadSource = LoadSource("A", 0.95))), true))
+    }
 }

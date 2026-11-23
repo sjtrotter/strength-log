@@ -3,7 +3,6 @@ package cloud.trotter.log.strength.data
 import cloud.trotter.log.strength.data.db.dao.LastPerformedRow
 import cloud.trotter.log.strength.data.db.dao.LastPerformedSourceRow
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
-import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
 
@@ -28,35 +27,9 @@ fun List<LastPerformedRow>.toLastPerformedByExercise(): Map<String, LastPerforme
     return result
 }
 
-/** The slot's own last performance, or the exercise's last performance anywhere, with its source. */
-data class SlotLast(
-    val last: LastPerformed,
-    val sameSlot: Boolean,
-    val planId: Long?,
-    val planName: String?,
-    val dayId: String,
-    val sets: List<LoggedSet> = emptyList(),
-)
-
 internal fun belongsToPlan(sessionPlanId: Long?, planId: Long?): Boolean =
     planId != null &&
         (sessionPlanId == planId || (planId == PlanEntity.LEGACY_ID && sessionPlanId == null))
-
-/** Rows arrive newest first, with the same performance tiebreaks as [toLastPerformedByExercise]. */
-fun List<LastPerformedSourceRow>.toLastPerformedForSlots(planId: Long, dayId: String): Map<Pair<String, String>, SlotLast> =
-    buildMap {
-        for ((exerciseId, rows) in this@toLastPerformedForSlots.groupBy { it.exerciseId }) {
-            for (slot in listOf(Slot.MAIN, Slot.SS)) {
-                val own = rows.firstOrNull { it.slot == slot && belongsToPlan(it.planId, planId) && it.dayId == dayId }
-                val row = own ?: rows.first()
-                put(exerciseId to slot, SlotLast(
-                    LastPerformed(row.weightLb, row.reps, row.seconds), own != null, row.planId, row.planName, row.dayId,
-                    rows.filter { it.sessionId == row.sessionId && it.slot == row.slot && it.kind != SetKind.RAMP.name }
-                        .sortedBy { it.setIndex }.map { it.toLoggedSet() },
-                ))
-            }
-        }
-    }
 
 /**
  * Reduces [cloud.trotter.log.strength.data.db.dao.SessionDao.lastPerformedSourceRows]'
@@ -82,6 +55,15 @@ fun List<LastPerformedSourceRow>.toLastSourcesElsewhere(planId: Long, dayId: Str
         if (samePlan && row.dayId == dayId) null
         else exerciseId to LastSource(row.dayId, row.planName?.takeIf { !samePlan && it.isNotBlank() })
     }.toMap()
+
+/** What every "Last" line reads, per exercise id: its newest session from any day or plan (#641, #645). [sources] holds
+ *  only exercises whose newest session ran somewhere other than the shown day of this plan. */
+data class LastTimes(
+    val performed: Map<String, LastPerformed> = emptyMap(),
+    val sets: Map<String, List<LoggedSet>> = emptyMap(),
+    val dates: Map<String, Long> = emptyMap(),
+    val sources: Map<String, LastSource> = emptyMap(),
+)
 
 private fun LastPerformedSourceRow.toLoggedSet(): LoggedSet = LoggedSet(
     weightLb, reps, SetKind.entries.firstOrNull { it.name == kind } ?: SetKind.WORK,

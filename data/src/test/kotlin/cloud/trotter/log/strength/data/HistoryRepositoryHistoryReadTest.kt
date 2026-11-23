@@ -331,7 +331,7 @@ class HistoryRepositoryHistoryReadTest {
     }
 
     @Test
-    fun `lastPerformedForSlots prefers the same plan day and slot and labels the fallback`() = runTest {
+    fun `lastTimes reads the newest session anywhere and names where it ran`() = runTest {
         repo.importSessionHistory(listOf(
             ImportedSession(session(1_000L).copy(planId = 10L, planName = "Own"), listOf(
                 set("bb_back_squat", "Squat", SetKind.WORK, 70.0, 5, true),
@@ -343,15 +343,20 @@ class HistoryRepositoryHistoryReadTest {
                 set("ez_curl", "Curl", SetKind.WORK, 100.0, 10, false),
             )),
         ), emptyList())
-        val result = repo.lastPerformedForSlots(10L, "A", listOf("bb_back_squat", "ez_curl", "unknown"))
-        assertEquals(4, result.size)
-        assertEquals(SlotLast(LastPerformed(70.0, 5), true, 10L, "Own", "A", listOf(
-            LoggedSet(70.0, 5, SetKind.WORK, done = true), LoggedSet(65.0, 8, SetKind.WORK, done = true))), result["bb_back_squat" to Slot.MAIN])
-        assertEquals(SlotLast(LastPerformed(80.0, 5), false, 10L, "Own", "B", listOf(LoggedSet(80.0, 5, SetKind.WORK, done = true))), result["bb_back_squat" to Slot.SS])
-        for (slot in listOf(Slot.MAIN, Slot.SS)) {
-            assertEquals(SlotLast(LastPerformed(50.0, 10, 20), false, 10L, "Own", "B", listOf(LoggedSet(50.0, 10, SetKind.WORK, done = true, seconds = 20))), result["ez_curl" to slot])
-        }
-        assertTrue(repo.lastPerformedForSlots(10L, "A", emptyList()).isEmpty())
+        val ids = listOf("bb_back_squat", "ez_curl", "unknown")
+        val result = repo.lastTimes(ids, 10L, "A")
+        // #645: Last is keyed per exercise and the newest session anywhere wins over this day's own
+        assertEquals(mapOf("bb_back_squat" to LastPerformed(80.0, 5), "ez_curl" to LastPerformed(50.0, 10, 20)), result.performed)
+        // #645: both slots read the newest session's working sets per exercise
+        assertEquals(listOf(LoggedSet(80.0, 5, SetKind.WORK, done = true)), result.sets["bb_back_squat"])
+        // #645: partner history is read per exercise, with no duplicated slot entry
+        assertEquals(listOf(LoggedSet(50.0, 10, SetKind.WORK, done = true, seconds = 20)), result.sets["ez_curl"])
+        assertEquals(mapOf("bb_back_squat" to 2_000L, "ez_curl" to 2_000L), result.dates)
+        // #645: source labels describe the newest session per exercise instead of a slot fallback
+        assertEquals(mapOf("bb_back_squat" to LastSource("B", null), "ez_curl" to LastSource("B", null)), result.sources)
+        assertTrue(repo.lastTimes(ids, 10L, "B").sources.isEmpty())
+        // #645: an empty id list returns an empty LastTimes bundle instead of an empty slot map
+        assertEquals(LastTimes(), repo.lastTimes(emptyList(), 10L, "A"))
     }
 
     @Test

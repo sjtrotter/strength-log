@@ -335,6 +335,11 @@ class HistoryRepository(
         if (exerciseIds.isEmpty()) emptyMap()
         else sessionDao.lastPerformedSourceRows(exerciseIds).toLastSourcesElsewhere(planId, dayId)
 
+    /** The Lift sheet's and the Today preview's Last: one read for both. */
+    suspend fun lastTimes(exerciseIds: List<String>, planId: Long, dayId: String): LastTimes =
+        LastTimes(lastPerformed(exerciseIds), lastSets(exerciseIds), lastPerformedDates(exerciseIds),
+            lastSourcesElsewhere(exerciseIds, planId, dayId))
+
     /** Offers belong to a program slot, including when an exercise appears twice on the same day. */
     suspend fun slotSessionsById(planId: Long, dayId: String): Map<Pair<Long, String>, SlotSession> = db.withTransaction {
         val session = sessionDao.lastSessionForDay(planId, dayId) ?: return@withTransaction emptyMap()
@@ -375,15 +380,6 @@ class HistoryRepository(
                 rough = session.roughDay, reason = dto.reason,
             )
         }
-    }
-
-    suspend fun lastPerformedForSlots(
-        planId: Long,
-        dayId: String,
-        exerciseIds: List<String>,
-    ): Map<Pair<String, String>, SlotLast> {
-        if (exerciseIds.isEmpty()) return emptyMap()
-        return sessionDao.lastPerformedSourceRows(exerciseIds).toLastPerformedForSlots(planId, dayId)
     }
 
     /**

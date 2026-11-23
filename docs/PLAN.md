@@ -310,14 +310,13 @@ The offer reads the lift's latest qualifying evidence from any day in the same
 plan (#502): a heavier full-rep working set anywhere, or full success at the opening
 weight. A later miss or skip does not erase qualifying evidence. The current slot's
 opening prescription is the baseline when its local archive is absent or retired.
-Archived tracks keep their own rep targets and row identities; Last stays per day
-and slot.
+Archived tracks keep their own rep targets and row identities.
 On screen the heading is built from the working rows, 'Repeat' or a '+5 lb' chip
-sits beside the weight, the Today preview's Last lists every working set of the
-same plan, day and slot's last session (#501)
-(falling back to the exercise anywhere, labeled with its day), and the Next time
-control reads Progress / Plan with the disclosure 'Planned reps; increases need
-your approval.'
+sits beside the weight, the Today preview's Last, like the Lift sheet's, lists every
+working set of the exercise's newest session from any day or plan, naming the day,
+the plan when it is another, and the date when that is not the day shown (#501, #645),
+and the Next time control reads Progress / Plan with the disclosure 'Planned reps;
+increases need your approval.'
 Choosing Plan parks the slot's Progress values on the slot and choosing Progress
 again restores them.
 The receipt shows each lift's Next time (+5 lb or Repeat), read the same way as the preview; a ramped lift's receipt row lists its top set and then its other working sets (#501).
@@ -402,9 +401,9 @@ share. An authored target matches by type, reps or seconds, and side, without it
 SECONDARY exposure differs in role, sets or effort, so it keeps its own numbers and still takes the shared streak
 credit of design §19. Superset partners, Plan slots and slots without stored rows keep their own progression.
 Accepting or reverting an offer reaches the slots still holding what Finish copied. Plans never share with each
-other; there the log is evidence only, as decided 2026-10-19. The Lift sheet's Last names the day, and the plan
-when it is another, that the newest session came from when that is not the day shown. For matching slots this
-supersedes design §19's "It never writes another slot's load."
+other; there the log is evidence only, as decided 2026-10-19. The Lift sheet's and the Today preview's Last (#645)
+name the day, and the plan when it is another, that the newest session came from when that is not the day shown.
+For matching slots this supersedes design §19's "It never writes another slot's load."
 
 ## Architecture
 

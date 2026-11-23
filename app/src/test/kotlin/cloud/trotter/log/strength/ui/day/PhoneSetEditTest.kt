@@ -2,6 +2,8 @@ package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SideResult
+import cloud.trotter.log.strength.domain.model.Sides
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -9,6 +11,17 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PhoneSetEditTest {
+    @Test fun `a phone checkbox tick without a hold keeps an added row's sides unknown`() {
+        val sides = Sides(SideResult(0.0, 0, 30), SideResult(0.0, 0, 20))
+        val row = LoggedSet(0.0, 0, SetKind.WORK, done = true, seconds = 20, sides = sides)
+        val added = SetEditor.addSet(listOf(row))
+        val after = SetEditor.edit(added, added.lastIndex, phoneTickEdit(added.last(), true, 70L))
+        assertEquals(row, after.first())
+        assertTrue(after.last().done)
+        assertEquals(20, after.last().seconds)
+        assertNull(after.last().sides)
+    }
+
     @Test fun `phone tick stamps the transition to done`() {
         val row = LoggedSet(50.0, 8, SetKind.WORK, startedAtMillis = 10L)
         val after = SetEditor.edit(listOf(row), 0, phoneTickEdit(row, true, 70L)).single()

@@ -110,7 +110,7 @@ object SetEditor {
     /** "+ add set" appends a copy of the last row as an EXTRA. */
     fun addSet(sets: List<LoggedSet>): List<LoggedSet> {
         val last = sets.last()
-        return sets + last.copy(kind = SetKind.EXTRA, done = false, plannedIndex = null, watchEditedAt = null)
+        return sets + last.copy(kind = SetKind.EXTRA, done = false, plannedIndex = null, watchEditedAt = null, sides = null)
     }
 
     /** Keeps each index's newest watch stamp across a remove or insert, so a watch edit replayed

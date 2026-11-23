@@ -146,6 +146,21 @@ class SetEditTest {
     private val split = LoggedSet(25.0, 8, SetKind.WORK, done = true,
         sides = Sides(SideResult(25.0, 10, 0), SideResult(25.0, 8, 0)))
 
+    @Test fun `an added row after a sided row has no sides`() {
+        val added = SetEditor.addSet(listOf(split))
+        assertEquals(split, added.first())
+        assertEquals(split.copy(kind = SetKind.EXTRA, done = false, sides = null), added.last())
+        assertNull(added.last().sides)
+    }
+
+    @Test fun `ticking an added row keeps its sides unknown`() {
+        val added = SetEditor.addSet(listOf(split))
+        val ticked = SetEditor.edit(added, added.lastIndex, SetEdit(done = true))
+        assertEquals(split, ticked.first())
+        assertTrue(ticked.last().done)
+        assertNull(ticked.last().sides)
+    }
+
     @Test fun `a sides edit writes the weaker side as the row's values`() {
         val sides = Sides(SideResult(25.0, 10, 40), SideResult(30.0, 8, 52))
         val after = SetEditor.edit(listOf(row), 0, SetEdit(sides = sides)).single()

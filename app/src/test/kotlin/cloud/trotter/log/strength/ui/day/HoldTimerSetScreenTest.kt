@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -19,6 +20,8 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.progression.Effort
+import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -173,6 +176,59 @@ class HoldTimerSetScreenTest {
     @Test fun `a running plank shows no breathing cue`() {
         show(state(hold()))
         rule.onNodeWithText("Keep breathing").assertDoesNotExist()
+    }
+
+    @Test fun `a logged hold offers words in numeric mode and Next needs no rating`() {
+        val base = state().copy(effortScale = EffortScale.REPS_LEFT)
+        val card = base.exercises.single()
+        val logged = base.copy(exercises = listOf(card.copy(
+            rows = card.rows.map { if (it.index == 0) it.copy(done = true) else it }, focusIndex = 1,
+        ))).withWorkoutSelection()
+        val current = logged.copy(workout = requireNotNull(logged.workout).copy(
+            review = WorkoutReview(1L, 0, listOf(Slot.MAIN), emptyList()),
+        ))
+        var picked: Effort? = null
+        var next = 0
+        rule.setContent { AppTheme { WorkoutSetHost(current, workoutActions().copy(
+            onSetEffort = { _, _, _, effort -> picked = effort }, onContinueWorkout = { next++ },
+        )) } }
+        for (word in listOf("Easy", "Good", "Hard", "Max")) {
+            rule.onNodeWithText(word).performScrollTo().assertIsDisplayed()
+        }
+        rule.onNodeWithText("Reps left").assertDoesNotExist()
+        rule.onNodeWithTag("workout-effort-4").assertDoesNotExist()
+        rule.onNodeWithTag("workout-effort-EASY").performScrollTo().performClick()
+        rule.runOnIdle { assertEquals(Effort.EASY, picked) }
+        rule.onNodeWithTag("workout-action-filled").assertIsEnabled().performClick()
+        rule.runOnIdle { assertEquals(1, next) }
+    }
+
+    @Test fun `an unrated final hold leaves Finish enabled`() {
+        val base = state()
+        val card = base.exercises.single().copy(allDone = true, rows = base.exercises.single().rows.map { it.copy(done = true) })
+        val logged = base.copy(exercises = listOf(card)).withWorkoutSelection()
+        val current = logged.copy(workout = requireNotNull(logged.workout).copy(
+            review = WorkoutReview(1L, 1, listOf(Slot.MAIN), emptyList()),
+        ))
+        rule.setContent { AppTheme { WorkoutSetHost(current, workoutActions()) } }
+        rule.onNodeWithTag("workout-action-filled").assertIsEnabled()
+        rule.onNodeWithText("Mark effort first").assertDoesNotExist()
+    }
+
+    @Test fun `a rated hold snackbar uses its effort word in numeric mode`() {
+        val base = state().copy(effortScale = EffortScale.REPS_LEFT)
+        val card = base.exercises.single()
+        val logged = LoggedSet(0.0, 0, SetKind.WORK, done = true, seconds = 18, rir = 4)
+        val moved = base.copy(exercises = listOf(card.copy(
+            rows = card.rows.map { if (it.index == 0) it.copy(done = true, seconds = 18, rir = 4) else it },
+            focusIndex = 1,
+        ))).withWorkoutSelection()
+        val current = moved.copy(workout = requireNotNull(moved.workout).copy(
+            undo = UndoOffer(1L, Slot.MAIN, 0, "Plank", logged, TrackingType.TIMED, base.unit),
+        ))
+        rule.setContent { AppTheme { WorkoutSetHost(current, workoutActions()) } }
+        rule.onNodeWithText("Easy", substring = true).assertIsDisplayed()
+        rule.onNodeWithText("left", substring = true).assertDoesNotExist()
     }
 
 }

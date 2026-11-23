@@ -337,7 +337,13 @@ class DayViewModelWorkoutTest {
                 workout.focus == WorkoutFocus(id, Slot.MAIN, 2) && workout.review == null
             } == true
         })
-        assertEquals(WorkoutReview(id, 1, listOf(Slot.MAIN), listOf(Slot.MAIN)), vm.uiState.value.workout?.review)
+        assertEquals(WorkoutReview(id, 1, listOf(Slot.MAIN, Slot.SS), listOf(Slot.MAIN)), vm.uiState.value.workout?.review)
+        vm.setEffort(id, Slot.MAIN, 1, Effort.GOOD)
+        runCurrent()
+        assertTrue(requireNotNull(vm.uiState.value.workout?.review).unrated.isEmpty())
+        vm.continueWorkout()
+        runCurrent()
+        assertNull(vm.uiState.value.workout?.review)
     }
 
     @Test fun `★ Log then Start never exposes the next set without its review`() = test {
@@ -447,7 +453,7 @@ class DayViewModelWorkoutTest {
         assertNull(vm.uiState.value.workout?.review)
     }
 
-    @Test fun `★ ramp and timed sets move on without a card`() = test {
+    @Test fun `★ ramps move on and timed sets offer an optional effort card`() = test {
         for (timed in listOf(true, false)) {
             prepare(if (timed) listOf(ProgramExercise("plank", targetSets = 2)) else listOf(bench()))
             val vm = readyVm()
@@ -461,6 +467,13 @@ class DayViewModelWorkoutTest {
             }
             vm.logFocusedSet()
             runCurrent()
+            if (timed) {
+                val review = requireNotNull(vm.uiState.value.workout?.review)
+                assertEquals(listOf(Slot.MAIN), review.effortSlots)
+                assertTrue(review.unrated.isEmpty())
+                vm.continueWorkout()
+                runCurrent()
+            }
             assertNull(vm.uiState.value.workout?.review)
             assertNotNull(vm.uiState.value.workout?.undo)
             assertEquals(WorkoutFocus(id, Slot.MAIN, 1), vm.uiState.value.workout?.focus)

@@ -537,7 +537,8 @@ object Progression {
     }
 
     /** A bodyweight training hold (#643). A logged hold at or past its planned seconds is one success, however far
-     *  past; at the cadence the target gains [HOLD_STEP_SECONDS] up to [ceiling]. Misses keep the target. */
+     *  past; at the cadence the target gains [HOLD_STEP_SECONDS], doubled when every hold was Easy, up to [ceiling].
+     *  Misses keep the target. */
     private fun held(
         rule: SlotRule,
         base: List<LoggedSet>,
@@ -555,8 +556,10 @@ object Progression {
         if (!counted.second) return Outcome(base, current, Change.Hold, Reason.Streak)
         val anchors = WorkingRows.workingIndices(base)
         val target = anchors.firstOrNull()?.let { base[it].seconds } ?: return Outcome(base, current, Change.Hold, Reason.Streak)
-        if (target >= ceiling) return Outcome(base, current, Change.Hold, Reason.HoldCeiling)
-        val next = minOf(ceiling, target + HOLD_STEP_SECONDS)
+        if (target > ceiling) return Outcome(base, current, Change.Hold, Reason.Timed)
+        if (target == ceiling) return Outcome(base, current, Change.Hold, Reason.HoldCeiling)
+        val easy = done.all { Effort.of(it.second.rir) == Effort.EASY }
+        val next = minOf(ceiling, target + HOLD_STEP_SECONDS * if (easy) 2 else 1)
         val rows = base.mapIndexed { i, row -> if (i in anchors) row.copy(seconds = next) else row }
         return Outcome(rows, current, Change.SecondsTo(next), Reason.HoldStep)
     }

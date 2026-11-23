@@ -13,9 +13,10 @@ class HoldProgressionTest {
         List(n) { LoggedSet(lb, 0, SetKind.WORK, seconds = seconds) }
     private fun ctx(ceiling: Int?) = Progression.Context(
         WeightUnit.LB, emptySet(), LoadSteps.defaults(WeightUnit.LB), 130, holdCeilingSeconds = ceiling)
-    private fun finish(rule: SlotRule, rows: List<LoggedSet>, held: List<Int>, ceiling: Int?) =
+    private fun finish(rule: SlotRule, rows: List<LoggedSet>, held: List<Int>, ceiling: Int?,
+                       ratings: List<Int?> = List(rows.size) { null }) =
         Progression.afterSession(rule, rows, Progression.Exposure(rows,
-            rows.mapIndexed { i, row -> row.copy(seconds = held[i], done = true, plannedIndex = i) }, 130), ctx(ceiling))
+            rows.mapIndexed { i, row -> row.copy(seconds = held[i], done = true, plannedIndex = i, rir = ratings[i]) }, 130), ctx(ceiling))
 
     @Test fun `case 39 a plank steps five seconds a session up to its sixty second ceiling`() {
         var rows = holds(45)
@@ -96,5 +97,52 @@ class HoldProgressionTest {
         assertEquals(Change.Hold, cadence.change)
         assertEquals(holds(45), cadence.rows)
         assertEquals(1, cadence.rule.state.successStreak)
+    }
+
+    @Test fun `case 39 all Easy holds double the step within the ceiling`() {
+        for ((target, next) in listOf(45 to 55, 55 to 60, 60 to 60)) {
+            val out = finish(rule(), holds(target), List(3) { target }, 60, List(3) { Effort.EASY.rir })
+            assertEquals(holds(next), out.rows)
+            assertEquals(if (target == 60) Change.Hold else Change.SecondsTo(next), out.change)
+            assertEquals(if (target == 60) Reason.HoldCeiling else Reason.HoldStep, out.reason)
+        }
+    }
+
+    @Test fun `case 39 a non Easy or unrated hold earns only five seconds`() {
+        for (rating in listOf(Effort.GOOD.rir, Effort.HARD.rir, Effort.MAX.rir, null)) {
+            val out = finish(rule(), holds(45), listOf(107, 45, 45), 60,
+                listOf(Effort.EASY.rir, rating, Effort.EASY.rir))
+            assertEquals(Change.SecondsTo(50), out.change)
+            assertEquals(Reason.HoldStep, out.reason)
+            assertEquals(holds(50), out.rows)
+        }
+    }
+
+    @Test fun `case 39 Easy holds still require every target and the cadence`() {
+        val rows = holds(45)
+        val easy = List(3) { Effort.EASY.rir }
+        val short = finish(rule(), rows, listOf(45, 44, 45), 60, easy)
+        assertEquals(Reason.RepMiss, short.reason)
+        assertEquals(rows, short.rows)
+        val missing = Progression.afterSession(rule(), rows, Progression.Exposure(rows,
+            rows.take(2).mapIndexed { i, row -> row.copy(done = true, plannedIndex = i, rir = Effort.EASY.rir) }, 130), ctx(60))
+        assertEquals(Reason.Incomplete, missing.reason)
+        assertEquals(rows, missing.rows)
+        val first = finish(rule(every = 2), rows, listOf(45, 45, 45), 60, easy)
+        assertEquals(Reason.Streak, first.reason)
+        assertEquals(rows, first.rows)
+        val second = finish(first.rule, rows, listOf(45, 45, 45), 60, easy)
+        assertEquals(Change.SecondsTo(55), second.change)
+        assertEquals(Reason.HoldStep, second.reason)
+        val unrated = finish(first.rule, rows, listOf(45, 45, 45), 60)
+        assertEquals(Change.SecondsTo(50), unrated.change)
+    }
+
+    @Test fun `case 39 a target above the ceiling keeps neutral Timed status`() {
+        val rows = holds(90)
+        val out = finish(rule(), rows, listOf(90, 90, 90), 60, List(3) { Effort.EASY.rir })
+        assertEquals(Reason.Timed, out.reason)
+        assertEquals(Change.Hold, out.change)
+        assertEquals(rows, out.rows)
     }
 }

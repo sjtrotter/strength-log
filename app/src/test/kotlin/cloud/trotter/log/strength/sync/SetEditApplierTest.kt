@@ -508,6 +508,29 @@ class SetEditApplierTest {
         }
     }
 
+    @Test
+    fun `a stopped watch hold merges elapsed seconds and keeps its planned target`() = runTest {
+        seedTrackingDay()
+        val id = trackId("plank")
+        val plan = requireNotNull(repo.plans.planIdOfSlot(id))
+        val before = repo.dayTracksFlow(plan, "T").first()
+        val outcome = applier.apply(SetEditDelta(
+            dayId = "T", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+            done = true, seconds = 20, editedAtMillis = 21_000L,
+            startedAtMillis = 1_000L, completedAtMillis = 21_000L,
+            planId = plan, runId = before.runId, exerciseId = "plank",
+        ))
+        assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
+        val row = tTrack(id).first()
+        assertTrue(row.done)
+        assertEquals(20, row.seconds)
+        assertEquals(1_000L, row.startedAtMillis)
+        assertEquals(21_000L, row.completedAtMillis)
+        val after = repo.dayTracksFlow(plan, "T").first()
+        assertEquals(before.tracks.first { it.programExerciseId == id && it.slot == Slot.MAIN }.planned,
+            after.tracks.first { it.programExerciseId == id && it.slot == Slot.MAIN }.planned)
+    }
+
     // --- per-type delta guard (a stale watch can't write dead fields) -----------------------
 
     /** Day T: a REPS pull-up, a plain TIMED plank, and a loaded TIMED weighted plank. */

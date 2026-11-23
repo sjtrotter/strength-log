@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.wear.ui
 
+import cloud.trotter.log.strength.domain.standards.HoldClock
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import cloud.trotter.log.strength.domain.sync.WatchSnapshot
 
@@ -12,7 +13,8 @@ import cloud.trotter.log.strength.domain.sync.WatchSnapshot
  *
  * Stamps are wall clock ([System.currentTimeMillis]) because the phone reads
  * them as points in the day; the watch's own countdowns stay on
- * `elapsedRealtime` and never leave the wrist.
+ * `elapsedRealtime` and never leave the wrist. Holds send their whole-second
+ * duration in the existing seconds field, capped at the target.
  */
 fun buildTickDelta(
     dayId: String,
@@ -23,6 +25,7 @@ fun buildTickDelta(
     editedAtMillis: Long = completedAtMillis,
     snapshot: WatchSnapshot? = null,
     reps: Int? = null,
+    holdElapsedMillis: Long? = null,
 ): SetEditDelta = SetEditDelta(
     dayId = dayId,
     programExerciseId = programExerciseId,
@@ -30,6 +33,12 @@ fun buildTickDelta(
     setIndex = setIndex,
     done = true,
     reps = reps,
+    seconds = holdElapsedMillis?.let { elapsed ->
+        snapshot?.day?.exercises?.firstOrNull {
+            it.programExerciseId == programExerciseId && it.slot == SLOT_MAIN
+        }?.let { holdGoalSeconds(it, setIndex) }?.takeIf { it > 0 }
+            ?.let { HoldClock.heldSeconds(elapsed, it) }
+    },
     editedAtMillis = editedAtMillis,
     planId = snapshot?.planId,
     runId = snapshot?.runId,

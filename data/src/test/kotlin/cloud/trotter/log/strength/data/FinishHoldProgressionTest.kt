@@ -5,7 +5,9 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.seeding.SetEditor
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -74,6 +76,39 @@ class FinishHoldProgressionTest : FinishProgressionFixture() {
         assertEquals(holdRows(30), rows(plan, id))
         assertNull(offer(plan, "single_leg_stance"))
         assertEquals("HOLD_CEILING", repo.history.slotSessionsById(plan, "A").getValue(id to Slot.MAIN).reason)
+    }
+
+    @Test fun `case 39 Easy hold ratings persist and offer a ten second step`() = runTest {
+        for (ask in listOf(false, true)) {
+            val plan = if (ask) converted(day("plank")) else authored()
+            val id = if (ask) id(plan, "plank") else add(plan, "plank")
+            lifter(plan, id, holdRows(45), rule(SlotRole.CORE, 10))
+            val run = start(plan)
+            hold(run, plan, id, listOf(45, 45, 45))
+            repo.applyToRun(run, plan, "A", listOf(TrackEdit(id, Slot.MAIN) { rows ->
+                rows.indices.fold(rows) { rated, index -> requireNotNull(SetEditor.effort(rated, index, Effort.EASY)) }
+            }))
+            val session = assertNotNull(repo.finishRun(run))
+            assertEquals(listOf(4, 4, 4), repo.history.sessionSets(session).map { it.rir })
+            assertEquals(holdRows(if (ask) 45 else 55), rows(plan, id))
+            assertEquals(NextOffer(0.0, 0.0, fromSeconds = 45, toSeconds = 55), offer(plan, "plank"))
+            if (ask) {
+                val nextRun = db.programDao().day(plan, "A")!!.nextRunId
+                repo.setWorkingWeight(nextRun, plan, "A", id, Slot.MAIN, 0.0)
+                assertEquals(holdRows(55), rows(plan, id))
+            }
+            advanceDays(1)
+        }
+    }
+
+    @Test fun `case 39 a hold above the ceiling archives neutral status without an offer`() = runTest {
+        val plan = authored()
+        val id = add(plan, "plank")
+        lifter(plan, id, holdRows(90), rule(SlotRole.CORE, 10))
+        finishHold(plan, id, listOf(90, 90, 90))
+        assertEquals(holdRows(90), rows(plan, id))
+        assertNull(offer(plan, "plank"))
+        assertEquals("TIMED", repo.history.slotSessionsById(plan, "A").getValue(id to Slot.MAIN).reason)
     }
 
     @Test fun `case 40 an overshoot archives the held seconds beside the target and steps once`() = runTest {

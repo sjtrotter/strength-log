@@ -21,6 +21,7 @@ import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.standards.PhoneRest
 import cloud.trotter.log.strength.rest.RestRuntime
 import cloud.trotter.log.strength.rest.PhoneRestController
@@ -712,6 +713,108 @@ class DayViewModelHoldTimerTest {
         assertTrue(card.rows[1].done)
         assertEquals(30, card.rows[1].seconds)
         assertNull(vm.uiState.value.hold)
+    }
+
+    @Test fun `a logged hold offers optional effort and Next accepts an unrated hold`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.startHold()
+        runCurrent()
+        tick(30_000)
+        val review = requireNotNull(vm.uiState.value.workout?.review)
+        assertEquals(listOf(Slot.MAIN), review.effortSlots)
+        assertTrue(review.unrated.isEmpty())
+        assertNull(row().rir)
+        vm.continueWorkout()
+        runCurrent()
+        assertNull(vm.uiState.value.workout?.review)
+        assertEquals(WorkoutFocus(review.programExerciseId, Slot.MAIN, 1), vm.uiState.value.workout?.focus)
+        assertTrue(row().done)
+    }
+
+    @Test fun `hold effort writes and clears rir without changing the held seconds`() = test {
+        prepare()
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        vm.startWorkout()
+        runCurrent()
+        vm.startHold()
+        runCurrent()
+        tick(18_000)
+        vm.stopHold()
+        runCurrent()
+        val before = row()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        for (effort in Effort.entries) {
+            vm.setEffort(id, Slot.MAIN, 0, effort)
+            runCurrent()
+            assertEquals(before.copy(rir = effort.rir), row())
+            assertTrue(requireNotNull(vm.uiState.value.workout?.review).unrated.isEmpty())
+        }
+        vm.setEffort(id, Slot.MAIN, 0, null)
+        runCurrent()
+        assertEquals(before, row())
+        vm.viewModelScope.cancel()
+        val restored = readyVm(recreateHandle(handle))
+        val review = requireNotNull(restored.uiState.value.workout?.review)
+        assertEquals(listOf(Slot.MAIN), review.effortSlots)
+        assertTrue(review.unrated.isEmpty())
+        restored.continueWorkout()
+        runCurrent()
+        assertNull(restored.uiState.value.workout?.review)
+    }
+
+    @Test fun `a refused hold start never writes the past target flag`() = test {
+        prepare()
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.startHoldPastTarget(id, 99)
+        runCurrent()
+        assertFalse(handle.keys().contains("day_hold_past_target"))
+        assertFalse(vm.uiState.value.startSheet)
+        assertNull(vm.uiState.value.hold)
+    }
+
+    @Test fun `another day's open run refuses a hold without writing the past target flag`() = test {
+        prepare()
+        val day = repo.plans.programFlow.first().days.single()
+        repo.replaceProgram(Program(listOf(day, day.copy(id = "B", title = "Other holds"))))
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        vm.startWorkout()
+        runCurrent()
+        vm.selectDay("B")
+        runCurrent()
+        vm.startHoldPastTarget()
+        runCurrent()
+        assertFalse(handle.keys().contains("day_hold_past_target"))
+        assertNull(vm.uiState.value.hold)
+        assertFalse(vm.uiState.value.startSheet)
+    }
+
+    @Test fun `a reserved hold keeps its accepted past target choice through confirmation`() = test {
+        prepare()
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        vm.startHoldPastTarget()
+        runCurrent()
+        assertEquals(true, handle.get<Boolean>("day_hold_past_target"))
+        assertTrue(vm.uiState.value.startSheet)
+        assertNull(vm.uiState.value.hold)
+        vm.startHold()
+        runCurrent()
+        assertEquals(true, handle.get<Boolean>("day_hold_past_target"))
+        vm.confirmStart()
+        runCurrent()
+        tick(35_000)
+        assertTrue(requireNotNull(vm.uiState.value.hold).event.running)
+        vm.stopHold()
+        runCurrent()
+        assertEquals(35, row().seconds)
+        assertFalse(handle.keys().contains("day_hold_past_target"))
     }
 
     private class FakeCardioClock(

@@ -211,8 +211,8 @@ private fun workoutLoggedMessage(state: DayUiState, undo: UndoOffer, catalog: Ex
         stringResource(R.string.workout_lift_set_number, shortName, undo.index + 1)
     }
     val summary = SetFormatter.summary(undo.tracking, undo.set.weightLb, undo.set.reps, undo.set.seconds, undo.unit, spaced = true).trim()
-    val effort = undo.set.rir?.takeIf { showsEffort(undo.set.kind, undo.tracking) }?.let { rir ->
-        if (state.effortScale == EffortScale.REPS_LEFT) stringResource(R.string.effort_reps_left_value, rir)
+    val effort = undo.set.rir?.takeIf { showsEffort(undo.set.kind, undo.tracking, undo.set.seconds) }?.let { rir ->
+        if (state.effortScale.forTracking(undo.tracking) == EffortScale.REPS_LEFT) stringResource(R.string.effort_reps_left_value, rir)
         else effortWord(rir)?.let { stringResource(effortResource(it)) }
     }
     return if (effort == null) stringResource(R.string.workout_logged, label, summary)
@@ -968,7 +968,7 @@ private fun WorkoutSetCard(
                 }
             }
             if (logged && slot in effortSlots) {
-                SetEffortRow(values.rir, state.effortScale, { actions.onSetEffort(card.programExerciseId, slot, index, it) },
+                SetEffortRow(values.rir, state.effortScale.forTracking(tracking), { actions.onSetEffort(card.programExerciseId, slot, index, it) },
                     { actions.onSetRepsLeft(card.programExerciseId, slot, index, it) },
                     if (slot == Slot.SS) "workout-effort-ss" else "workout-effort",
                     if (slot in highlighted) accentEmphasis(state.dayIndex) else null)

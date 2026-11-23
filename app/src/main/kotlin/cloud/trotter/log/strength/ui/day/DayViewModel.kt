@@ -1731,8 +1731,8 @@ class DayViewModel @Inject constructor(
             return
         }
         val caution = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }?.holdPressureCaution == true
-        savedState[KEY_HOLD_PAST_TARGET] = pastTarget && !caution
-        startSetTimer(programExerciseId, setIndex, { holdToStart(programExerciseId, setIndex) }, { it.dayId }) {
+        startSetTimer(programExerciseId, setIndex, { holdToStart(programExerciseId, setIndex) }, { it.dayId },
+            onAccepted = { savedState[KEY_HOLD_PAST_TARGET] = pastTarget && !caution }) {
             savedState[KEY_HOLD] = it
         }
     }
@@ -1752,13 +1752,15 @@ class DayViewModel @Inject constructor(
 
     /** Starts a set timer now when this day's workout is open, else reserves it behind the start sheet. */
     private fun <T : Any> startSetTimer(
-        programExerciseId: Long, setIndex: Int, build: () -> T?, dayOf: (T) -> String, save: (T) -> Unit,
+        programExerciseId: Long, setIndex: Int, build: () -> T?, dayOf: (T) -> String,
+        onAccepted: () -> Unit = {}, save: (T) -> Unit,
     ) {
         val event = build() ?: return
         val state = dayState.value
         val planId = state.planId ?: return
         if (!state.beforeStart && state.openRunElsewhere == null) {
             // Reserve synchronously, so a queued cardio Start cannot replace the alarm.
+            onAccepted()
             save(event)
             return
         }
@@ -1769,10 +1771,14 @@ class DayViewModel @Inject constructor(
                 reportOtherDay(RunWriteResult.Rejected, planId, dayOf(current))
             } else if (open == null || open.draft) {
                 if (pendingStart.value != null) return@mutate
+                onAccepted()
                 closeSheet()
                 savedState[KEY_PENDING_START] = PendingStartTick(dayOf(current), programExerciseId, Slot.MAIN, setIndex,
                     actionLog = false, timedRep = false, startTimer = true)
-            } else save(current)
+            } else {
+                onAccepted()
+                save(current)
+            }
         }
     }
 
@@ -2593,7 +2599,7 @@ class DayViewModel @Inject constructor(
             val row = tracks.tracks.firstOrNull { it.programExerciseId == card.programExerciseId && it.slot == slot }
                 ?.sets?.getOrNull(index)
             // Partner rows carry no set kind and are never warm-ups.
-            row != null && showsEffort(if (slot == Slot.SS) SetKind.WORK else row.kind, card.tracking(slot))
+            row != null && showsEffort(if (slot == Slot.SS) SetKind.WORK else row.kind, card.tracking(slot), row.seconds)
         }
     }
 
@@ -2610,7 +2616,7 @@ class DayViewModel @Inject constructor(
             runRows(tracks).any { (it.completedAtMillis ?: Long.MIN_VALUE) > target.loggedAtMillis }) return null
         val effortSlots = roundEffortSlots(card, tracks, target.index)
         return WorkoutReview(target.programExerciseId, target.index, effortSlots,
-            effortSlots.filter { rows[slots.indexOf(it)].rir == null })
+            effortSlots.filter { card.tracking(it) != TrackingType.TIMED && rows[slots.indexOf(it)].rir == null })
     }
 
     private fun undoHalves(target: UndoTarget): List<UndoTarget> = listOfNotNull(target, target.partner?.let {

@@ -2306,6 +2306,11 @@ class TrackerRepository(
             if (track.dropped && actual.none { it.done }) continue
             val opening = OpeningJson.decode(track.openingJson)
             val window = if (track.slot == Slot.MAIN) repWindowOf(slots[track.programExerciseId]?.prescriptionJson) else null
+            // A benchmark is a view of the slot (#646): its result lives in test_result; rows and rule are untouched.
+            if (opening?.benchmark == true) {
+                reasons[track.id] = ReasonCode.encode(Reason.Measured)
+                continue
+            }
             // Non-window light openings are views; recalibration must persist.
             if (window == null && opening?.light == true && opening.layoff != OpeningDto.RECALIBRATE) {
                 val planned = SetJson.decodeSets(track.plannedJson)

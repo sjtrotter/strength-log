@@ -28,4 +28,11 @@ class LiftMarkerTest {
         assertNull(LiftMarker.of(rule, null, 2))
         assertNull(LiftMarker.of(rule, OpeningDto(OpeningDto.HOLD), 0))
     }
+
+    @Test fun benchmarkTakesPriorityOverTrainingMarkers() {
+        val opening = OpeningDto(OpeningDto.RECALIBRATE, light = true, benchmark = true)
+        assertEquals(LiftMarker.BENCHMARK,
+            LiftMarker.of(rule.copy(state = SlotState(calibrating = true)), opening, 2))
+        assertEquals(LiftMarker.BENCHMARK, LiftMarker.of(null, OpeningDto(benchmark = true), 0))
+    }
 }

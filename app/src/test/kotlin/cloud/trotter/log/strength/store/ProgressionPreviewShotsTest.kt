@@ -669,6 +669,7 @@ class ProgressionPreviewShotsTest {
             LiftMarker.LIGHT_WEEK, LiftMarker.LIGHTER_TODAY -> 165.0
             LiftMarker.AFTER_BREAK -> 155.0
             LiftMarker.ESTIMATE -> 185.0
+            LiftMarker.BENCHMARK -> 0.0 // #646: keep the marker fixture exhaustive
         }
         return base.copy(runOpen = true, exercises = base.exercises.map { it.copy(marker = marker,
             workingHeading = "$count × 5 · ${weight.toInt()} lb",

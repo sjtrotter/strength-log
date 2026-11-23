@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.data.serialization
 
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.domain.standards.TestRef
 import kotlinx.serialization.Serializable
 
 /** Nullable fields let validation distinguish a missing target value from zero. */
@@ -15,6 +16,9 @@ internal data class PrescriptionDto(
     val repAim: Int? = null,
     val eachSide: Boolean = false,
     val resistance: String = "",
+    val testEventId: String? = null,
+    val testVersion: Int? = null,
+    val testWindowSeconds: Int? = null,
 ) {
     fun toDomain(): Prescription {
         require(resistance.length <= 40) { "resistance must be at most 40 characters" }
@@ -23,6 +27,8 @@ internal data class PrescriptionDto(
         reps?.let { require(it in 0..999) { "reps must be 0..999" } }
         repAim?.let { require(it in 0..999) { "repAim must be 0..999" } }
         seconds?.let { require(it in 1..3600) { "seconds must be 1..3600" } }
+        require((testEventId == null) == (testVersion == null)) { "test link needs an event and a version" }
+        require(testEventId != null || testWindowSeconds == null) { "test window needs a test link" }
         val target = when (type) {
             "loadReps" -> PrescribedTarget.LoadReps(requireNotNull(lb), requireNotNull(reps))
             "reps" -> PrescribedTarget.Reps(requireNotNull(reps))
@@ -30,7 +36,7 @@ internal data class PrescriptionDto(
             "repsInTime" -> PrescribedTarget.RepsInTime(requireNotNull(seconds), repAim)
             else -> throw IllegalArgumentException("unknown prescription type '$type'")
         }
-        return Prescription(target, eachSide, resistance)
+        return Prescription(target, eachSide, resistance, testEventId?.let { TestRef(it, requireNotNull(testVersion), testWindowSeconds) })
     }
 }
 
@@ -42,7 +48,9 @@ object PrescriptionJson {
             is PrescribedTarget.Reps -> PrescriptionDto("reps", reps = target.reps)
             is PrescribedTarget.Hold -> PrescriptionDto("hold", seconds = target.seconds, addedLb = target.addedLb)
             is PrescribedTarget.RepsInTime -> PrescriptionDto("repsInTime", seconds = target.seconds, repAim = target.repAim)
-        }.copy(eachSide = prescription.eachSide, resistance = prescription.resistance)
+        }.copy(eachSide = prescription.eachSide, resistance = prescription.resistance,
+            testEventId = prescription.test?.eventId, testVersion = prescription.test?.version,
+            testWindowSeconds = prescription.test?.windowSeconds)
         dto.toDomain()
         return SetJson.encode(PrescriptionDto.serializer(), dto)
     }

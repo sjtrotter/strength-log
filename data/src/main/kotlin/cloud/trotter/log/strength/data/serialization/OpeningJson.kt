@@ -6,7 +6,12 @@ import kotlinx.serialization.Serializable
 /** How a run track opened (design §3.2 atStart): its layoff and whether the plan's light cycle shaped its rows. A
  *  normal opening is stored as null, never as a value. */
 @Serializable
-data class OpeningDto(val layoff: String = NONE, val factor: Double? = null, val light: Boolean = false) {
+data class OpeningDto(
+    val layoff: String = NONE,
+    val factor: Double? = null,
+    val light: Boolean = false,
+    val benchmark: Boolean = false,
+) {
     /** Throws on an unknown kind, or a factor that is absent, present on another kind, or outside (0, 1). */
     fun layoffKind(): LayoffKind {
         if (layoff == SCALED) {

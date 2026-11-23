@@ -199,6 +199,7 @@ object ExerciseLibrary {
         ExerciseEntry("cable_fly", "Cable Fly", H_PUSH, listOf(CABLE), false, weighted, 15),
         ExerciseEntry("low_cable_fly", "Low-to-High Cable Fly", H_PUSH, listOf(CABLE), false, weighted, 16, shortName = "Low Cable Fly"),
         ExerciseEntry("pushup", "Push-Up", H_PUSH, listOf(BODYWEIGHT), false, reps(15), 17, weightedPairId = "weighted_pushup"),
+        ExerciseEntry("hand_release_pushup", "Hand-Release Push-Up", H_PUSH, listOf(BODYWEIGHT), false, reps(10), 20, shortName = "HR Push-Up"),
         ExerciseEntry("bw_dip", "Dip", H_PUSH, listOf(BODYWEIGHT), false, reps(10), 18, weightedPairId = "dips"),
         ExerciseEntry("weighted_pushup", "Weighted Push-Up", H_PUSH, listOf(BODYWEIGHT), false, weighted, 19),
 
@@ -321,6 +322,7 @@ object ExerciseLibrary {
         ExerciseEntry("knee_raise", "Captain's Chair Knee Raise", CORE_FLEX, listOf(MACHINE), false, reps(12), 8, shortName = "Knee Raise"),
         ExerciseEntry("hanging_knee_raise", "Hanging Knee Raise", CORE_FLEX, listOf(PULLUP_BAR), false, reps(12), 9, weightedPairId = "weighted_knee_raise"),
         ExerciseEntry("weighted_knee_raise", "Weighted Knee Raise", CORE_FLEX, listOf(PULLUP_BAR, DUMBBELL), false, weighted, 10),
+        ExerciseEntry("situp", "Sit-Up", CORE_FLEX, listOf(BODYWEIGHT), false, reps(20), 11),
         ExerciseEntry("pogo_hop", "Pogo Hop", PLYOMETRIC, listOf(BODYWEIGHT), false, reps(15), 1, dose = Dose(3, 60)),
         ExerciseEntry("a_skip", "A-Skip", PLYOMETRIC, listOf(BODYWEIGHT), false, reps(20), 2, dose = Dose(2, 60)),
         ExerciseEntry("bound", "Bound", PLYOMETRIC, listOf(BODYWEIGHT), false, reps(6), 3, dose = Dose(3, 90)),

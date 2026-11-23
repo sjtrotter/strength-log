@@ -136,7 +136,7 @@ class SetEditApplierTest {
         assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
         assertEquals(listOf(
             LoggedSet(0.0, 42, SetKind.WORK),
-            LoggedSet(0.0, 0, SetKind.WORK),
+            LoggedSet(0.0, 50, SetKind.WORK), // #642: an unlogged window row carries the rep aim
         ), track(id, Slot.MAIN))
     }
 

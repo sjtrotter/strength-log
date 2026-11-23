@@ -20,6 +20,7 @@ object ReasonCode {
         Reason.Incomplete -> "INCOMPLETE"
         Reason.AddWeight -> "ADD_WEIGHT"
         Reason.Timed -> "TIMED"
+        Reason.Measured -> "MEASURED"
     }
 
     fun decode(code: String?): Reason? = when (code) {
@@ -39,6 +40,7 @@ object ReasonCode {
         "INCOMPLETE" -> Reason.Incomplete
         "ADD_WEIGHT" -> Reason.AddWeight
         "TIMED" -> Reason.Timed
+        "MEASURED" -> Reason.Measured
         else -> null
     }
 }

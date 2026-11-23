@@ -18,4 +18,6 @@ sealed interface Reason {
     data object Incomplete : Reason
     data object AddWeight : Reason
     data object Timed : Reason
+    /** A reps-in-time set with no rep aim: it records the count and nothing progresses (#642). */
+    data object Measured : Reason
 }

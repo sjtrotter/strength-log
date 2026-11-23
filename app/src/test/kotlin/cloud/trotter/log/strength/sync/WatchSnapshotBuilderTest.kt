@@ -255,7 +255,7 @@ class WatchSnapshotBuilderTest {
             Triple(PrescribedTarget.LoadReps(185.0, 5), LoggedSet(190.0, 7, SetKind.WORK), "3 × 7 · 190 lb"),
             Triple(PrescribedTarget.Reps(8), LoggedSet(0.0, 9, SetKind.WORK), "3 × 9"),
             Triple(PrescribedTarget.Hold(45, 25.0), LoggedSet(30.0, 0, SetKind.WORK, seconds = 50), "3 × 0:50 · 30 lb"),
-            Triple(PrescribedTarget.RepsInTime(120, 40), LoggedSet(0.0, 45, SetKind.WORK, seconds = 130), "2:00 · aim 40"),
+            Triple(PrescribedTarget.RepsInTime(120, 40), LoggedSet(0.0, 45, SetKind.WORK, seconds = 130), "2:00 · aim 45"), // #642: the label follows the working aim, as the test name says
         )
         for ((target, row, label) in cases) {
             val exercise = ProgramExercise("bb_bench", targetSets = 3, prescription = Prescription(target))
@@ -264,6 +264,17 @@ class WatchSnapshotBuilderTest {
                 listOf(LoggedSlot(1, Slot.MAIN, List(3) { row }))), WeightUnit.LB, revision = 1)!!
             assertEquals(label, snapshot.day.exercises.single().goalLabel)
         }
+    }
+
+    @Test fun `a rep window publishes the aim its rows carry`() {
+        val exercise = ProgramExercise("pushup", targetSets = 2, prescription = Prescription(PrescribedTarget.RepsInTime(60, 20)))
+        val program = Program(listOf(ProgramDay("A", "Test", "", listOf(exercise))))
+        val day = performedDay(program, "A", listOf(ProgramSlot(1, 0, exercise)),
+            listOf(LoggedSlot(1, Slot.MAIN, List(2) { LoggedSet(0.0, 21, SetKind.WORK) })))
+        val projected = WatchSnapshotBuilder.build(day, WeightUnit.LB, revision = 1)!!.day.exercises.single()
+        assertEquals(21, projected.repAim)
+        assertEquals("1:00 · aim 21", projected.goalLabel)
+        assertEquals(60, projected.repWindowSeconds)
     }
 
     @Test fun `ramped prescribed labels keep the authored count and use the top values in either unit`() {

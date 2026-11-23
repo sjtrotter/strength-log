@@ -84,12 +84,63 @@ class ProgressionRepsInTimeTest {
         assertEquals(Change.RepsTo(21), second.change)
     }
 
-    @Test fun `case 39 a max effort window repeats the aim`() {
+    @Test fun `case 39 a max effort window counts as met`() {
         val outcome = after(rule(), aimed, listOf(20, 20, 20), rirs = listOf(2, 0, 2))
-        assertEquals(rows(20), outcome.rows)
+        assertEquals(rows(21), outcome.rows) // #642: council 2026-11-23 Q2
+        assertEquals(Change.RepsTo(21), outcome.change) // #642: council 2026-11-23 Q2
+        assertEquals(Reason.AllMade, outcome.reason) // #642: council 2026-11-23 Q2
+        assertEquals(0, outcome.rule.state.effortMissStreak) // #642: council 2026-11-23 Q2
+    }
+
+    @Test fun `case 39 all Max windows above the aim raise it by only one rep`() {
+        val outcome = after(rule(), aimed, listOf(23, 22, 21), rirs = listOf(0, 0, 0))
+        assertEquals(rows(21), outcome.rows)
+        assertEquals(RepTarget.Fixed(21), outcome.rule.target)
+        assertEquals(Change.RepsTo(21), outcome.change)
+        assertEquals(Reason.AllMade, outcome.reason)
+        assertEquals(1, outcome.rule.state.successStreak)
+        assertEquals(0, outcome.rule.state.effortMissStreak)
+    }
+
+    @Test fun `case 39 all Max windows at the aim raise it by one rep`() {
+        val outcome = after(rule(), aimed, listOf(20, 20, 20), rirs = listOf(0, 0, 0))
+        assertEquals(rows(21), outcome.rows)
+        assertEquals(RepTarget.Fixed(21), outcome.rule.target)
+        assertEquals(Change.RepsTo(21), outcome.change)
+        assertEquals(Reason.AllMade, outcome.reason)
+    }
+
+    @Test fun `case 39 Max windows raise the aim at the lift cadence`() {
+        val first = after(rule(every = 2), aimed, listOf(23, 22, 21), rirs = listOf(0, 0, 0))
+        assertEquals(rows(20), first.rows)
+        assertEquals(Change.Hold, first.change)
+        assertEquals(Reason.Streak, first.reason)
+        assertEquals(1, first.rule.state.successStreak)
+        assertEquals(0, first.rule.state.effortMissStreak)
+        val second = after(first.rule, aimed, listOf(23, 22, 21), rirs = listOf(0, 0, 0), planned = first.rows)
+        assertEquals(rows(21), second.rows)
+        assertEquals(Change.RepsTo(21), second.change)
+        assertEquals(Reason.AllMade, second.reason)
+        assertEquals(2, second.rule.everyExposures)
+    }
+
+    @Test fun `case 39 a missed count repeats the aim at every rating`() {
+        for (rir in listOf(null, 0, 1, 2, 4)) {
+            val outcome = after(rule(), aimed, listOf(20, 18, 20), rirs = listOf(rir, rir, rir))
+            assertEquals(rows(20), outcome.rows)
+            assertEquals(RepTarget.Fixed(20), outcome.rule.target)
+            assertEquals(Change.Hold, outcome.change)
+            assertEquals(Reason.RepMiss, outcome.reason)
+        }
+    }
+
+    @Test fun `case 39 Max windows with no aim only measure`() {
+        val outcome = after(rule(), PrescribedTarget.RepsInTime(60), listOf(23, 22, 21), rirs = listOf(0, 0, 0))
+        assertEquals(rows(0), outcome.rows)
+        assertEquals(RepTarget.Fixed(20), outcome.rule.target)
         assertEquals(Change.Hold, outcome.change)
-        assertEquals(Reason.EffortMiss, outcome.reason)
-        assertEquals(1, outcome.rule.state.effortMissStreak)
+        assertEquals(Reason.Measured, outcome.reason)
+        assertEquals(0, outcome.rule.state.successStreak)
     }
 
     @Test fun `case 39 an unfinished window is incomplete`() =
@@ -101,8 +152,8 @@ class ProgressionRepsInTimeTest {
     @Test fun `case 39 a light window repeats the aim`() =
         assertEquals(Reason.LightCycle, after(rule(), aimed, listOf(20, 20, 20), light = true).reason)
 
-    @Test fun `case 39 Max blocks an increase at a one RIR target`() =
-        assertEquals(Reason.MaxSet, after(rule().copy(rir = 1), aimed, listOf(20, 20, 20), rirs = listOf(1, 0, 1)).reason)
+    @Test fun `case 39 Max permits an increase at a one RIR target`() =
+        assertEquals(Reason.AllMade, after(rule().copy(rir = 1), aimed, listOf(20, 20, 20), rirs = listOf(1, 0, 1)).reason) // #642: council 2026-11-23 Q2
 
     @Test fun `case 39 the aim follows the rows and falls back to the authored aim`() {
         assertEquals(21, Progression.repAim(aimed, rows(21)))

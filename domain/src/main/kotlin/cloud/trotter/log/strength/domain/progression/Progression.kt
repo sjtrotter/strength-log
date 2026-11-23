@@ -546,9 +546,9 @@ object Progression {
         return working?.takeIf { it > 0 } ?: authored
     }
 
-    /** The window stays fixed. The aim rises one rep when every window reaches it at a training effort (no effort
-     *  miss and no window at Max), at the slot's cadence; any miss repeats it. Without an aim the set only measures.
-     *  No rep ceiling, load, estimate or extra set (council 2026-11-21, #642). */
+    /** The window stays fixed. The aim rises one rep when every window reaches it, including at Max, at the slot's
+     *  cadence; any miss repeats it. Without an aim the set only measures.
+     *  No rep ceiling, load, estimate or extra set (council 2026-11-23 Q2, #642). */
     private fun repsInTime(
         rule: SlotRule,
         working: List<LoggedSet>,
@@ -570,15 +570,11 @@ object Progression {
             done.any { it.reps < aim } -> held(counted.copy(state = counted.state.resetStreaks()), Reason.RepMiss)
             done.size < work.size ->
                 held(counted.copy(state = counted.state.copy(successStreak = 0, pendingIncrease = false)), Reason.Incomplete)
-            done.any { effectiveRir(it, rule) < rule.rir - 1 } -> held(effortMissed(counted), Reason.EffortMiss)
             else -> {
                 val (cadenced, increaseDue) = cadence(counted, ctx)
-                when {
-                    !increaseDue -> held(cadenced, Reason.Streak)
-                    done.any { effectiveRir(it, rule) == Effort.MAX.rir } -> held(cadenced, Reason.MaxSet)
-                    else -> Outcome(withReps(rows, aim + 1), cadenced.copy(target = RepTarget.Fixed(aim + 1)),
-                        Change.RepsTo(aim + 1), Reason.AllMade)
-                }
+                if (!increaseDue) held(cadenced, Reason.Streak)
+                else Outcome(withReps(rows, aim + 1), cadenced.copy(target = RepTarget.Fixed(aim + 1)),
+                    Change.RepsTo(aim + 1), Reason.AllMade)
             }
         }
     }

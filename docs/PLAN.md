@@ -261,8 +261,9 @@ strength day; the shipped cardio vectors stay pinned.
   side. Each side comes from the authored prescription, else the catalog entry. A hold in a superset still logs
   with its round, and leaving the day drops a hold in progress.
 - **Reps in time (#642).** The window stays fixed. With a rep aim, the rows open at the aim; when every window reaches
-  it at a training effort (no effort miss and no window at Max), the aim rises one rep at the lift's cadence, and any
-  miss repeats it. Without an aim the set records the count and nothing progresses. No rep ceiling, no weight offer,
+  it for the full duration, including at Max, the aim rises one rep at the lift's cadence, and any miss repeats it.
+  Counts beyond the aim never become the aim (council 2026-11-23 Q2). Without an aim the set records the count and
+  nothing progresses. No rep ceiling, no weight offer,
   no estimate and no automatic extra set, and a window neither gives nor takes another slot's shared credit.
   Identical windows on two days still share progression. Pinned as §11.2 case 39.
 - **Before production:** plans, run identity, authored prescriptions and

@@ -33,7 +33,7 @@ class FinishHoldProgressionTest : FinishProgressionFixture() {
         return assertNotNull(repo.finishRun(run)).also { advanceDays(1) }
     }
 
-    @Test fun `case 39 an Automatic plank steps and an Ask plank offers the step`() = runTest {
+    @Test fun `case 40 an Automatic plank steps and an Ask plank offers the step`() = runTest {
         val automatic = authored()
         val a = add(automatic, "plank")
         lifter(automatic, a, holdRows(45), rule(SlotRole.CORE, 10))
@@ -71,7 +71,7 @@ class FinishHoldProgressionTest : FinishProgressionFixture() {
         assertEquals(holdRows(50), rows(ask, id))
     }
 
-    @Test fun `case 39 a met stance reports its ceiling`() = runTest {
+    @Test fun `case 40 a met stance reports its ceiling`() = runTest {
         val plan = authored()
         val id = add(plan, "single_leg_stance")
         lifter(plan, id, holdRows(30), rule(SlotRole.CORE, 10))
@@ -81,7 +81,7 @@ class FinishHoldProgressionTest : FinishProgressionFixture() {
         assertEquals("HOLD_CEILING", repo.history.slotSessionsById(plan, "A").getValue(id to Slot.MAIN).reason)
     }
 
-    @Test fun `case 39 Easy hold ratings persist and offer a ten second step`() = runTest {
+    @Test fun `case 40 Easy hold ratings persist and offer a ten second step`() = runTest {
         for (ask in listOf(false, true)) {
             val plan = if (ask) converted(day("plank")) else authored()
             val id = if (ask) id(plan, "plank") else add(plan, "plank")
@@ -106,7 +106,7 @@ class FinishHoldProgressionTest : FinishProgressionFixture() {
         }
     }
 
-    @Test fun `case 39 a hold above the ceiling archives neutral status without an offer`() = runTest {
+    @Test fun `case 40 a hold above the ceiling archives neutral status without an offer`() = runTest {
         val plan = authored()
         val id = add(plan, "plank")
         lifter(plan, id, holdRows(90), rule(SlotRole.CORE, 10))
@@ -116,7 +116,7 @@ class FinishHoldProgressionTest : FinishProgressionFixture() {
         assertEquals("TIMED", repo.history.slotSessionsById(plan, "A").getValue(id to Slot.MAIN).reason)
     }
 
-    @Test fun `case 40 an overshoot archives the held seconds beside the target and steps once`() = runTest {
+    @Test fun `case 41 an overshoot archives the held seconds beside the target and steps once`() = runTest {
         val plan = authored()
         val id = add(plan, "plank")
         lifter(plan, id, holdRows(45), rule(SlotRole.CORE, 10))

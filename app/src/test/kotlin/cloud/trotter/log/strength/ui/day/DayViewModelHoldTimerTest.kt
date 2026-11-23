@@ -567,7 +567,7 @@ class DayViewModelHoldTimerTest {
         assertTrue(vm.uiState.value.runOpen)
     }
 
-    @Test fun `case 40 a hold past target buzzes once at the target and logs the seconds held`() = test {
+    @Test fun `case 41 a hold past target buzzes once at the target and logs the seconds held`() = test {
         prepare()
         val vm = readyVm()
         vm.startWorkout()

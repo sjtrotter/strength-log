@@ -159,7 +159,7 @@ object WatchSnapshotBuilder {
                 } ?: authored
                 is PrescribedTarget.Reps -> workingRow?.let { authored.copy(reps = it.reps) } ?: authored
                 is PrescribedTarget.Hold -> workingRow?.let { authored.copy(seconds = it.seconds, addedLb = it.weightLb) } ?: authored
-                is PrescribedTarget.RepsInTime -> authored
+                is PrescribedTarget.RepsInTime -> authored.copy(repAim = slot.main.repAim)
             })
         }
         val header = DayScreenBuilder.headerTarget(pe.copy(prescription = labelPrescription), target ?: GoalTarget(0.0, false), unit)
@@ -185,7 +185,7 @@ object WatchSnapshotBuilder {
             } else target?.let { GoalFormatter.label(it, unit) }.orEmpty(),
             targetDetail = DayScreenBuilder.headerTargetDetail(header),
             repWindowSeconds = repWindow?.seconds ?: 0,
-            repAim = repWindow?.repAim,
+            repAim = slot.main.repAim,
             prescribed = performed.prescription != null,
             // Enum name lowercased; the watch parses it back to pick a per-type control.
             // Unknown/missing entry falls back to "weighted", which older

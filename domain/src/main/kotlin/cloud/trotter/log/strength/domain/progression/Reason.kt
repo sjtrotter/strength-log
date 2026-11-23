@@ -22,4 +22,6 @@ sealed interface Reason {
     data object HoldStep : Reason
     /** A met bodyweight hold is at its entry's ceiling (#643). */
     data object HoldCeiling : Reason
+    /** A reps-in-time set with no rep aim: it records the count and nothing progresses (#642). */
+    data object Measured : Reason
 }

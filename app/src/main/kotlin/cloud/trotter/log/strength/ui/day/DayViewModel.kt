@@ -3213,7 +3213,7 @@ class DayViewModel @Inject constructor(
             programExerciseId = id,
             exerciseId = performed.exerciseId,
             timedRepDurationSeconds = (performed.prescription?.target as? PrescribedTarget.RepsInTime)?.seconds,
-            timedRepAim = (performed.prescription?.target as? PrescribedTarget.RepsInTime)?.repAim,
+            timedRepAim = slot.main.repAim,
             position = slot.slot.position,
             title = name,
             partnerTitle = partnerEntry?.name ?: partner?.exerciseId,

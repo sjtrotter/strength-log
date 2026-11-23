@@ -22,6 +22,7 @@ object ReasonCode {
         Reason.Timed -> "TIMED"
         Reason.HoldStep -> "HOLD_STEP"
         Reason.HoldCeiling -> "HOLD_CEILING"
+        Reason.Measured -> "MEASURED"
     }
 
     fun decode(code: String?): Reason? = when (code) {
@@ -43,6 +44,7 @@ object ReasonCode {
         "TIMED" -> Reason.Timed
         "HOLD_STEP" -> Reason.HoldStep
         "HOLD_CEILING" -> Reason.HoldCeiling
+        "MEASURED" -> Reason.Measured
         else -> null
     }
 }

@@ -579,7 +579,7 @@ class ExerciseLibraryTest {
             assertEquals(TrackingType.WEIGHTED, ExerciseLibrary.get(id).tracking, "$id unexpectedly not WEIGHTED")
         }
     }
-    @Test fun `case 39 hold ceilings come from the catalog`() {
+    @Test fun `case 40 hold ceilings come from the catalog`() {
         val ceilings = mapOf("plank" to 60, "high_plank" to 60, "hollow_hold" to 45, "side_plank" to 45,
             "dead_hang" to 60, "wall_sit" to 120, "single_leg_stance" to 30)
         assertEquals(ceilings, ExerciseLibrary.entries.mapNotNull { entry ->

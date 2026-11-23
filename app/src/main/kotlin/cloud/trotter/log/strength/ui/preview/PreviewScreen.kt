@@ -1,6 +1,7 @@
 package cloud.trotter.log.strength.ui.preview
 
 import cloud.trotter.log.strength.ui.day.lastSourceText
+import cloud.trotter.log.strength.ui.day.lastElsewhereText
 import cloud.trotter.log.strength.ui.day.CardioNextTime
 import cloud.trotter.log.strength.ui.day.CardioNextTimeChip
 import androidx.compose.foundation.layout.Arrangement
@@ -117,7 +118,7 @@ fun PreviewScreen(state: PreviewUiState, actions: PreviewActions) {
                                     val result = when {
                                         !previous.comparable -> stringResource(R.string.preview_no_comparable_result)
                                         previous.last == null -> null
-                                        source != null -> stringResource(R.string.preview_last_elsewhere, previous.last, source)
+                                        source != null -> lastElsewhereText(previous.last, source, previous.date)
                                         else -> stringResource(R.string.preview_last, previous.last)
                                     }
                                     if (result != null) Text(if (lift.previous.size > 1) stringResource(R.string.form_named_previous_result,

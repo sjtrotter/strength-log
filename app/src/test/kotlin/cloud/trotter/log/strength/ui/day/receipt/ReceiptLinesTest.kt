@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.data.SlotSession
 import cloud.trotter.log.strength.data.serialization.ReasonCode
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.LoadSteps
 import cloud.trotter.log.strength.domain.progression.NextTimeMode
@@ -73,6 +74,27 @@ class ReceiptLinesTest {
             assertEquals(expected, text(line))
         }
     }
+    @Test fun `a rep window that reached its aim reads its next aim in reps`() {
+        val planned = rows(0.0, 20)
+        val outcome = Progression.afterSession(rule.copy(target = RepTarget.Fixed(20)), planned,
+            Progression.Exposure(planned, planned.mapIndexed { i, row -> row.copy(done = true, plannedIndex = i) }, 130),
+            Progression.Context(WeightUnit.LB, emptySet(), LoadSteps.defaults(WeightUnit.LB), todayEpochDay = 130),
+            window = PrescribedTarget.RepsInTime(60, 20))
+        val session = SlotSession(planned, planned.map { it.copy(done = true) }, false,
+            NextOffer(0.0, 0.0, 20, 21), reason = ReasonCode.encode(outcome.reason))
+        val line = assertNotNull(ReceiptLines.strength(outcome.rows, session, false, outcome.rule, WeightUnit.LB, true))
+        assertEquals("Next time: 21 reps", text(line))
+        assertEquals("Push-Up 21 reps next time: all sets made.", ReceiptLines.why("Push-Up", line, WeightUnit.LB, resources))
+    }
+
+    @Test fun `a measured rep window has no next time Why or chip`() {
+        val window = rows(0.0, 0)
+        val session = SlotSession(window, window.map { it.copy(reps = 25, done = true) }, false, reason = "MEASURED")
+        assertNull(ReceiptLines.strength(window, session, false, rule, WeightUnit.LB, true))
+        assertNull(ReceiptLines.whyLine(window, session, rule, WeightUnit.LB))
+        assertNull(DayScreenBuilder.nextTime(window, session, false, WeightUnit.LB, true, rule))
+    }
+
     @Test fun `Rough day holds the stored value and hides the chip offer`() {
         val local = session(NextOffer(185.0, 175.0), rough = true)
         assertEquals("Next time: 185 lb", text(line(185.0, local)))
@@ -131,9 +153,50 @@ class ReceiptLinesTest {
             Reason.Calibrating to "CALIBRATING", Reason.Calibrated to "CALIBRATED", Reason.Lowered to "LOWERED",
             Reason.AllMade to "ALL_MADE", Reason.EasySession to "EASY_SESSION", Reason.Streak to "STREAK",
             Reason.MaxSet to "MAX_SET", Reason.RepMiss to "REP_MISS", Reason.Stall to "STALL", Reason.EffortMiss to "EFFORT_MISS",
-            Reason.Incomplete to "INCOMPLETE", Reason.AddWeight to "ADD_WEIGHT", Reason.Timed to "TIMED")
+            Reason.Incomplete to "INCOMPLETE", Reason.AddWeight to "ADD_WEIGHT", Reason.Timed to "TIMED",
+            Reason.Measured to "MEASURED") // #642: the measured reason is archived literally
         pinned.forEach { (reason, code) -> assertEquals(code, ReasonCode.encode(reason)); assertEquals(reason, ReasonCode.decode(code)) }
         assertNull(ReasonCode.decode("BOGUS"))
         assertNull(ReasonCode.decode(null))
     }
+    @Test fun `a hold step reads as seconds in Next time and Why`() {
+        val timed = rows(0.0, 0).map { it.copy(seconds = 45) }
+        val session = SlotSession(timed, timed.map { it.copy(done = true) }, false,
+            NextOffer(0.0, 0.0, fromSeconds = 45, toSeconds = 50), reason = "HOLD_STEP")
+        for ((seconds, suffix) in listOf(50 to "", 45 to " offered")) {
+            val current = timed.map { it.copy(seconds = seconds) }
+            val line = assertNotNull(ReceiptLines.strength(current, session, false, rule, WeightUnit.LB, true))
+            assertEquals("Next time: 0:50$suffix", text(line))
+            val why = assertNotNull(ReceiptLines.whyLine(current, session, rule, WeightUnit.LB))
+            val word = if (seconds == 50) "next time" else "offered"
+            assertEquals("Plank 0:50 $word: all holds made.", ReceiptLines.why("Plank", why, WeightUnit.LB, resources))
+        }
+    }
+
+    @Test fun `a hold at its ceiling states the ceiling`() {
+        val timed = rows(0.0, 0).map { it.copy(seconds = 60) }
+        val session = SlotSession(timed, timed.map { it.copy(done = true) }, false, reason = "HOLD_CEILING")
+        val why = assertNotNull(ReceiptLines.whyLine(timed, session, rule, WeightUnit.LB))
+        assertEquals("Plank 1:00: the longest hold this plan counts.", ReceiptLines.why("Plank", why, WeightUnit.LB, resources))
+    }
+
+    @Test fun `a hold above the ceiling has a neutral Next time label without a ceiling claim`() {
+        val timed = rows(0.0, 0).map { it.copy(seconds = 90) }
+        val out = Progression.afterSession(rule, timed, Progression.Exposure(timed,
+            timed.mapIndexed { i, row -> row.copy(done = true, plannedIndex = i) }, 130),
+            Progression.Context(WeightUnit.LB, emptySet(), LoadSteps.defaults(WeightUnit.LB), 130,
+                holdCeilingSeconds = 60))
+        val session = SlotSession(timed, timed.map { it.copy(done = true) }, false, reason = ReasonCode.encode(out.reason))
+        val line = assertNotNull(ReceiptLines.strength(out.rows, session, false, rule, WeightUnit.LB, true))
+        assertEquals("Next time: 1:30", text(line))
+        assertNull(ReceiptLines.why("Plank", line, WeightUnit.LB, resources))
+    }
+
+    @Test fun `hold reason codes are literal`() {
+        for ((reason, code) in listOf(Reason.HoldStep to "HOLD_STEP", Reason.HoldCeiling to "HOLD_CEILING")) {
+            assertEquals(code, ReasonCode.encode(reason))
+            assertEquals(reason, ReasonCode.decode(code))
+        }
+    }
+
 }

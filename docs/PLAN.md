@@ -260,6 +260,23 @@ strength day; the shipped cardio vectors stay pinned.
   logs nothing. A set done each side runs one hold per side, left first, each started with its own tap; it keeps both
   sides and its value is the shorter side (#644). Each side comes from the authored prescription, else the catalog entry. A hold in a superset still logs
   with its round, and leaving the day drops a hold in progress.
+- **Reps in time (#642).** The window stays fixed. With a rep aim, the rows open at the aim; when every window reaches
+  it for the full duration, including at Max, the aim rises one rep at the lift's cadence, and any miss repeats it.
+  Counts beyond the aim never become the aim (council 2026-11-23 Q2). Without an aim the set records the count and
+  nothing progresses. No rep ceiling, no weight offer,
+  no estimate and no automatic extra set, and a window neither gives nor takes another slot's shared credit.
+  Identical windows on two days still share progression. Pinned as §11.2 case 39.
+- **Hold progression and Past target (#643).** A bodyweight hold whose catalog entry has a ceiling gains 5 s when a
+  session meets every planned hold at the slot's cadence, up to the ceiling; misses keep the target. When every
+  required hold was rated Easy, the step is 10 s within the same ceiling. A logged hold takes optional Easy / Good /
+  Hard / Max perceived effort, stored as 4 / 2 / 1 / 0 in rir; no rating earns no bonus and never blocks Next or Finish.
+  Holds show words even when lifts use Reps left. Loaded holds and holds without a ceiling keep their seconds.
+  The watch logs elapsed whole seconds on an early tap and earns the unrated 5 s step only when every hold was met.
+  A target above the ceiling keeps neutral TIMED status; only a target at the ceiling reports HOLD_CEILING.
+  "Past target" beside Start runs a hold past its target: one buzz at the target, Stop logs the seconds held, and
+  the clock ends itself at 10:00. The log keeps the held seconds beside the planned target, and an overshoot counts
+  as one success. The wall sit never runs past its target and shows "Keep
+  breathing" while it runs. Pinned as §11.2 cases 40 and 41.
 - **Before production:** plans, run identity, authored prescriptions and
   timed rep events, on phone and watch; a plan switcher on Today; and cardio
   as typed sets (warm-up, work, recovery, cool-down; time ends a set by
@@ -310,14 +327,13 @@ The offer reads the lift's latest qualifying evidence from any day in the same
 plan (#502): a heavier full-rep working set anywhere, or full success at the opening
 weight. A later miss or skip does not erase qualifying evidence. The current slot's
 opening prescription is the baseline when its local archive is absent or retired.
-Archived tracks keep their own rep targets and row identities; Last stays per day
-and slot.
+Archived tracks keep their own rep targets and row identities.
 On screen the heading is built from the working rows, 'Repeat' or a '+5 lb' chip
-sits beside the weight, the Today preview's Last lists every working set of the
-same plan, day and slot's last session (#501)
-(falling back to the exercise anywhere, labeled with its day), and the Next time
-control reads Progress / Plan with the disclosure 'Planned reps; increases need
-your approval.'
+sits beside the weight, the Today preview's Last, like the Lift sheet's, lists every
+working set of the exercise's newest session from any day or plan, naming the day,
+the plan when it is another, and the date when that is not the day shown (#501, #645),
+and the Next time control reads Progress / Plan with the disclosure 'Planned reps;
+increases need your approval.'
 Choosing Plan parks the slot's Progress values on the slot and choosing Progress
 again restores them.
 The receipt shows each lift's Next time (+5 lb or Repeat), read the same way as the preview; a ramped lift's receipt row lists its top set and then its other working sets (#501).
@@ -402,9 +418,9 @@ share. An authored target matches by type, reps or seconds, and side, without it
 SECONDARY exposure differs in role, sets or effort, so it keeps its own numbers and still takes the shared streak
 credit of design §19. Superset partners, Plan slots and slots without stored rows keep their own progression.
 Accepting or reverting an offer reaches the slots still holding what Finish copied. Plans never share with each
-other; there the log is evidence only, as decided 2026-10-19. The Lift sheet's Last names the day, and the plan
-when it is another, that the newest session came from when that is not the day shown. For matching slots this
-supersedes design §19's "It never writes another slot's load."
+other; there the log is evidence only, as decided 2026-10-19. The Lift sheet's and the Today preview's Last (#645)
+name the day, and the plan when it is another, that the newest session came from when that is not the day shown.
+For matching slots this supersedes design §19's "It never writes another slot's load."
 
 ### A21. Each side keeps left and right (council 2026-11-21, #644)
 

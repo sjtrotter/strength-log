@@ -131,7 +131,7 @@ object ExerciseLibrary {
         ExerciseEntry("kb_goblet_squat", "KB Goblet Squat", SQUAT_BILATERAL, listOf(KETTLEBELL), false, weighted, 11),
         ExerciseEntry("kb_front_squat", "Double-KB Front Squat", SQUAT_BILATERAL, listOf(KETTLEBELL), true, weighted, 12, shortName = "KB Front Squat"),
         ExerciseEntry("zercher_squat", "Zercher Squat", SQUAT_BILATERAL, listOf(BARBELL, RACK), false, weighted, 13),
-        ExerciseEntry("wall_sit", "Wall Sit", SQUAT_BILATERAL, listOf(BODYWEIGHT), false, time(45), 14),
+        ExerciseEntry("wall_sit", "Wall Sit", SQUAT_BILATERAL, listOf(BODYWEIGHT), false, time(45), 14, holdCeilingSeconds = 120, pressureCaution = true),
 
         ExerciseEntry("bss", "Bulgarian Split Squat", SINGLE_LEG, listOf(DUMBBELL, BENCH), true, weighted, 1, shortName = "Bulgarians"),
         ExerciseEntry("walking_lunge", "Walking Lunge", SINGLE_LEG, listOf(DUMBBELL), true, weighted, 2),
@@ -240,7 +240,7 @@ object ExerciseLibrary {
         ExerciseEntry("db_pullover", "DB Pullover", V_PULL, listOf(DUMBBELL, BENCH), false, weighted, 9),
         ExerciseEntry("weighted_pullup", "Weighted Pull-Up", V_PULL, listOf(PULLUP_BAR), false, weighted, 10),
         ExerciseEntry("weighted_neutral_pullup", "Weighted Neutral-Grip Pull-Up", V_PULL, listOf(PULLUP_BAR), false, weighted, 11),
-        ExerciseEntry("dead_hang", "Dead Hang", V_PULL, listOf(PULLUP_BAR), false, time(30), 12, dose = Dose(3, 60)),
+        ExerciseEntry("dead_hang", "Dead Hang", V_PULL, listOf(PULLUP_BAR), false, time(30), 12, dose = Dose(3, 60), holdCeilingSeconds = 60),
 
         ExerciseEntry("cable_lateral", "Cable Lateral Raise", SIDE_DELT, listOf(CABLE), false, weighted, 1, shortName = "Cable Lateral"),
         ExerciseEntry("db_lateral", "DB Lateral Raise", SIDE_DELT, listOf(DUMBBELL), true, weighted, 2, shortName = "DB Lateral"),
@@ -294,13 +294,13 @@ object ExerciseLibrary {
         ExerciseEntry("seated_calf", "Seated Calf Raise", CALF_SOLEUS, listOf(MACHINE), false, weighted, 1, shortName = "Seated Calf"),
         ExerciseEntry("bent_knee_lp_calf", "Leg-Press Calf Raise (Bent-Knee)", CALF_SOLEUS, listOf(MACHINE), false, weighted, 2, shortName = "Bent-Knee Calf"),
 
-        ExerciseEntry("plank", "Plank", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(45), 1, weightedPairId = "weighted_plank"),
+        ExerciseEntry("plank", "Plank", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(45), 1, weightedPairId = "weighted_plank", holdCeilingSeconds = 60),
         ExerciseEntry("ab_wheel", "Ab Wheel Rollout", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, reps(10), 2, shortName = "Ab Wheel"),
         ExerciseEntry("dead_bug", "Dead Bug", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, reps(10), 3),
         ExerciseEntry("weighted_plank", "Weighted Plank", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(45, 25.0), 4),
         ExerciseEntry("body_saw", "Body Saw", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, reps(10), 5),
-        ExerciseEntry("hollow_hold", "Hollow Hold", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(30), 6),
-        ExerciseEntry("high_plank", "High Plank", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(45), 7),
+        ExerciseEntry("hollow_hold", "Hollow Hold", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(30), 6, holdCeilingSeconds = 45),
+        ExerciseEntry("high_plank", "High Plank", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(45), 7, holdCeilingSeconds = 60),
 
         ExerciseEntry("pallof", "Pallof Press", CORE_ANTI_ROT, listOf(CABLE), false, weighted, 1),
         ExerciseEntry("suitcase_carry", "Suitcase Carry", CORE_ANTI_ROT, listOf(DUMBBELL), true, time(40, 50.0), 2, eachSide = true),
@@ -309,7 +309,7 @@ object ExerciseLibrary {
         ExerciseEntry("kb_windmill", "KB Windmill", CORE_ANTI_ROT, listOf(KETTLEBELL), true, weighted, 5),
         ExerciseEntry("turkish_getup", "Turkish Get-Up", CORE_ANTI_ROT, listOf(KETTLEBELL), true, weighted, 6),
         ExerciseEntry("farmers_carry", "Farmer's Carry", CORE_ANTI_ROT, listOf(DUMBBELL), true, time(40, 50.0), 7),
-        ExerciseEntry("side_plank", "Side Plank", CORE_ANTI_ROT, listOf(BODYWEIGHT), false, time(30), 8, eachSide = true),
+        ExerciseEntry("side_plank", "Side Plank", CORE_ANTI_ROT, listOf(BODYWEIGHT), false, time(30), 8, eachSide = true, holdCeilingSeconds = 45),
 
         ExerciseEntry("cable_crunch", "Cable Crunch", CORE_FLEX, listOf(CABLE), false, weighted, 1),
         ExerciseEntry("hanging_raise", "Hanging Leg Raise", CORE_FLEX, listOf(PULLUP_BAR), false, reps(10), 2, shortName = "Leg Raise"),
@@ -325,7 +325,7 @@ object ExerciseLibrary {
         ExerciseEntry("a_skip", "A-Skip", PLYOMETRIC, listOf(BODYWEIGHT), false, reps(20), 2, dose = Dose(2, 60)),
         ExerciseEntry("bound", "Bound", PLYOMETRIC, listOf(BODYWEIGHT), false, reps(6), 3, dose = Dose(3, 90)),
         ExerciseEntry("box_jump", "Box Jump", PLYOMETRIC, listOf(BODYWEIGHT), false, reps(5), 4, dose = Dose(3, 90)),
-        ExerciseEntry("single_leg_stance", "Single-Leg Stance", BALANCE, listOf(BODYWEIGHT), false, time(30), 1, eachSide = true, dose = Dose(2, 30)),
+        ExerciseEntry("single_leg_stance", "Single-Leg Stance", BALANCE, listOf(BODYWEIGHT), false, time(30), 1, eachSide = true, dose = Dose(2, 30), holdCeilingSeconds = 30),
         ExerciseEntry("sit_to_stand", "Sit-to-Stand", SQUAT_BILATERAL, listOf(BODYWEIGHT), false, reps(10), 15, weightedPairId = "goblet_squat", dose = Dose(2, 60)),
     ).map { entry ->
         val (primary, secondary) = MUSCLE_EXCEPTIONS[entry.id] ?: PATTERN_MUSCLES[entry.pattern]

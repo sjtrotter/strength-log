@@ -63,7 +63,7 @@ object SetEditor {
     fun repsLeft(sets: List<LoggedSet>, index: Int, rir: Int?): List<LoggedSet>? {
         require(rir == null || rir in 0..EffortScale.MAX_REPS_LEFT)
         val row = sets.getOrNull(index) ?: return null
-        if (!row.done || row.kind == SetKind.RAMP || row.seconds > 0 || row.rir == rir) return null
+        if (!row.done || row.kind == SetKind.RAMP || (row.seconds > 0 && row.reps > 0) || row.rir == rir) return null
         return sets.mapIndexed { i, set -> if (i == index) set.copy(rir = rir) else set }
     }
 

@@ -13,7 +13,7 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 /** Stored rows from an authored prescription or a TOP load and a [Scheme]. */
 object SetSeeder {
 
-    /** For reps in time, the window lives in the prescription; the log holds the count. */
+    /** For reps in time, the window lives in the prescription and the rows carry the rep aim, 0 without one. */
     fun seedPrescribed(
         sets: Int,
         p: Prescription,
@@ -25,7 +25,7 @@ object SetSeeder {
             is PrescribedTarget.LoadReps -> shape(structure, target.lb, target.reps, sets, unit, equipment)
             is PrescribedTarget.Reps -> List(sets) { LoggedSet(0.0, target.reps, SetKind.WORK) }
             is PrescribedTarget.Hold -> List(sets) { LoggedSet(target.addedLb, 0, SetKind.WORK, seconds = target.seconds) }
-            is PrescribedTarget.RepsInTime -> List(sets) { LoggedSet(0.0, 0, SetKind.WORK) }
+            is PrescribedTarget.RepsInTime -> List(sets) { LoggedSet(0.0, target.repAim ?: 0, SetKind.WORK) }
         }
 
     fun shape(

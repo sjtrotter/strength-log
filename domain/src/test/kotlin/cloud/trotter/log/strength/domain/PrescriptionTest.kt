@@ -12,14 +12,14 @@ import kotlin.test.assertEquals
 
 class PrescriptionTest {
     @Test
-    fun `each target seeds exact WORK rows with no inferred reps in a time window`() {
+    fun `each target seeds exact WORK rows and a time window seeds its rep aim`() {
         val cases = listOf(
             PrescribedTarget.LoadReps(37.5, 8) to LoggedSet(37.5, 8, SetKind.WORK),
             PrescribedTarget.Reps(12) to LoggedSet(0.0, 12, SetKind.WORK),
             PrescribedTarget.Hold(45) to LoggedSet(0.0, 0, SetKind.WORK, seconds = 45),
             PrescribedTarget.Hold(60, 22.5) to LoggedSet(22.5, 0, SetKind.WORK, seconds = 60),
             PrescribedTarget.RepsInTime(120) to LoggedSet(0.0, 0, SetKind.WORK),
-            PrescribedTarget.RepsInTime(120, 50) to LoggedSet(0.0, 0, SetKind.WORK),
+            PrescribedTarget.RepsInTime(120, 50) to LoggedSet(0.0, 50, SetKind.WORK), // #642: rows seed the rep aim
         )
         cases.forEach { (target, row) ->
             assertEquals(List(3) { row }, SetSeeder.seedPrescribed(3, Prescription(target, true, "red band")))

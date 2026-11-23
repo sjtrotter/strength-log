@@ -28,7 +28,7 @@ data class ReceiptLiftLine(
 
 object ReceiptLines {
     private fun storedLine(rows: List<LoggedSet>, session: SlotSession?, keepToPlan: Boolean, rule: SlotRule?): ReceiptLiftLine? {
-        if (keepToPlan || rule == null || session == null || session.retired || session.reason == "NO_SETS" ||
+        if (keepToPlan || rule == null || session == null || session.retired || session.reason == "NO_SETS" || session.reason == "MEASURED" ||
             session.actual.none { it.done }) return null
         val weight = WorkingRows.workingWeight(rows) ?: return null
         val anchor = WorkingRows.workingIndices(rows).firstOrNull()?.let { rows[it] } ?: return null
@@ -41,7 +41,7 @@ object ReceiptLines {
         val stored = storedLine(rows, session, keepToPlan, rule) ?: return null
         val offer = (DayScreenBuilder.nextTime(rows, session, false, unit, offersOn = true, rule = rule) as? NextTime.Offer)
             ?.takeIf { it.applied || chipGate } ?: return stored
-        return stored.copy(weightLb = offer.offerLb, reps = offer.reps ?: stored.reps,
+        return stored.copy(weightLb = offer.offerLb, reps = offer.reps ?: stored.reps, seconds = offer.seconds ?: stored.seconds,
             delta = offer.takeUnless { it.calibration || it.reps != null }?.let {
                 DayScreenBuilder.offerDelta(it.offerLb, it.openingLb, unit).takeIf { delta -> delta != 0.0 }
             }, offered = !offer.applied)
@@ -49,13 +49,14 @@ object ReceiptLines {
 
     fun whyLine(rows: List<LoggedSet>, session: SlotSession, rule: SlotRule, unit: WeightUnit): ReceiptLiftLine? {
         val stored = storedLine(rows, session, false, rule) ?: return null
-        val offer = session.offer ?: return stored.takeUnless { it.reason in setOf("ALL_MADE", "EASY_SESSION", "STALL") }
+        val offer = session.offer ?: return stored.takeUnless { it.reason in setOf("ALL_MADE", "EASY_SESSION", "STALL", "HOLD_STEP") }
         val delta = DayScreenBuilder.offerDelta(offer.toLb, offer.fromLb, unit)
         val reps = offer.toReps.takeIf { delta == 0.0 }
+        val seconds = offer.toSeconds.takeIf { delta == 0.0 }
         val applied = (DayScreenBuilder.nextTime(rows, session, false, unit, offersOn = true, rule = rule)
             as? NextTime.Offer)?.applied == true
-        return stored.copy(weightLb = offer.toLb, reps = reps, delta = delta.takeIf {
-            !offer.calibration && reps == null && it != 0.0
+        return stored.copy(weightLb = offer.toLb, reps = reps, seconds = seconds ?: stored.seconds, delta = delta.takeIf {
+            !offer.calibration && reps == null && seconds == null && it != 0.0
         }, offered = !applied)
     }
 
@@ -114,6 +115,8 @@ object ReceiptLines {
             "CALIBRATING" -> R.string.receipt_why_calibrating
             "CALIBRATED" -> R.string.receipt_why_calibrated
             "ADD_WEIGHT" -> R.string.receipt_why_add_weight
+            "HOLD_STEP" -> R.string.receipt_why_hold_step
+            "HOLD_CEILING" -> R.string.receipt_why_hold_ceiling
             else -> return null
         }
         val value = if (repChange || line.reason == "ADD_WEIGHT") line.reps?.toString() ?: value(line, unit, resources)

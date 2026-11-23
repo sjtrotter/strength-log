@@ -37,6 +37,7 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.NOTE_MAX_LENGTH
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.FinishedRule
+import cloud.trotter.log.strength.domain.progression.WorkingRows
 import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.records.CardioRecordKey
 import cloud.trotter.log.strength.domain.records.PersonalBests
@@ -340,6 +341,11 @@ class HistoryRepository(
         if (exerciseIds.isEmpty()) emptyMap()
         else sessionDao.lastPerformedSourceRows(exerciseIds).toLastSourcesElsewhere(planId, dayId)
 
+    /** The Lift sheet's and the Today preview's Last: one read for both. */
+    suspend fun lastTimes(exerciseIds: List<String>, planId: Long, dayId: String): LastTimes =
+        LastTimes(lastPerformed(exerciseIds), lastSets(exerciseIds), lastPerformedDates(exerciseIds),
+            lastSourcesElsewhere(exerciseIds, planId, dayId))
+
     /** Offers belong to a program slot, including when an exercise appears twice on the same day. */
     suspend fun slotSessionsById(planId: Long, dayId: String): Map<Pair<Long, String>, SlotSession> = db.withTransaction {
         val session = sessionDao.lastSessionForDay(planId, dayId) ?: return@withTransaction emptyMap()
@@ -372,9 +378,13 @@ class HistoryRepository(
                     val beforeRule = offer.beforeRuleJson?.let(SlotRuleJson::decode)
                     val before = beforeRule?.target
                     val after = offer.afterRuleJson?.let(SlotRuleJson::decode)?.target
+                    val beforeSeconds = workingSeconds(offer.beforeSets)
+                    val afterSeconds = workingSeconds(offer.afterSets)
                     NextOffer(offer.fromLb, offer.toLb,
                         before?.reps.takeIf { before != after }, after?.reps.takeIf { before != after },
-                        beforeRule?.state?.calibrating == true || dto.opening?.layoff == OpeningDto.RECALIBRATE)
+                        beforeRule?.state?.calibrating == true || dto.opening?.layoff == OpeningDto.RECALIBRATE,
+                        fromSeconds = beforeSeconds.takeIf { it != afterSeconds },
+                        toSeconds = afterSeconds.takeIf { it != beforeSeconds })
                 },
                 dto.opening != null,
                 rough = session.roughDay, reason = dto.reason,
@@ -382,13 +392,9 @@ class HistoryRepository(
         }
     }
 
-    suspend fun lastPerformedForSlots(
-        planId: Long,
-        dayId: String,
-        exerciseIds: List<String>,
-    ): Map<Pair<String, String>, SlotLast> {
-        if (exerciseIds.isEmpty()) return emptyMap()
-        return sessionDao.lastPerformedSourceRows(exerciseIds).toLastPerformedForSlots(planId, dayId)
+    private fun workingSeconds(sets: List<SetDto>?): Int? {
+        val rows = sets?.map(SetDto::toDomain) ?: return null
+        return WorkingRows.workingIndices(rows).firstOrNull()?.let { rows[it].seconds.takeIf { seconds -> seconds > 0 } }
     }
 
     /**
@@ -493,4 +499,4 @@ fun CardioSessionEntity.resolvedActivity(): CardioActivity? =
 data class SlotSession(val planned: List<LoggedSet>, val actual: List<LoggedSet>, val retired: Boolean, val offer: NextOffer? = null, val opened: Boolean = false, val rough: Boolean = false, val reason: String? = null)
 
 /** The next-time change recorded on an archived track. */
-data class NextOffer(val fromLb: Double, val toLb: Double, val fromReps: Int? = null, val toReps: Int? = null, val calibration: Boolean = false)
+data class NextOffer(val fromLb: Double, val toLb: Double, val fromReps: Int? = null, val toReps: Int? = null, val calibration: Boolean = false, val fromSeconds: Int? = null, val toSeconds: Int? = null)

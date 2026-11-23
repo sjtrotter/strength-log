@@ -188,6 +188,37 @@
     },
     {
       "expect": {
+        "text": "Effort"
+      }
+    },
+    {
+      "expect": {
+        "text": "Easy"
+      }
+    },
+    {
+      "expect": {
+        "text": "Good"
+      }
+    },
+    {
+      "expect": {
+        "text": "Hard"
+      }
+    },
+    {
+      "expect": {
+        "text": "Max"
+      }
+    },
+    {
+      "tap": {
+        "text": "End rest",
+        "tag": "workout-action-tonal"
+      }
+    },
+    {
+      "expect": {
         "text": "✓ Set 1 · L 20 s · R 12 s"
       }
     },

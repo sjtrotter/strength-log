@@ -38,7 +38,8 @@ class SetEditTest {
         val rated = requireNotNull(SetEditor.effort(rows, 1, Effort.HARD))
         assertEquals(rows.mapIndexed { i, set -> if (i == 1) set.copy(rir = 1) else set }, rated)
         assertEquals(rows, SetEditor.effort(rated, 1, null))
-        for (index in listOf(-1, 0, 2, 3, 9)) assertNull(SetEditor.effort(rows, index, Effort.HARD))
+        // #643: A completed hold accepts optional effort, so index 3 is no longer a refusal case.
+        for (index in listOf(-1, 0, 2, 9)) assertNull(SetEditor.effort(rows, index, Effort.HARD))
         assertNull(SetEditor.effort(rated, 1, Effort.HARD))
         assertNull(SetEditor.effort(rows, 1, null))
     }
@@ -52,6 +53,22 @@ class SetEditTest {
         }
         assertNull(SetEditor.repsLeft(rows.map { it.copy(done = false) }, 0, 3))
         assertNull(SetEditor.repsLeft(rows.map { it.copy(kind = SetKind.RAMP) }, 0, 3))
+    }
+
+    @Test fun `a logged hold stores optional effort words without changing its seconds or load`() {
+        for (load in listOf(0.0, 50.0)) {
+            val rows = listOf(LoggedSet(load, 0, SetKind.WORK, done = true, seconds = 45,
+                startedAtMillis = 10L, completedAtMillis = 45_010L, watchEditedAt = 100L))
+            for (effort in Effort.entries) {
+                val rated = requireNotNull(SetEditor.effort(rows, 0, effort))
+                assertEquals(rows.map { it.copy(rir = effort.rir) }, rated)
+                assertEquals(rows, SetEditor.effort(rated, 0, null))
+                assertNull(SetEditor.effort(rated, 0, effort))
+            }
+            assertNull(SetEditor.effort(rows.map { it.copy(done = false) }, 0, Effort.EASY))
+            assertNull(SetEditor.effort(rows.map { it.copy(kind = SetKind.RAMP) }, 0, Effort.EASY))
+            assertNull(SetEditor.effort(rows.map { it.copy(reps = 10) }, 0, Effort.EASY))
+        }
     }
 
     private val row = LoggedSet(50.0, 8, SetKind.WORK)

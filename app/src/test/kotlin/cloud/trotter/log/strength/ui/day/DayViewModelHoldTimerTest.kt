@@ -23,6 +23,7 @@ import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.standards.PhoneRest
 import cloud.trotter.log.strength.rest.RestRuntime
 import cloud.trotter.log.strength.rest.PhoneRestController
@@ -140,6 +141,11 @@ class DayViewModelHoldTimerTest {
     private fun DayViewModel.startHold() {
         val card = uiState.value.exercises.single()
         startHold(card.programExerciseId, card.focusIndex)
+    }
+
+    private fun DayViewModel.startHoldPastTarget() {
+        val card = uiState.value.exercises.single()
+        startHoldPastTarget(card.programExerciseId, card.focusIndex)
     }
 
     private fun TestScope.tick(millis: Long) {
@@ -563,6 +569,276 @@ class DayViewModelHoldTimerTest {
         assertTrue(vm.uiState.value.runOpen)
     }
 
+    @Test fun `case 41 a hold past target buzzes once at the target and logs the seconds held`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val start = clock.wall
+        vm.startHoldPastTarget()
+        runCurrent()
+        tick(30_000)
+        assertFalse(row().done)
+        assertTrue(requireNotNull(vm.uiState.value.hold).event.running)
+        assertEquals(30, vm.uiState.value.hold?.heldSeconds)
+        assertEquals(1, alarm.buzzes)
+        assertNull(alarm.deadline)
+        assertTrue(vm.uiState.value.executionKeepsScreenOn)
+        tick(17_000)
+        assertEquals(47, vm.uiState.value.hold?.heldSeconds)
+        assertEquals(1, alarm.buzzes)
+        vm.stopHold()
+        runCurrent()
+        assertTrue(row().done)
+        assertEquals(47, row().seconds)
+        assertEquals(start, row().startedAtMillis)
+        assertEquals(start + 47_000, row().completedAtMillis)
+        assertNull(vm.uiState.value.hold)
+        assertEquals(1, rest.armed.size)
+    }
+
+    @Test fun `with the screen off a hold past target buzzes at the target and keeps counting`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.startHoldPastTarget()
+        runCurrent()
+        vm.setCardioScreenLive(false)
+        clock.advance(30_000)
+        alarm.fire()
+        runCurrent()
+        assertEquals(1, alarm.buzzes)
+        assertFalse(row().done)
+        clock.advance(20_000)
+        vm.setCardioScreenLive(true)
+        runCurrent()
+        vm.stopHold()
+        runCurrent()
+        assertTrue(row().done)
+        assertEquals(50, row().seconds)
+        assertEquals(1, alarm.buzzes)
+    }
+
+    @Test fun `a hold past target ends itself at ten minutes`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.startHoldPastTarget()
+        runCurrent()
+        tick(30_000)
+        tick(570_000)
+        assertTrue(row().done)
+        assertEquals(600, row().seconds)
+        assertEquals(1, alarm.buzzes)
+        assertNull(vm.uiState.value.hold)
+    }
+
+    @Test fun `process death past the target restores the count without a buzz`() = test {
+        prepare()
+        val handle = SavedStateHandle()
+        val first = readyVm(handle)
+        first.startWorkout()
+        runCurrent()
+        first.startHoldPastTarget()
+        runCurrent()
+        tick(10_000)
+        first.setCardioScreenLive(false)
+        first.viewModelScope.cancel()
+        val saved = recreateHandle(handle)
+        clock.advance(40_000)
+        alarm.cancel()
+        val restored = readyVm(saved)
+        assertEquals(50, restored.uiState.value.hold?.heldSeconds)
+        assertTrue(requireNotNull(restored.uiState.value.hold).event.running)
+        assertNull(alarm.deadline)
+        assertEquals(0, alarm.buzzes)
+        restored.stopHold()
+        runCurrent()
+        assertTrue(row().done)
+        assertEquals(50, row().seconds)
+    }
+
+    @Test fun `each side past target logs the shorter side`() = test {
+        prepare(Prescription(PrescribedTarget.Hold(30), eachSide = true))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.startHoldPastTarget()
+        runCurrent()
+        tick(30_000)
+        tick(10_000)
+        vm.stopHold()
+        runCurrent()
+        assertFalse(requireNotNull(vm.uiState.value.hold).event.running)
+        assertEquals(listOf(40), vm.uiState.value.hold?.event?.heldSeconds)
+        vm.startHold()
+        runCurrent()
+        tick(35_000)
+        vm.stopHold()
+        runCurrent()
+        assertTrue(row().done)
+        assertEquals(35, row().seconds)
+        assertEquals(2, alarm.buzzes)
+    }
+
+    @Test fun `a wall sit never runs past its target`() = test {
+        prepare(prescription = null, exerciseId = "wall_sit")
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        assertTrue(vm.uiState.value.exercises.single().holdPressureCaution)
+        vm.startHoldPastTarget()
+        runCurrent()
+        tick(45_000)
+        assertTrue(row().done)
+        assertEquals(45, row().seconds)
+        assertNull(vm.uiState.value.hold)
+    }
+
+    @Test fun `the next Start ends at the target again`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.startHoldPastTarget()
+        runCurrent()
+        tick(40_000)
+        vm.stopHold()
+        runCurrent()
+        assertEquals(40, row().seconds)
+        vm.startHold()
+        runCurrent()
+        tick(30_000)
+        val card = vm.uiState.value.exercises.single()
+        assertTrue(card.rows[1].done)
+        assertEquals(30, card.rows[1].seconds)
+        assertNull(vm.uiState.value.hold)
+    }
+
+    @Test fun `a logged hold offers optional effort and Next accepts an unrated hold`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.startHold()
+        runCurrent()
+        tick(30_000)
+        val review = requireNotNull(vm.uiState.value.workout?.review)
+        assertEquals(listOf(Slot.MAIN), review.effortSlots)
+        assertTrue(review.unrated.isEmpty())
+        assertNull(row().rir)
+        vm.continueWorkout()
+        runCurrent()
+        assertNull(vm.uiState.value.workout?.review)
+        assertEquals(WorkoutFocus(review.programExerciseId, Slot.MAIN, 1), vm.uiState.value.workout?.focus)
+        assertTrue(row().done)
+    }
+
+    @Test fun `a hold stopped between whole seconds keeps its optional review`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val start = clock.wall
+        vm.startHold()
+        runCurrent()
+        tick(20_999)
+        vm.stopHold()
+        runCurrent()
+        assertTrue(row().done)
+        assertEquals(20, row().seconds)
+        assertEquals(start + 20_000, row().completedAtMillis)
+        val target = requireNotNull(settings.workoutRecordFlow.first()?.review)
+        assertEquals(row().completedAtMillis, target.loggedAtMillis)
+        val review = requireNotNull(vm.uiState.value.workout?.review)
+        assertEquals(WorkoutReview(target.programExerciseId, 0, listOf(Slot.MAIN), emptyList()), review)
+    }
+
+    @Test fun `hold effort writes and clears rir without changing the held seconds`() = test {
+        prepare()
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        vm.startWorkout()
+        runCurrent()
+        vm.startHold()
+        runCurrent()
+        tick(18_000)
+        vm.stopHold()
+        runCurrent()
+        val before = row()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        for (effort in Effort.entries) {
+            vm.setEffort(id, Slot.MAIN, 0, effort)
+            runCurrent()
+            assertEquals(before.copy(rir = effort.rir), row())
+            assertTrue(requireNotNull(vm.uiState.value.workout?.review).unrated.isEmpty())
+        }
+        vm.setEffort(id, Slot.MAIN, 0, null)
+        runCurrent()
+        assertEquals(before, row())
+        vm.viewModelScope.cancel()
+        val restored = readyVm(recreateHandle(handle))
+        val review = requireNotNull(restored.uiState.value.workout?.review)
+        assertEquals(listOf(Slot.MAIN), review.effortSlots)
+        assertTrue(review.unrated.isEmpty())
+        restored.continueWorkout()
+        runCurrent()
+        assertNull(restored.uiState.value.workout?.review)
+    }
+
+    @Test fun `a refused hold start never writes the past target flag`() = test {
+        prepare()
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.startHoldPastTarget(id, 99)
+        runCurrent()
+        assertFalse(handle.keys().contains("day_hold_past_target"))
+        assertFalse(vm.uiState.value.startSheet)
+        assertNull(vm.uiState.value.hold)
+    }
+
+    @Test fun `another day's open run refuses a hold without writing the past target flag`() = test {
+        prepare()
+        val day = repo.plans.programFlow.first().days.single()
+        repo.replaceProgram(Program(listOf(day, day.copy(id = "B", title = "Other holds"))))
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        vm.startWorkout()
+        runCurrent()
+        vm.selectDay("B")
+        runCurrent()
+        vm.startHoldPastTarget()
+        runCurrent()
+        assertFalse(handle.keys().contains("day_hold_past_target"))
+        assertNull(vm.uiState.value.hold)
+        assertFalse(vm.uiState.value.startSheet)
+    }
+
+    @Test fun `a reserved hold keeps its accepted past target choice through confirmation`() = test {
+        prepare()
+        val handle = SavedStateHandle()
+        val vm = readyVm(handle)
+        vm.startHoldPastTarget()
+        runCurrent()
+        assertEquals(true, handle.get<Boolean>("day_hold_past_target"))
+        assertTrue(vm.uiState.value.startSheet)
+        assertNull(vm.uiState.value.hold)
+        vm.startHold()
+        runCurrent()
+        assertEquals(true, handle.get<Boolean>("day_hold_past_target"))
+        vm.confirmStart()
+        runCurrent()
+        tick(35_000)
+        assertTrue(requireNotNull(vm.uiState.value.hold).event.running)
+        vm.stopHold()
+        runCurrent()
+        assertEquals(35, row().seconds)
+        assertFalse(handle.keys().contains("day_hold_past_target"))
+    }
+
     private class FakeCardioClock(
         var wall: Long = 1_800_000_000_000L,
         var elapsed: Long = 9_000_000L,
@@ -612,7 +888,7 @@ class DayViewModelHoldTimerTest {
         override fun complete() = true
     }
 
-    @Test fun `case 39 an each side hold keeps both sides left first`() = test {
+    @Test fun `case 42 an each side hold keeps both sides left first`() = test {
         prepare(Prescription(PrescribedTarget.Hold(30), eachSide = true))
         val vm = readyVm()
         vm.startWorkout()
@@ -632,6 +908,32 @@ class DayViewModelHoldTimerTest {
         runCurrent()
         assertNull(row().sides)
         assertFalse(row().done)
+    }
+
+    @Test fun `an each side hold past target keeps both sides through its effort rating`() = test {
+        prepare(Prescription(PrescribedTarget.Hold(30), eachSide = true))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.startHoldPastTarget()
+        runCurrent()
+        tick(30_000)
+        tick(10_000)
+        vm.stopHold()
+        runCurrent()
+        vm.startHold()
+        runCurrent()
+        tick(35_000)
+        vm.stopHold()
+        runCurrent()
+        val sides = Sides(SideResult(0.0, 0, 40), SideResult(0.0, 0, 35))
+        assertEquals(35, row().seconds)
+        assertEquals(sides, row().sides)
+        val review = requireNotNull(vm.uiState.value.workout?.review)
+        vm.setEffort(review.programExerciseId, Slot.MAIN, review.index, Effort.EASY)
+        runCurrent()
+        assertEquals(Effort.EASY.rir, row().rir)
+        assertEquals(sides, row().sides)
     }
 
 }

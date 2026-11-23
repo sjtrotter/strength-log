@@ -24,7 +24,7 @@ class Migration32To33Test {
 
     @After fun cleanup() { context.deleteDatabase(name) }
 
-    @Test fun `case 40 v32 session sets open with no sides over two opens`() = runTest {
+    @Test fun `case 43 v32 session sets open with no sides over two opens`() = runTest {
         val helper = V24Fixture.create(context, name, 32, V32) { sql ->
             sql.execSQL("INSERT INTO workout_session VALUES (9,'A','Day A',100,200,180.0,NULL,NULL,NULL,NULL,'',0,NULL)")
             sql.execSQL("INSERT INTO session_set VALUES (10,9,'side_plank','Side Plank','main',0,'WORK',0.0,0,1,40,100,200,0,0,NULL)")

@@ -571,7 +571,7 @@ class ProgressionTest {
         copy(weightLb = it.weightLb, reps = it.reps, seconds = it.seconds, sides = it)
     }
 
-    @Test fun `case 39 the weaker side gates and never the better side or the average`() {
+    @Test fun `case 42 the weaker side gates and never the better side or the average`() {
         val logged = actual(work()).mapIndexed { i, row ->
             row.sided(SideResult(185.0, 7, 0), SideResult(185.0, listOf(5, 5, 3)[i], 0))
         }
@@ -586,7 +586,7 @@ class ProgressionTest {
         assertEquals(finish(actual = actual(work())), finish(actual = equal))
     }
 
-    @Test fun `case 39 a side at zero misses`() {
+    @Test fun `case 42 a side at zero misses`() {
         val logged = actual(work()).mapIndexed { i, row ->
             row.sided(SideResult(185.0, 5, 0), SideResult(185.0, if (i == 2) 0 else 5, 0))
         }

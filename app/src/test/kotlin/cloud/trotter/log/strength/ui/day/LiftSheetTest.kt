@@ -24,6 +24,7 @@ import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.domain.standards.GoalTarget
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
@@ -64,6 +65,19 @@ class LiftSheetTest {
         rule.onNodeWithText("Hard").assertIsDisplayed()
         rule.onNodeWithText("Now").assertIsDisplayed()
         for (word in listOf("Easy", "Good", "Max")) rule.onNodeWithText(word).assertDoesNotExist()
+    }
+
+    @Test fun aRatedHoldShowsItsWordInTheLiftSheetWhenLiftsUseRepsLeft() {
+        val base = workoutLiftSheetFixture().exercises.single()
+        val card = base.copy(tracking = TrackingType.TIMED, rows = listOf(
+            SetRowState(0, "1", false, 0.0, 0, done = true, seconds = 45, rir = 4),
+        ))
+        rule.setContent { AppTheme {
+            LiftSheet(card, Slot.MAIN, null, workoutActions(), false, null, {}, {}, {},
+                effortScale = EffortScale.REPS_LEFT)
+        } }
+        rule.onNodeWithText("Easy").assertIsDisplayed()
+        rule.onNodeWithText("left", substring = true).assertDoesNotExist()
     }
 
     @Test fun prescribedHeadersShowEveryTargetInBothUnitsAndReadTheVisibleLabel() {

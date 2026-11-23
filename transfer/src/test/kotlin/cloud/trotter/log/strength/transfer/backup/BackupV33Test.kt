@@ -38,7 +38,7 @@ class BackupV33Test {
         LiveLogBackup(1, "A", 7, "main", setsJson, updatedAt = 1000),
     ))
 
-    @Test fun `case 40 v33 round trips each side results`() {
+    @Test fun `case 43 v33 round trips each side results`() {
         val source = withLive(document(), payload)
         val decoded = codec.decode(codec.encode(source))
         assertEquals(source, decoded)
@@ -47,7 +47,7 @@ class BackupV33Test {
         assertFalse(codec.encode(document(split = false)).contains("\"sides\""))
     }
 
-    @Test fun `case 40 a v32 document restores sets with no sides`() {
+    @Test fun `case 43 a v32 document restores sets with no sides`() {
         val decoded = codec.decode(codec.encode(document(version = 32, split = false)))
         val set = decoded.toSnapshot().sessionSets.single()
         assertNull(set.sides())
@@ -59,7 +59,7 @@ class BackupV33Test {
         assertTrue(set.done)
     }
 
-    @Test fun `case 40 a set that is not its weaker side is inconsistent`() {
+    @Test fun `case 43 a set that is not its weaker side is inconsistent`() {
         val source = document().let { doc -> doc.copy(sessions = doc.sessions.map { session ->
             session.copy(sets = session.sets.map { it.copy(seconds = 52) })
         }) }

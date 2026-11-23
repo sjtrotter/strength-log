@@ -31,6 +31,11 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SupersetPartner
 import cloud.trotter.log.strength.domain.model.SetStructure
+import cloud.trotter.log.strength.domain.progression.NextTimeMode
+import cloud.trotter.log.strength.domain.progression.RepTarget
+import cloud.trotter.log.strength.domain.progression.Scheme
+import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.progression.SlotRule
 import cloud.trotter.log.strength.domain.sync.ExerciseSwapDelta
 import cloud.trotter.log.strength.domain.sync.SetEditDelta
 import java.io.File
@@ -136,7 +141,7 @@ class SetEditApplierTest {
         assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
         assertEquals(listOf(
             LoggedSet(0.0, 42, SetKind.WORK),
-            LoggedSet(0.0, 0, SetKind.WORK),
+            LoggedSet(0.0, 50, SetKind.WORK), // #642: an unlogged window row carries the rep aim
         ), track(id, Slot.MAIN))
     }
 
@@ -506,6 +511,44 @@ class SetEditApplierTest {
             assertEquals(SetEditApplier.Outcome.APPLIED, applier.apply(it))
             assertEquals(startedAt, repo.openRunFlow.first()!!.startedAt)
         }
+    }
+
+    @Test
+    fun `a stopped watch hold merges elapsed seconds and keeps its planned target`() = runTest {
+        val rule = SlotRule(
+            SlotRole.CORE, RepTarget.Fixed(10), 2, 0.0125, 1,
+            scheme = Scheme.STRENGTH, nextTime = NextTimeMode.AUTO,
+        )
+        repo.replaceProgram(Program(listOf(ProgramDay(
+            "T", "Holds", "", listOf(ProgramExercise("plank", targetSets = 1, rule = rule)),
+        ))))
+        val id = trackId("plank")
+        val plan = requireNotNull(repo.plans.planIdOfSlot(id))
+        repo.ensureSeeded(plan, "T")
+        repo.startRun(plan, "T")
+        val before = repo.dayTracksFlow(plan, "T").first()
+        val outcome = applier.apply(SetEditDelta(
+            dayId = "T", programExerciseId = id, slot = Slot.MAIN, setIndex = 0,
+            done = true, seconds = 20, editedAtMillis = 21_000L,
+            startedAtMillis = 1_000L, completedAtMillis = 21_000L,
+            planId = plan, runId = before.runId, exerciseId = "plank",
+        ))
+        assertEquals(SetEditApplier.Outcome.APPLIED, outcome)
+        val row = tTrack(id).first()
+        assertTrue(row.done)
+        assertEquals(20, row.seconds)
+        assertEquals(1_000L, row.startedAtMillis)
+        assertEquals(21_000L, row.completedAtMillis)
+        val after = repo.dayTracksFlow(plan, "T").first()
+        assertEquals(before.tracks.first { it.programExerciseId == id && it.slot == Slot.MAIN }.planned,
+            after.tracks.first { it.programExerciseId == id && it.slot == Slot.MAIN }.planned)
+        val sessionId = requireNotNull(repo.finishRun(requireNotNull(before.runId)))
+        val finished = repo.history.slotSessionsById(plan, "T").getValue(id to Slot.MAIN)
+        assertEquals("REP_MISS", finished.reason)
+        assertEquals(listOf(45), finished.planned.map { it.seconds })
+        assertNull(finished.offer)
+        assertEquals(20, repo.history.sessionSets(sessionId).single { it.exerciseId == "plank" }.seconds)
+        assertEquals(listOf(45), tTrack(id).map { it.seconds })
     }
 
     // --- per-type delta guard (a stale watch can't write dead fields) -----------------------

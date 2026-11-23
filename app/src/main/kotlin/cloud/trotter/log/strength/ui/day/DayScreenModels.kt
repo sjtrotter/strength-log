@@ -224,8 +224,12 @@ data class WorkoutState(
 /** The logged row on the card; effortSlots show an effort row, unrated lack a rating and hold the big button. */
 data class WorkoutReview(val programExerciseId: Long, val index: Int, val effortSlots: List<String>, val unrated: List<String>)
 
-/** Finish never judges warm-up ramps or timed holds, so the phone never asks for their effort. */
-internal fun showsEffort(kind: SetKind, tracking: TrackingType): Boolean = kind != SetKind.RAMP && tracking != TrackingType.TIMED
+/** The phone never asks for effort on warm-up ramps. */
+internal fun showsEffort(kind: SetKind, tracking: TrackingType, seconds: Int = 0): Boolean =
+    kind != SetKind.RAMP && (tracking != TrackingType.TIMED || seconds > 0)
+
+internal fun EffortScale.forTracking(tracking: TrackingType): EffortScale =
+    if (tracking == TrackingType.TIMED) EffortScale.WORDS else this
 
 /** The hold timer's target for this set in seconds, or 0: only a TIMED main outside a superset has one. */
 internal fun ExerciseCardState.holdTargetSeconds(index: Int): Int =
@@ -399,7 +403,7 @@ sealed interface HeaderTarget {
 @Immutable
 sealed interface NextTime {
     data object Repeat : NextTime
-    data class Offer(val label: String, val applied: Boolean, val offerLb: Double, val openingLb: Double, val reps: Int? = null, val calibration: Boolean = false) : NextTime
+    data class Offer(val label: String, val applied: Boolean, val offerLb: Double, val openingLb: Double, val reps: Int? = null, val calibration: Boolean = false, val seconds: Int? = null) : NextTime
 }
 
 /** One exercise card (spec §8.2). [Immutable] for the reason [DayUiState]
@@ -467,6 +471,8 @@ data class ExerciseCardState(
     val partnerNextTime: NextTime? = null,
     val rule: SlotRule? = null,
     val liftGoal: LiftGoal = LiftGoal.STRENGTH,
+    /** [cloud.trotter.log.strength.domain.library.ExerciseEntry.pressureCaution] of the performed exercise. */
+    val holdPressureCaution: Boolean = false,
 )
 
 /**

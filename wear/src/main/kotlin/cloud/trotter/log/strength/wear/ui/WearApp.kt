@@ -581,16 +581,24 @@ private fun WorkoutDial(
         restController.disarm()
         val timedDelta = timedRep?.let { buildTimedRepDelta(it, snap, completedAtMillis) }
         if (timedRep != null && timedDelta == null) return
-        sendEdit(
-            timedDelta ?: buildTickDelta(
-                dayId = dayId,
-                programExerciseId = ex.programExerciseId,
-                setIndex = roundIndex,
-                startedAtMillis = startedAtWallMillis,
-                completedAtMillis = completedAtMillis,
-                snapshot = snap,
-            ),
+        val delta = timedDelta ?: buildTickDelta(
+            dayId = dayId,
+            programExerciseId = ex.programExerciseId,
+            setIndex = roundIndex,
+            startedAtMillis = startedAtWallMillis,
+            completedAtMillis = completedAtMillis,
+            snapshot = snap,
+            holdElapsedMillis = if (holdGoal > 0 && startedAtElapsedMillis > 0L) {
+                SystemClock.elapsedRealtime() - startedAtElapsedMillis
+            } else null,
         )
+        if (delta.seconds == 0 && holdGoal > 0) {
+            lifting = false
+            startedAtWallMillis = 0L
+            startedAtElapsedMillis = 0L
+            return
+        }
+        sendEdit(delta)
         DialHaptics.perform(view, DialHaptics.Cue.CONFIRM_TICK)
         // Remembered on the wrist only — the wire never echoes the stamps back, so
         // this is the peek's only source for TOOK (§6) and the undo's only source of

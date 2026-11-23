@@ -196,21 +196,31 @@ object DayScreenBuilder {
     ): NextTime? {
         if (!offersOn || keepToPlan || rows.any { it.done }) return null
         val local = history?.takeUnless { it.retired || it.rough } ?: return null
+        if (local.reason == "MEASURED") return null
         if (local.offer == null && local.opened) return null
         val current = WorkingRows.workingWeight(rows) ?: return null
         fun display(lb: Double) = WeightStepper.toDisplayPrecision(unit.fromLb(lb))
         val offer = local.offer ?: return NextTime.Repeat.takeIf {
             WorkingRows.workingWeight(local.planned)?.let { display(it) == display(current) } == true
         }
-        val currentReps = WorkingRows.workingIndices(rows).firstOrNull()?.let { rows[it].reps }
+        val anchor = WorkingRows.workingIndices(rows).firstOrNull()?.let { rows[it] }
+        val currentReps = anchor?.reps
+        val currentSeconds = anchor?.seconds
         val applied = when {
             offer.calibration && offer.fromLb == offer.toLb && rule?.state?.calibrating == false -> true
-            display(current) == display(offer.fromLb) && (offer.fromReps == null || currentReps == offer.fromReps) -> false
-            display(current) == display(offer.toLb) && (offer.toReps == null || currentReps == offer.toReps) -> true
+            display(current) == display(offer.fromLb) && (offer.fromReps == null || currentReps == offer.fromReps) &&
+                (offer.fromSeconds == null || currentSeconds == offer.fromSeconds) -> false
+            display(current) == display(offer.toLb) && (offer.toReps == null || currentReps == offer.toReps) &&
+                (offer.toSeconds == null || currentSeconds == offer.toSeconds) -> true
             else -> return null
         }
-        return NextTime.Offer(if (offer.calibration) SetFormatter.weight(offer.toLb, unit) else offerLabel(offer.toLb, offer.fromLb, unit), applied, offer.toLb, offer.fromLb,
-            offer.toReps.takeIf { display(offer.fromLb) == display(offer.toLb) }, offer.calibration)
+        val seconds = offer.toSeconds.takeIf { display(offer.fromLb) == display(offer.toLb) }
+        return NextTime.Offer(when {
+            offer.calibration -> SetFormatter.weight(offer.toLb, unit)
+            seconds != null -> ClockText.minutesSeconds(seconds)
+            else -> offerLabel(offer.toLb, offer.fromLb, unit)
+        }, applied, offer.toLb, offer.fromLb, offer.toReps.takeIf { display(offer.fromLb) == display(offer.toLb) },
+            offer.calibration, seconds)
     }
 
     /** [CardioJudge.opening] at [nowMillis], on the civil day [loggedToday] reads. Read-only: a run freezes it. */
@@ -307,6 +317,9 @@ object DayScreenBuilder {
     fun lastTimeDisplay(last: LastPerformed?, sets: List<LoggedSet>, unit: WeightUnit): String? =
         if (sets.isNotEmpty()) SetFormatter.performed(sets, unit)
         else last?.let { SetFormatter.summaryOfValues(it.weightLb, it.reps, it.seconds, unit, spaced = true) }
+
+    fun lastTimeDate(millis: Long, zone: ZoneId): String =
+        java.time.format.DateTimeFormatter.ofPattern("MMM d", Locale.US).format(Instant.ofEpochMilli(millis).atZone(zone))
 
     /**
      * The "Best: …" chip's value (docs/briefs/performance-profile.md Phase 1)

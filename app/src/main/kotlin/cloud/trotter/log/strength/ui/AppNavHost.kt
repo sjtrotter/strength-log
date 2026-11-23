@@ -627,6 +627,7 @@ internal fun DayRoute(
         onStartTimedRep = viewModel::startTimedRep,
         onStopTimedRep = viewModel::stopTimedRep,
         onStartHold = viewModel::startHold,
+        onStartHoldPastTarget = viewModel::startHoldPastTarget,
         onStopHold = viewModel::stopHold,
         onRequestTimedRepCount = viewModel::requestTimedRepCount,
         onOpenTimedRepCount = viewModel::openTimedRepCount,

@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PlanGoal
+import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.ProgressMeasure
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.endValue
@@ -26,6 +27,9 @@ object Progression {
      *  (six months; design §3.2 Layoff). */
     const val NEW_LIFTER_LOG_DAYS = 182
 
+    /** A met hold's step at its cadence (#643); the seconds stepper's step, so targets stay on its grid. */
+    const val HOLD_STEP_SECONDS = 5
+
     /** [planned] is the run's opening view; actual rows identify it through plannedIndex. */
     data class Exposure(
         val planned: List<LoggedSet>,
@@ -43,6 +47,8 @@ object Progression {
         val todayEpochDay: Long,
         val light: Boolean = false,
         val baseCadence: Int = 1,
+        /** The exercise's [cloud.trotter.log.strength.domain.library.ExerciseEntry.holdCeilingSeconds]; null keeps a hold's seconds. */
+        val holdCeilingSeconds: Int? = null,
     )
 
     /** ceil(7 × strength entries ÷ (strength days a week × strength entries with the exercise per rotation)). */
@@ -110,8 +116,16 @@ object Progression {
         return pending.copy(weightLb = weight)
     }
 
-    /** After Finish: next time's working rows, the updated rule, and the one change with its reason. */
-    fun afterSession(rule: SlotRule, working: List<LoggedSet>, exposure: Exposure, ctx: Context): Outcome {
+    /** After Finish: next time's working rows, the updated rule, and the one change with its reason.
+     *  A reps-in-time main passes its [window] and takes [repsInTime] instead. */
+    fun afterSession(
+        rule: SlotRule,
+        working: List<LoggedSet>,
+        exposure: Exposure,
+        ctx: Context,
+        window: PrescribedTarget.RepsInTime? = null,
+    ): Outcome {
+        if (window != null) return repsInTime(rule, working, exposure, window, ctx)
         val work = WorkingRows.workSetIndices(exposure.planned)
         val done = work.mapNotNull { i -> exposure.actual.firstOrNull { it.plannedIndex == i && it.done }?.let { i to it } }
         if (done.isEmpty()) return Outcome(WorkingRows.cleared(working), rule, Change.Hold, Reason.NoSets)
@@ -169,7 +183,14 @@ object Progression {
             }
         }
         val workingSets = WorkingRows.workSetIndices(working).map { working[it] }
-        if (workingSets.any { it.seconds > 0 }) return result(Reason.Timed)
+        if (workingSets.any { it.seconds > 0 }) {
+            val ceiling = ctx.holdCeilingSeconds
+            return when {
+                ceiling == null || workingSets.any { it.weightLb > 0.0 } -> result(Reason.Timed)
+                exposure.layoff is LayoffKind.Scaled -> result(Reason.Layoff, rows = WorkingRows.cleared(working))
+                else -> held(current, base, exposure, done, work.size, ceiling, ctx)
+            }
+        }
         val judgment = when {
             lowerBlocked || done.any { (i, row) -> row.reps < exposure.planned[i].reps } -> Judgment.REP_MISS
             done.size < work.size || carried == null -> Judgment.INCOMPLETE
@@ -228,11 +249,7 @@ object Progression {
                 result(Reason.Incomplete)
             }
             Judgment.EFFORT_MISS -> {
-                val misses = current.state.effortMissStreak + 1
-                current = current.copy(
-                    everyExposures = if (misses >= 2) minOf(3, current.everyExposures + 1) else current.everyExposures,
-                    state = current.state.copy(successStreak = 0, repMissStreak = 0, effortMissStreak = if (misses >= 2) 0 else misses, pendingIncrease = false),
-                )
+                current = effortMissed(current)
                 result(Reason.EffortMiss)
             }
         }
@@ -460,13 +477,8 @@ object Progression {
         coarse: Boolean,
         ctx: Context,
     ): Outcome {
-        var current = rule.copy(state = rule.state.resetStreaks().copy(
-            successStreak = if (rule.state.pendingIncrease) 0 else rule.state.successStreak + 1,
-        ))
-        val increaseDue = rule.state.pendingIncrease || current.state.successStreak % current.everyExposures == 0
-        if (current.everyExposures > ctx.baseCadence && current.state.successStreak >= 4) {
-            current = current.copy(everyExposures = current.everyExposures - 1, state = current.state.copy(successStreak = 0))
-        }
+        val (cadenced, increaseDue) = cadence(rule, ctx)
+        var current = cadenced
         if (!increaseDue) return Outcome(base, current, Change.Hold, Reason.Streak)
         var rows = base
         var change: Change = Change.Hold
@@ -517,6 +529,33 @@ object Progression {
         return Outcome(rows, current, change, reason)
     }
 
+    /** A bodyweight training hold (#643). A logged hold at or past its planned seconds is one success, however far
+     *  past; at the cadence the target gains [HOLD_STEP_SECONDS], doubled when every hold was Easy, up to [ceiling].
+     *  Misses keep the target. */
+    private fun held(
+        rule: SlotRule,
+        base: List<LoggedSet>,
+        exposure: Exposure,
+        done: List<Pair<Int, LoggedSet>>,
+        plannedHolds: Int,
+        ceiling: Int,
+        ctx: Context,
+    ): Outcome {
+        val unmet = rule.copy(state = rule.state.copy(successStreak = 0, pendingIncrease = false))
+        if (done.any { (i, row) -> row.seconds < exposure.planned[i].seconds }) return Outcome(base, unmet, Change.Hold, Reason.RepMiss)
+        if (done.size < plannedHolds) return Outcome(base, unmet, Change.Hold, Reason.Incomplete)
+        val (current, increaseDue) = cadence(rule, ctx)
+        if (!increaseDue) return Outcome(base, current, Change.Hold, Reason.Streak)
+        val anchors = WorkingRows.workingIndices(base)
+        val target = anchors.firstOrNull()?.let { base[it].seconds } ?: return Outcome(base, current, Change.Hold, Reason.Streak)
+        if (target > ceiling) return Outcome(base, current, Change.Hold, Reason.Timed)
+        if (target == ceiling) return Outcome(base, current, Change.Hold, Reason.HoldCeiling)
+        val easy = done.all { Effort.of(it.second.rir) == Effort.EASY }
+        val next = minOf(ceiling, target + HOLD_STEP_SECONDS * if (easy) 2 else 1)
+        val rows = base.mapIndexed { i, row -> if (i in anchors) row.copy(seconds = next) else row }
+        return Outcome(rows, current, Change.SecondsTo(next), Reason.HoldStep)
+    }
+
     private enum class Judgment { SUCCESS, REP_MISS, INCOMPLETE, EFFORT_MISS }
 
     private fun usesLoadCalibration(rows: List<LoggedSet>): Boolean {
@@ -536,6 +575,70 @@ object Progression {
     private fun withReps(rows: List<LoggedSet>, reps: Int): List<LoggedSet> {
         val anchors = WorkingRows.workingIndices(rows).toSet()
         return rows.mapIndexed { i, row -> if (i in anchors) row.copy(reps = reps) else row }
+    }
+
+    /** A reps-in-time set's aim this time: the working rows' reps once they carry one, else the authored aim; null when
+     *  the prescription has no aim. */
+    fun repAim(window: PrescribedTarget.RepsInTime, rows: List<LoggedSet>?): Int? {
+        val authored = window.repAim ?: return null
+        val working = rows?.let { WorkingRows.workingIndices(it).firstOrNull()?.let { i -> it[i].reps } }
+        return working?.takeIf { it > 0 } ?: authored
+    }
+
+    /** The window stays fixed. The aim rises one rep when every window reaches it, including at Max, at the slot's
+     *  cadence; any miss repeats it. Without an aim the set only measures.
+     *  No rep ceiling, load, estimate or extra set (council 2026-11-23 Q2, #642). */
+    private fun repsInTime(
+        rule: SlotRule,
+        working: List<LoggedSet>,
+        exposure: Exposure,
+        window: PrescribedTarget.RepsInTime,
+        ctx: Context,
+    ): Outcome {
+        val work = WorkingRows.workSetIndices(exposure.planned)
+        val done = work.mapNotNull { i -> exposure.actual.firstOrNull { it.plannedIndex == i && it.done } }
+        val rows = WorkingRows.cleared(working)
+        if (done.isEmpty()) return Outcome(rows, rule, Change.Hold, Reason.NoSets)
+        val counted = rule.copy(state = rule.state.copy(exposures = rule.state.exposures + 1))
+        val aim = repAim(window, exposure.planned)
+            ?: return Outcome(withReps(rows, 0), counted, Change.Hold, Reason.Measured)
+        if (ctx.light) return Outcome(rows, counted, Change.LightCycle, Reason.LightCycle)
+        if (exposure.layoff != LayoffKind.None) return Outcome(rows, counted, Change.Hold, Reason.Layoff)
+        fun held(next: SlotRule, reason: Reason) = Outcome(rows, next, Change.Hold, reason)
+        return when {
+            done.any { it.reps < aim } -> held(counted.copy(state = counted.state.resetStreaks()), Reason.RepMiss)
+            done.size < work.size ->
+                held(counted.copy(state = counted.state.copy(successStreak = 0, pendingIncrease = false)), Reason.Incomplete)
+            else -> {
+                val (cadenced, increaseDue) = cadence(counted, ctx)
+                if (!increaseDue) held(cadenced, Reason.Streak)
+                else Outcome(withReps(rows, aim + 1), cadenced.copy(target = RepTarget.Fixed(aim + 1)),
+                    Change.RepsTo(aim + 1), Reason.AllMade)
+            }
+        }
+    }
+
+    /** One more success toward the slot's cadence: a pending shared increase starts a fresh streak, and a slowed cadence
+     *  speeds back up after four in a row. Returns the rule and whether an increase is due now. */
+    private fun cadence(rule: SlotRule, ctx: Context): Pair<SlotRule, Boolean> {
+        var current = rule.copy(state = rule.state.resetStreaks().copy(
+            successStreak = if (rule.state.pendingIncrease) 0 else rule.state.successStreak + 1,
+        ))
+        val increaseDue = rule.state.pendingIncrease || current.state.successStreak % current.everyExposures == 0
+        if (current.everyExposures > ctx.baseCadence && current.state.successStreak >= 4) {
+            current = current.copy(everyExposures = current.everyExposures - 1, state = current.state.copy(successStreak = 0))
+        }
+        return current to increaseDue
+    }
+
+    /** Two effort misses in a row slow the cadence by one exposure, to three at most. */
+    private fun effortMissed(rule: SlotRule): SlotRule {
+        val misses = rule.state.effortMissStreak + 1
+        return rule.copy(
+            everyExposures = if (misses >= 2) minOf(3, rule.everyExposures + 1) else rule.everyExposures,
+            state = rule.state.copy(successStreak = 0, repMissStreak = 0, effortMissStreak = if (misses >= 2) 0 else misses,
+                pendingIncrease = false),
+        )
     }
 
     /** Easy is read as exactly 4 left so Epley preserves the slot's target RIR, subject to the one-step floor. */

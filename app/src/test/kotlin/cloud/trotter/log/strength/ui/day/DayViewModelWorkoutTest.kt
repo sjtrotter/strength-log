@@ -337,6 +337,7 @@ class DayViewModelWorkoutTest {
                 workout.focus == WorkoutFocus(id, Slot.MAIN, 2) && workout.review == null
             } == true
         })
+        // #643: The timed partner offers optional effort; only the lift requires a rating.
         assertEquals(WorkoutReview(id, 1, listOf(Slot.MAIN, Slot.SS), listOf(Slot.MAIN)), vm.uiState.value.workout?.review)
         vm.setEffort(id, Slot.MAIN, 1, Effort.GOOD)
         runCurrent()
@@ -467,6 +468,7 @@ class DayViewModelWorkoutTest {
             }
             vm.logFocusedSet()
             runCurrent()
+            // #643: Logged holds keep an optional effort card; ramps still move on.
             if (timed) {
                 val review = requireNotNull(vm.uiState.value.workout?.review)
                 assertEquals(listOf(Slot.MAIN), review.effortSlots)

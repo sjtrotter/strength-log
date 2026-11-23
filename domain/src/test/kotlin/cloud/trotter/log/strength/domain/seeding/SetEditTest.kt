@@ -36,6 +36,7 @@ class SetEditTest {
         val rated = requireNotNull(SetEditor.effort(rows, 1, Effort.HARD))
         assertEquals(rows.mapIndexed { i, set -> if (i == 1) set.copy(rir = 1) else set }, rated)
         assertEquals(rows, SetEditor.effort(rated, 1, null))
+        // #643: A completed hold accepts optional effort, so index 3 is no longer a refusal case.
         for (index in listOf(-1, 0, 2, 9)) assertNull(SetEditor.effort(rows, index, Effort.HARD))
         assertNull(SetEditor.effort(rated, 1, Effort.HARD))
         assertNull(SetEditor.effort(rows, 1, null))

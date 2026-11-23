@@ -2120,7 +2120,7 @@ class DayViewModel @Inject constructor(
                 val record = settings.workoutRecordFlow.first()?.takeIf { it.runId == runId }
                     ?: WorkoutRecord(runId, selectedPage.value)
                 // The target stays inert until Room commits the completed row.
-                settings.setWorkoutRecord(record.copy(review = ReviewTarget(programExerciseId, index, loggedAt)))
+                settings.setWorkoutRecord(record.copy(review = ReviewTarget(programExerciseId, index, hold?.endedAtMillis ?: loggedAt)))
             }
         }
         val result = repo.applyToRun(runId, planId, day, slots.map { slot ->
@@ -2183,10 +2183,10 @@ class DayViewModel @Inject constructor(
                 }
             }
             if (recordLog) {
-                val candidate = ReviewTarget(programExerciseId, index, loggedAt)
+                val candidate = ReviewTarget(programExerciseId, index, logged.completedAtMillis ?: loggedAt)
                 val review = candidate.takeIf {
                     workoutReview(projected.exercises, latest, WorkoutRecord(runId, selection, review = it))
-                        ?.unrated?.isNotEmpty() == true
+                        ?.effortSlots?.isNotEmpty() == true
                 }
                 settings.setWorkoutRecord(WorkoutRecord(runId, selection, UndoTarget(
                     programExerciseId, slot, index, SetDto.of(row), SetDto.of(logged), logged.completedAtMillis ?: loggedAt,

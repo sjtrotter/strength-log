@@ -734,6 +734,26 @@ class DayViewModelHoldTimerTest {
         assertTrue(row().done)
     }
 
+    @Test fun `a hold stopped between whole seconds keeps its optional review`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val start = clock.wall
+        vm.startHold()
+        runCurrent()
+        tick(20_999)
+        vm.stopHold()
+        runCurrent()
+        assertTrue(row().done)
+        assertEquals(20, row().seconds)
+        assertEquals(start + 20_000, row().completedAtMillis)
+        val target = requireNotNull(settings.workoutRecordFlow.first()?.review)
+        assertEquals(row().completedAtMillis, target.loggedAtMillis)
+        val review = requireNotNull(vm.uiState.value.workout?.review)
+        assertEquals(WorkoutReview(target.programExerciseId, 0, listOf(Slot.MAIN), emptyList()), review)
+    }
+
     @Test fun `hold effort writes and clears rir without changing the held seconds`() = test {
         prepare()
         val handle = SavedStateHandle()

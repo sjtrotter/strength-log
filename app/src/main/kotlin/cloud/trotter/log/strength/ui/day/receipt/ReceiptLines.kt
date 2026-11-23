@@ -89,6 +89,14 @@ object ReceiptLines {
         return resources.getString(R.string.receipt_follower_line, follower.dayId, value)
     }
 
+    fun spokenFollower(follower: ReceiptFollower, unit: WeightUnit, resources: Resources): String {
+        val unitWord = resources.getString(if (unit == WeightUnit.LB) R.string.receipt_say_pounds else R.string.receipt_say_kilograms)
+        val weight = WeightStepper.format(unit.fromLb(follower.weightLb)) + " " + unitWord
+        val delta = follower.delta ?: return resources.getString(R.string.receipt_say_follower, follower.dayId, weight)
+        return resources.getString(if (delta > 0) R.string.receipt_say_follower_up else R.string.receipt_say_follower_down,
+            follower.dayId, weight, WeightStepper.format(abs(delta)) + " " + unitWord)
+    }
+
     fun spoken(line: ReceiptLiftLine, unit: WeightUnit, resources: Resources): String {
         val unitWord = resources.getString(if (unit == WeightUnit.LB) R.string.receipt_say_pounds else R.string.receipt_say_kilograms)
         val value = when {
@@ -109,6 +117,7 @@ object ReceiptLines {
     }
 
     fun why(name: String, line: ReceiptLiftLine, unit: WeightUnit, resources: Resources): String? {
+        if (line.reason == "FOLLOWED" && line.followsDay == null) return label(line, unit, resources)
         if (ReasonCode.decode(line.reason) == null) return null
         val repChange = line.reps != null && line.hasOffer
         val key = when (line.reason) {

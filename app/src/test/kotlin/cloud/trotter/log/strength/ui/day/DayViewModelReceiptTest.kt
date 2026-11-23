@@ -2016,4 +2016,54 @@ class DayViewModelReceiptTest {
         assertNull(vm.uiState.value.exercises.single().follows)
     }
 
+    @Test fun `the source receipt hides reverted followers until Rough day is unticked`() = runVmTest {
+        val (plan, bench) = automaticBench()
+        repo.addDay(plan, "Day B")
+        assertEquals("C", repo.addDay(plan, "Day C"))
+        repo.addExercise("C", ProgramExercise("bb_bench", targetSets = 3,
+            prescription = Prescription(PrescribedTarget.LoadReps(170.0, 5))), plan)
+        val follower = db.programDao().exercisesForDay(plan, "C").single()
+        val rule = requireNotNull(SlotRuleJson.decode(follower.ruleJson)).copy(rir = 3, state = SlotState(calibrating = false))
+        db.programDao().setRule(follower.id, SlotRuleJson.encode(rule))
+        db.storeTestRows("C", follower.id, Slot.MAIN, List(3) { LoggedSet(170.0, 5, SetKind.WORK) })
+        repo.editRule(follower.id, Slot.MAIN, RuleEdit.LoadSource("A"))
+        val vm = newCollectingViewModel()
+        advanceUntilIdle()
+        doneBench(plan, bench)
+        advanceUntilIdle()
+        vm.completeDay()
+        advanceUntilIdle()
+        val receipt = requireNotNull(vm.finisher.receipt.value)
+        assertEquals(listOf(FollowedWrite("C", 170.0, 175.0)), repo.followedWrites(receipt.sessionId)[bench])
+        assertEquals(listOf(ReceiptFollower("C", 175.0, 5.0)), vm.finisher.progressState.value.lifts.single().followers)
+        vm.finisher.setRoughDay(true)
+        advanceUntilIdle()
+        assertTrue(vm.finisher.progressState.value.rough)
+        assertTrue(vm.finisher.progressState.value.lifts.single().followers.isEmpty())
+        vm.finisher.setRoughDay(false)
+        advanceUntilIdle()
+        assertFalse(vm.finisher.progressState.value.rough)
+        assertEquals(listOf(ReceiptFollower("C", 175.0, 5.0)), vm.finisher.progressState.value.lifts.single().followers)
+    }
+
+    @Test fun `the editor and lift card use catalog tracking for load source links`() = runVmTest {
+        val plan = repo.plans.createAuthoredPlan("Mine", "Day A")
+        repo.plans.publishCreatedAuthoredPlan(plan)
+        val c = repo.addDay(plan, "Day C")
+        for (day in listOf("A", c)) repo.addExercise(day, ProgramExercise("pushup", targetSets = 3,
+            prescription = Prescription(PrescribedTarget.LoadReps(170.0, 5))), plan)
+        val follower = db.programDao().exercisesForDay(plan, c).single()
+        val rule = requireNotNull(SlotRuleJson.decode(follower.ruleJson)).copy(rir = 3, state = SlotState(calibrating = false))
+        db.programDao().setRule(follower.id, SlotRuleJson.encode(rule.copy(loadSource = LoadSource("A", 1.0))))
+        val vm = newCollectingViewModel()
+        vm.viewModelScope.launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        vm.selectDay(c)
+        advanceUntilIdle()
+        assertTrue(repo.observeLoadSourceDays(plan).first().getValue(follower.id).isEmpty())
+        assertTrue(vm.dayEditState.value.slots.single().lifts.single().sourceDays.isEmpty())
+        assertNull(vm.dayEditState.value.slots.single().follows)
+        assertNull(vm.uiState.value.exercises.single().follows)
+    }
+
 }

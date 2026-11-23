@@ -1328,9 +1328,9 @@ class ReceiptScreenTest {
         val progress = ReceiptProgressState(lifts = listOf(ReceiptLiftProgress(ReceiptSlotRef(0, 0, 7, "main"),
             "Squat", line, whyLine = line, followers = listOf(ReceiptFollower("C", 175.0, 5.0), ReceiptFollower("E", 165.0, null)))))
         rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}, progress = progress) } }
-        rule.onNodeWithText("Next time: 190 lb (+5)", useUnmergedTree = true).assertIsDisplayed()
-        rule.onNodeWithText("Day C: 175 lb (+5)", useUnmergedTree = true).assertIsDisplayed()
-        rule.onNodeWithText("Day E: 165 lb", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithContentDescription("Next time, 190 pounds, up 5 pounds.", substring = true).assertIsDisplayed() // #647: read the merged row.
+        rule.onNodeWithContentDescription("Day C, 175 pounds, up 5 pounds.", substring = true).assertIsDisplayed() // #647: TalkBack hears the move.
+        rule.onNodeWithContentDescription("Day E, 165 pounds.", substring = true).assertIsDisplayed() // #647: TalkBack hears each follower.
     }
 
 }

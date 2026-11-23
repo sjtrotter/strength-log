@@ -2,6 +2,9 @@ package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.serialization.ProgressionUndoJson
+import cloud.trotter.log.strength.data.serialization.OpeningDto
+import cloud.trotter.log.strength.data.serialization.OpeningJson
+import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.SessionPlanJson
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
@@ -293,13 +296,15 @@ class LoadSourceFinishTest : FinishProgressionFixture() {
         val (plan, _, c) = linked()
         repo.editRule(c, Slot.MAIN, RuleEdit.LoadSource(null))
         lifter(plan, c, work(w = 800.0), rule().copy(rir = 3), "C")
-        assertEquals(RuleEditResult.RatioOutOfRange, repo.editRule(c, Slot.MAIN, RuleEdit.LoadSource("A")))
+        val before = rule(c)
+        repo.editRule(c, Slot.MAIN, RuleEdit.LoadSource("A")) // #647: refusal has no result type.
+        assertEquals(before, rule(c))
         assertNull(rule(c).loadSource)
         assertEquals(work(w = 800.0), rows(plan, c, "C"))
         assertTrue(repo.observeLoadSourceDays(plan).first().getValue(c).isEmpty())
         lifter(plan, c, work(w = 740.0), rule().copy(rir = 3), "C")
         assertEquals(listOf("A"), repo.observeLoadSourceDays(plan).first().getValue(c))
-        assertEquals(RuleEditResult.Applied, repo.editRule(c, Slot.MAIN, RuleEdit.LoadSource("A")))
+        repo.editRule(c, Slot.MAIN, RuleEdit.LoadSource("A")) // #647: the stored rule proves acceptance.
         assertEquals(LoadSource("A", 4.0), rule(c).loadSource)
     }
 
@@ -336,6 +341,34 @@ class LoadSourceFinishTest : FinishProgressionFixture() {
         assertEquals(link, rule(follower).loadSource)
         assertEquals(1, rule(follower).state.repMissStreak)
         assertTrue(repo.followedWrites(session).isEmpty())
+    }
+
+    @Test fun `followed writes track Rough day while preserving restart exclusions`() = runTest {
+        for (opening in listOf(OpeningDto(OpeningDto.SCALED, 0.85), OpeningDto(OpeningDto.RECALIBRATE))) {
+            val (plan, a, c) = linked()
+            val bench = add(plan, "bb_bench")
+            val benchFollower = add(plan, "bb_bench", "C")
+            lifter(plan, bench)
+            lifter(plan, benchFollower, work(w = 170.0), rule().copy(rir = 3), "C")
+            repo.editRule(benchFollower, Slot.MAIN, RuleEdit.LoadSource("A"))
+            val run = start(plan)
+            val track = db.runDao().tracks(run).single { it.programExerciseId == a }
+            db.runDao().updateTrack(track.copy(plannedJson = SetJson.encodeSets(work(w = 155.0)),
+                openingJson = OpeningJson.encode(opening)))
+            perform(run, plan, a, 155.0, listOf(5, 5, 4))
+            perform(run, plan, bench, 185.0)
+            val session = requireNotNull(repo.finishRun(run))
+            val applied = repo.followedWrites(session)
+            assertEquals(setOf(a, bench), applied.keys)
+            val restartRows = rows(plan, c, "C")
+            assertEquals(UndoResult.Undone, repo.setRoughDay(session, true))
+            assertEquals(mapOf(a to applied.getValue(a)), repo.followedWrites(session))
+            assertEquals(restartRows, rows(plan, c, "C"))
+            assertEquals(work(w = 170.0), rows(plan, benchFollower, "C"))
+            assertEquals(UndoResult.Undone, repo.setRoughDay(session, false))
+            assertEquals(applied, repo.followedWrites(session))
+            assertEquals(work(w = 175.0), rows(plan, benchFollower, "C"))
+        }
     }
 
 }

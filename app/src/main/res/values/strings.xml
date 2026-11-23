@@ -972,6 +972,9 @@
     <string name="receipt_say_next_time_offered_up">Next time, %1$s offered, up %2$s.</string>
     <string name="receipt_say_next_time_offered_down">Next time, %1$s offered, down %2$s.</string>
     <string name="receipt_say_next_time_same">Next time, %1$s.</string>
+    <string name="receipt_say_follower">Day %1$s, %2$s.</string>
+    <string name="receipt_say_follower_up">Day %1$s, %2$s, up %3$s.</string>
+    <string name="receipt_say_follower_down">Day %1$s, %2$s, down %3$s.</string>
     <string name="receipt_why_next_time">next time</string>
     <string name="receipt_why_offered">offered</string>
     <string name="receipt_why_all_made">%1$s %2$s %5$s (%3$s): all sets made.</string>

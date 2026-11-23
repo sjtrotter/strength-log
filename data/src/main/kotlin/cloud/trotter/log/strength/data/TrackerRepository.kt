@@ -791,24 +791,18 @@ class TrackerRepository(
         }.toMap()
     }
 
-    /** New sources use stored loads, falling back to authored loads, just as editRule does. */
     fun observeLoadSourceDays(planId: Long): Flow<Map<Long, List<String>>> = combine(
         programDao.observeDays(planId), programDao.observeExercises(planId), programDao.observeLogsForPlan(planId),
         catalog.catalogFlow,
     ) { days, slots, logs, catalog ->
         val program = assemble(days, slots)
-        val loads = logs.filter { it.slot == Slot.MAIN }.associate { log ->
-            log.programExerciseId to runCatching { SetJson.decodeSets(log.setsJson) }.getOrNull()
-                ?.let(WorkingRows::workingWeight)?.takeIf { it > 0.0 }
-        }
-        fun load(slot: ProgramExerciseEntity): Double? = loads[slot.id]
-            ?: (PrescriptionJson.decode(slot.prescriptionJson)?.target as? PrescribedTarget.LoadReps)?.lb?.takeIf { it > 0.0 }
+        val mainLogs = logs.filter { it.slot == Slot.MAIN }.associateBy { it.programExerciseId }
         slots.associate { slot ->
-            val tracking = trackingOf(catalog, slot.exerciseId)
+            val tracking = catalog.loadSourceTracking(slot.exerciseId)
             slot.id to LoadFollowing.eligibleSources(program, slot.dayId, slot.toDomain(), tracking).filter { day ->
                 val source = sourceSlot(slots, day, slot.exerciseId, tracking) ?: return@filter false
                 LoadFollowing.ratio(requireNotNull(slot.toDomain().rule), requireNotNull(source.toDomain().rule),
-                    load(slot), load(source)) != null
+                    loadOf(mainLogs[slot.id], slot), loadOf(mainLogs[source.id], source)) != null
             }
         }
     }
@@ -1932,18 +1926,18 @@ class TrackerRepository(
             .firstOrNull { LoadFollowing.linkable(it.toDomain(), tracking) }
 
     private suspend fun currentLoad(slot: ProgramExerciseEntity): Double? =
-        programDao.logForSlot(slot.planId, slot.dayId, slot.id, Slot.MAIN)
-            ?.let { runCatching { SetJson.decodeSets(it.setsJson) }.getOrNull() }?.let(WorkingRows::workingWeight)?.takeIf { it > 0.0 }
-            ?: (PrescriptionJson.decode(slot.prescriptionJson)?.target as? PrescribedTarget.LoadReps)?.lb?.takeIf { it > 0.0 }
+        loadOf(programDao.logForSlot(slot.planId, slot.dayId, slot.id, Slot.MAIN), slot)
 
-    private fun trackingOf(catalog: ExerciseCatalog, exerciseId: String): TrackingType =
-        catalog.find(exerciseId)?.tracking ?: TrackingType.WEIGHTED
+    private fun loadOf(log: ExerciseLogEntity?, slot: ProgramExerciseEntity): Double? =
+        log?.let { runCatching { SetJson.decodeSets(it.setsJson) }.getOrNull() }
+            ?.let(WorkingRows::workingWeight)?.takeIf { it > 0.0 }
+            ?: (PrescriptionJson.decode(slot.prescriptionJson)?.target as? PrescribedTarget.LoadReps)?.lb?.takeIf { it > 0.0 }
 
     private class FollowerWrite(val slot: ProgramExerciseEntity, val rows: List<LoggedSet>, val encodedRule: String)
 
     private suspend fun followerWrites(planSlots: List<ProgramExerciseEntity>, source: ProgramExerciseEntity, loadLb: Double,
                                        skip: Set<Long>, unit: WeightUnit, catalog: ExerciseCatalog, steps: LoadSteps): List<FollowerWrite> {
-        val tracking = trackingOf(catalog, source.exerciseId)
+        val tracking = catalog.loadSourceTracking(source.exerciseId)
         if (sourceSlot(planSlots, source.dayId, source.exerciseId, tracking)?.id != source.id) return emptyList()
         val program = assemble(programDao.daysForPlan(source.planId), planSlots)
         val equipment = catalog.find(source.exerciseId)?.equipment.orEmpty()
@@ -1967,7 +1961,7 @@ class TrackerRepository(
         val rule = SlotRuleJson.decode(programDao.exercise(slot.id)?.ruleJson) ?: return
         val link = rule.loadSource ?: return
         val planSlots = programDao.exercisesForPlan(slot.planId)
-        val tracking = trackingOf(catalog, slot.exerciseId)
+        val tracking = catalog.loadSourceTracking(slot.exerciseId)
         val program = assemble(programDao.daysForPlan(slot.planId), planSlots)
         if (LoadFollowing.followedDay(program, slot.dayId, slot.toDomain(), tracking) == null) return
         val source = sourceSlot(planSlots, link.dayId, slot.exerciseId, tracking) ?: return
@@ -1983,11 +1977,11 @@ class TrackerRepository(
         else -> null
     }
 
-    suspend fun editRule(programExerciseId: Long, slot: String, edit: RuleEdit): RuleEditResult = db.withTransaction {
+    suspend fun editRule(programExerciseId: Long, slot: String, edit: RuleEdit): Unit = db.withTransaction {
         require(slot == Slot.MAIN || slot == Slot.SS)
         if (edit is RuleEdit.LoadSource) require(slot == Slot.MAIN)
-        val row = programDao.exercise(programExerciseId) ?: return@withTransaction RuleEditResult.UnavailableSource
-        val rule = SlotRuleJson.decode(row.ruleJsonFor(slot)) ?: return@withTransaction RuleEditResult.UnavailableSource
+        val row = programDao.exercise(programExerciseId) ?: return@withTransaction
+        val rule = SlotRuleJson.decode(row.ruleJsonFor(slot)) ?: return@withTransaction
         val updated = when (edit) {
             is RuleEdit.NextTime -> {
                 val default = if (planDao.plan(row.planId)?.autoApply == true) NextTimeMode.AUTO else NextTimeMode.ASK
@@ -1995,16 +1989,16 @@ class TrackerRepository(
             }
             is RuleEdit.LoadSource -> rule.copy(loadSource = edit.dayId?.let { dayId ->
                 val catalog = this.catalog.snapshot()
-                val tracking = trackingOf(catalog, row.exerciseId)
+                val tracking = catalog.loadSourceTracking(row.exerciseId)
                 val planSlots = programDao.exercisesForPlan(row.planId)
                 val program = assemble(programDao.daysForPlan(row.planId), planSlots)
-                if (dayId !in LoadFollowing.eligibleSources(program, row.dayId, row.toDomain(), tracking)) return@withTransaction RuleEditResult.UnavailableSource
-                val source = sourceSlot(planSlots, dayId, row.exerciseId, tracking) ?: return@withTransaction RuleEditResult.UnavailableSource
-                val sourceRule = SlotRuleJson.decode(source.ruleJson) ?: return@withTransaction RuleEditResult.UnavailableSource
+                if (dayId !in LoadFollowing.eligibleSources(program, row.dayId, row.toDomain(), tracking)) return@withTransaction
+                val source = sourceSlot(planSlots, dayId, row.exerciseId, tracking) ?: return@withTransaction
+                val sourceRule = SlotRuleJson.decode(source.ruleJson) ?: return@withTransaction
                 val own = currentLoad(row)
                 val theirs = currentLoad(source)
                 val ratio = LoadFollowing.ratio(rule, sourceRule, own, theirs)
-                    ?: return@withTransaction RuleEditResult.RatioOutOfRange
+                    ?: return@withTransaction
                 LoadSource(dayId, ratio)
             })
             is RuleEdit.Rest -> rule.copy(restSeconds = edit.seconds)
@@ -2012,7 +2006,6 @@ class TrackerRepository(
             is RuleEdit.Increase -> rule.copy(incrementPct = edit.fraction)
         }
         setRuleFor(row.id, slot, SlotRuleJson.encode(updated))
-        RuleEditResult.Applied
     }
 
     private fun SlotRule.preservingSettings(old: SlotRule?): SlotRule = if (old == null) this else copy(
@@ -2477,7 +2470,7 @@ class TrackerRepository(
             val entry = catalog.find(track.exerciseId)
             val automatic = rule.automatic(planAutomatic)
             val sourceLoad = if (track.slot == Slot.MAIN) {
-                val tracking = trackingOf(catalog, slot.exerciseId)
+                val tracking = catalog.loadSourceTracking(slot.exerciseId)
                 val program = assemble(programDao.daysForPlan(day.planId), planSlots)
                 LoadFollowing.followedDay(program, slot.dayId, slot.toDomain(), tracking)?.let { sourceDay ->
                     sourceSlot(planSlots, sourceDay, slot.exerciseId, tracking)?.let { currentLoad(it) }
@@ -2840,11 +2833,15 @@ class TrackerRepository(
     suspend fun followedWrites(sessionId: Long): Map<Long, List<FollowedWrite>> {
         fun weight(json: String?): Double? =
             json?.let { runCatching { SetJson.decodeSets(it) }.getOrNull() }?.let(WorkingRows::workingWeight)
-        return ProgressionUndoJson.decode(sessionDao.sessionById(sessionId)?.progressionUndoJson)?.logs.orEmpty()
+        val session = sessionDao.sessionById(sessionId) ?: return emptyMap()
+        val planId = session.planId ?: return emptyMap()
+        return ProgressionUndoJson.decode(session.progressionUndoJson)?.logs.orEmpty()
             .mapNotNull { log ->
                 val source = log.sharedFrom?.takeIf { log.followed } ?: return@mapNotNull null
                 val day = log.dayId ?: return@mapNotNull null
                 val to = weight(log.afterSetsJson) ?: return@mapNotNull null
+                val current = programDao.logForSlot(planId, day, log.programExerciseId, log.slot)
+                if (weight(current?.setsJson) != to) return@mapNotNull null
                 source to FollowedWrite(day, weight(log.before?.setsJson), to)
             }.groupBy({ it.first }, { it.second })
     }

@@ -2721,7 +2721,7 @@ class DayViewModel @Inject constructor(
         val dayIndex = Program.accentIndex(dayId)
         val cards = performedDay.slots.map { slot ->
             buildCard(slot, ctx.unit, history, ctx.plan,
-                ctx.plan?.planSettings?.defaultsFor ?: LiftGoal.STRENGTH, program, dayId).copy(
+                ctx.plan?.planSettings?.defaultsFor ?: LiftGoal.STRENGTH, program, dayId, performedDay.catalog).copy(
                 weightSwap = DayScreenBuilder.weightSwapAffordance(slot.main.performed.entry, performedDay.catalog),
             )
         }
@@ -3173,6 +3173,7 @@ class DayViewModel @Inject constructor(
         liftGoal: LiftGoal,
         program: Program,
         dayId: String,
+        catalog: ExerciseCatalog,
     ): ExerciseCardState {
         val id = slot.slot.programExerciseId
         val performed = slot.main.performed
@@ -3246,7 +3247,7 @@ class DayViewModel @Inject constructor(
             lastTimeDisplay = DayScreenBuilder.lastTimeDisplay(lastPerformed, history.last.sets[performed.exerciseId].orEmpty(), unit),
             lastTimeDate = history.last.dates[performed.exerciseId]?.let { DayScreenBuilder.lastTimeDate(it, clock.zone) },
             lastTimeSource = history.last.sources[performed.exerciseId],
-            follows = LoadFollowing.followedDay(program, dayId, pe, tracking),
+            follows = LoadFollowing.followedDay(program, dayId, pe, catalog.loadSourceTracking(pe.exerciseId)),
             partnerSetLabels = DayScreenBuilder.kindLabels(partnerSets.orEmpty()),
             partnerHeaderTarget = partnerHeaderTarget,
             partnerLastTimeDisplay = DayScreenBuilder.lastTimeDisplay(partner?.exerciseId?.let(history.last.performed::get),

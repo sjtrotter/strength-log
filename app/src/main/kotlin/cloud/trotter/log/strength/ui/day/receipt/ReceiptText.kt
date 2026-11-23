@@ -116,7 +116,8 @@ private fun spokenRecords(mark: RecordMark): String {
 }
 
 @Composable
-internal fun spokenRow(row: ReceiptRow, unit: WeightUnit, nextTime: ReceiptLiftLine? = null, backoffLines: Set<Int> = emptySet()): String {
+internal fun spokenRow(row: ReceiptRow, unit: WeightUnit, nextTime: ReceiptLiftLine? = null,
+                       backoffLines: Set<Int> = emptySet(), followers: List<ReceiptFollower> = emptyList()): String {
     if (row.shape == ReceiptRow.Shape.SKIPPED) return stringResource(R.string.receipt_say_skipped, row.name)
     val work = when (row.shape) {
         ReceiptRow.Shape.TOP_SET -> row.lines.mapIndexed { index, line ->
@@ -152,7 +153,8 @@ internal fun spokenRow(row: ReceiptRow, unit: WeightUnit, nextTime: ReceiptLiftL
         else stringResource(R.string.receipt_say_record_up_from, spokenRecords(it), previous)
     }
     val next = nextTime?.let { ReceiptLines.spoken(it, unit, LocalContext.current.resources) }
-    return listOfNotNull("${row.name}.", work, record, next).joinToString(" ")
+    val followerLines = followers.map { ReceiptLines.spokenFollower(it, unit, LocalContext.current.resources) }
+    return (listOfNotNull("${row.name}.", work, record, next) + followerLines).joinToString(" ")
 }
 
 @Composable

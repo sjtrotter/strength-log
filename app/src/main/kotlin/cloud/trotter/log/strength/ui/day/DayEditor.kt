@@ -460,7 +460,7 @@ internal class DayEditor(
             val entry = catalog.find(pe.exerciseId)
             val partnerId = pe.superset?.exerciseId
             val tracking = pe.prescription?.tracking ?: entry?.tracking ?: TrackingType.WEIGHTED
-            val follows = LoadFollowing.followedDay(program, dayId, pe, tracking)
+            val follows = LoadFollowing.followedDay(program, dayId, pe, catalog.loadSourceTracking(pe.exerciseId))
             val candidates = sources[slot.programExerciseId].orEmpty() + listOfNotNull(follows)
             val sourceDays = program.strengthDays.map { it.id }.filter { it in candidates }
             DayEditSlotState(

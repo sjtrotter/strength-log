@@ -240,7 +240,7 @@ internal fun StrengthReceiptRow(
         SkippedReceiptRow(row.name, gutter)
         return
     }
-    ExpandableReceiptRow(rowKey, row.name, spokenRow(row, unit, nextTime, backoffLines), row.shape == ReceiptRow.Shape.STRAIGHT,
+    ExpandableReceiptRow(rowKey, row.name, spokenRow(row, unit, nextTime, backoffLines, followers), row.shape == ReceiptRow.Shape.STRAIGHT,
         dayIndex, row.record?.kind, gutter, values = {
             row.lines.forEachIndexed { lineIndex, line ->
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

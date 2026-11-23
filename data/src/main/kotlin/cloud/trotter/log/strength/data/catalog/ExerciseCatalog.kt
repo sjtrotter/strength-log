@@ -2,6 +2,8 @@ package cloud.trotter.log.strength.data.catalog
 
 import cloud.trotter.log.strength.domain.library.ExerciseEntry
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.library.tracking
 import cloud.trotter.log.strength.domain.model.MovementPattern
 
 /**
@@ -24,6 +26,8 @@ class ExerciseCatalog(customEntries: List<ExerciseEntry>) {
     private val byId: Map<String, ExerciseEntry> = entries.associateBy { it.id }
 
     fun find(id: String): ExerciseEntry? = byId[id]
+
+    fun loadSourceTracking(id: String): TrackingType = find(id)?.tracking ?: TrackingType.WEIGHTED
 
     fun get(id: String): ExerciseEntry =
         byId[id] ?: error("Unknown exercise id: $id")

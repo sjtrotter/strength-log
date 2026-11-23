@@ -162,6 +162,37 @@
     },
     {
       "expect": {
+        "text": "Effort"
+      }
+    },
+    {
+      "expect": {
+        "text": "Easy"
+      }
+    },
+    {
+      "expect": {
+        "text": "Good"
+      }
+    },
+    {
+      "expect": {
+        "text": "Hard"
+      }
+    },
+    {
+      "expect": {
+        "text": "Max"
+      }
+    },
+    {
+      "tap": {
+        "tag": "workout-action-filled",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
         "text": "✓ Set 1 · 25s"
       }
     },

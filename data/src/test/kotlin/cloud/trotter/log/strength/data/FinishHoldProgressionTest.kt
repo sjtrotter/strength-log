@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.Effort
+import cloud.trotter.log.strength.domain.progression.NextTimeMode
 import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.seeding.SetEditor
 import kotlin.test.assertEquals
@@ -60,6 +61,8 @@ class FinishHoldProgressionTest : FinishProgressionFixture() {
         val ask = converted(day("plank"))
         val id = id(ask, "plank")
         lifter(ask, id, holdRows(45), rule(SlotRole.CORE, 10))
+        // #643: converted replaces the selected authored plan's contents but retains its Automatic default.
+        repo.editRule(id, Slot.MAIN, RuleEdit.NextTime(NextTimeMode.ASK))
         finishHold(ask, id)
         assertEquals(holdRows(45), rows(ask, id))
         assertEquals(expected, offer(ask, "plank"))
@@ -83,6 +86,8 @@ class FinishHoldProgressionTest : FinishProgressionFixture() {
             val plan = if (ask) converted(day("plank")) else authored()
             val id = if (ask) id(plan, "plank") else add(plan, "plank")
             lifter(plan, id, holdRows(45), rule(SlotRole.CORE, 10))
+            // #643: converted retains the authored plan's Automatic default from the preceding iteration.
+            if (ask) repo.editRule(id, Slot.MAIN, RuleEdit.NextTime(NextTimeMode.ASK))
             val run = start(plan)
             hold(run, plan, id, listOf(45, 45, 45))
             repo.applyToRun(run, plan, "A", listOf(TrackEdit(id, Slot.MAIN) { rows ->

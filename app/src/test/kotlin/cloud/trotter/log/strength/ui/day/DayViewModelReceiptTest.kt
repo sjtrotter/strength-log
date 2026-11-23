@@ -1963,7 +1963,7 @@ class DayViewModelReceiptTest {
 
     @Test fun `the source receipt omits a held follower`() = runVmTest {
         val (plan, bench) = automaticBench()
-        val day = repo.addDay(plan, "Day B")
+        val day = requireNotNull(repo.addDay(plan, "Day B"))
         repo.addExercise(day, ProgramExercise("bb_bench", targetSets = 3,
             prescription = Prescription(PrescribedTarget.LoadReps(170.0, 5))), plan)
         val follower = db.programDao().exercisesForDay(plan, day).single()
@@ -1984,8 +1984,8 @@ class DayViewModelReceiptTest {
 
     @Test fun `the editor and lift card retain a live source past the rep bound`() = runVmTest {
         val (plan, _) = automaticBench()
-        val b = repo.addDay(plan, "Day B")
-        val c = repo.addDay(plan, "Day C")
+        val b = requireNotNull(repo.addDay(plan, "Day B"))
+        val c = requireNotNull(repo.addDay(plan, "Day C"))
         for (day in listOf(b, c)) repo.addExercise(day, ProgramExercise("bb_bench", targetSets = 3,
             prescription = Prescription(PrescribedTarget.LoadReps(170.0, 5))), plan)
         val follower = db.programDao().exercisesForDay(plan, c).single()
@@ -2049,7 +2049,7 @@ class DayViewModelReceiptTest {
     @Test fun `the editor and lift card use catalog tracking for load source links`() = runVmTest {
         val plan = repo.plans.createAuthoredPlan("Mine", "Day A")
         repo.plans.publishCreatedAuthoredPlan(plan)
-        val c = repo.addDay(plan, "Day C")
+        val c = requireNotNull(repo.addDay(plan, "Day C"))
         for (day in listOf("A", c)) repo.addExercise(day, ProgramExercise("pushup", targetSets = 3,
             prescription = Prescription(PrescribedTarget.LoadReps(170.0, 5))), plan)
         val follower = db.programDao().exercisesForDay(plan, c).single()

@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.domain.standards
 
+import cloud.trotter.log.strength.domain.model.SideResult
+import cloud.trotter.log.strength.domain.model.Sides
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
@@ -103,4 +105,15 @@ class SetFormatterTest {
         // read this as its logged rep count, not manufacture "0s".
         assertEquals("×45", SetFormatter.summaryOfValues(0.0, 45, 0, WeightUnit.LB))
     }
+
+    @Test fun `sides read left then right`() {
+        fun format(tracking: TrackingType, left: SideResult, right: SideResult) =
+            SetFormatter.sides(tracking, Sides(left, right), WeightUnit.LB)
+        assertEquals("L 40 s · R 52 s", format(TrackingType.TIMED, SideResult(0.0, 0, 40), SideResult(0.0, 0, 52)))
+        assertEquals("L 10 · R 8 reps", format(TrackingType.REPS, SideResult(0.0, 10, 0), SideResult(0.0, 8, 0)))
+        assertEquals("25 lb × L 10 · R 8", format(TrackingType.WEIGHTED, SideResult(25.0, 10, 0), SideResult(25.0, 8, 0)))
+        assertEquals("L 25 lb × 10 · R 30 lb × 8", format(TrackingType.WEIGHTED, SideResult(25.0, 10, 0), SideResult(30.0, 8, 0)))
+        assertEquals("L 40 s · R 52 s at 50 lb", format(TrackingType.TIMED, SideResult(50.0, 0, 40), SideResult(50.0, 0, 52)))
+    }
+
 }

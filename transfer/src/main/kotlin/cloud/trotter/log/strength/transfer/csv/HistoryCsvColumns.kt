@@ -9,6 +9,8 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
  * Aim, Hard, Status, Distance Source, Steps Completed, and Cardio Mode are
  * appended to preserve cardio prescriptions, results, and legacy summaries.
  * RIR, the reps left a strength set recorded, follows Cardio Mode; cardio rows leave it blank.
+ * Left and Right Weight, Reps and Seconds follow RIR for an each-side set; blank for other sets, cardio
+ * rows and imports (#644).
  * Workout Notes is always empty, and imports carry no plan.
  */
 val HISTORY_CSV_HEADER: List<String> = listOf(
@@ -38,6 +40,7 @@ val HISTORY_CSV_HEADER: List<String> = listOf(
     "Steps Completed",
     "Cardio Mode",
     "RIR",
+    "Left Weight", "Left Reps", "Left Seconds", "Right Weight", "Right Reps", "Right Seconds",
 )
 
 /** Fields read by the header-driven strength and cardio import paths. */

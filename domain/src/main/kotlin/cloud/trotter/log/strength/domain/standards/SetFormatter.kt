@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.domain.standards
 
+import cloud.trotter.log.strength.domain.model.Sides
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.units.SecondsStepper
@@ -36,6 +37,25 @@ object SetFormatter {
             TrackingType.WEIGHTED -> "$weight × $reps"
             TrackingType.REPS -> "$reps ${if (reps == 1) "rep" else "reps"}"
             TrackingType.TIMED -> "$seconds s" + if (weightLb > 0.0) " at $weight" else ""
+        }
+    }
+
+    fun sides(tracking: TrackingType, sides: Sides, unit: WeightUnit): String {
+        val left = sides.left
+        val right = sides.right
+        val sameLoad = left.weightLb == right.weightLb
+        return when (tracking) {
+            TrackingType.TIMED -> if (sameLoad) {
+                "L ${left.seconds} s · R ${right.seconds} s" + if (left.weightLb > 0.0) " at ${weight(left.weightLb, unit)}" else ""
+            } else {
+                "L ${display(tracking, left.weightLb, left.reps, left.seconds, unit)} · R ${display(tracking, right.weightLb, right.reps, right.seconds, unit)}"
+            }
+            TrackingType.REPS -> "L ${left.reps} · R ${right.reps} reps"
+            TrackingType.WEIGHTED -> if (sameLoad) {
+                "${weight(left.weightLb, unit)} × L ${left.reps} · R ${right.reps}"
+            } else {
+                "L ${weight(left.weightLb, unit)} × ${left.reps} · R ${weight(right.weightLb, unit)} × ${right.reps}"
+            }
         }
     }
 

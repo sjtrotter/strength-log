@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.data.mapping.carryingSidesFrom
+import cloud.trotter.log.strength.data.mapping.sides
 import androidx.room.withTransaction
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.db.dao.CustomExerciseDao
@@ -285,11 +287,14 @@ class HistoryRepository(
     )
 
     /**
-     * Corrects one archived set immediately. History edits only change recorded
-     * ACTUALs; they never retroactively fire or undo a GOAL cascade.
+     * Corrects one archived set immediately and returns the row as written. History edits only change recorded
+     * ACTUALs; they never retroactively fire or undo a GOAL cascade. Sides follow [carryingSidesFrom] (#644).
      */
-    suspend fun updateSessionSet(set: SessionSetEntity) {
-        require(sessionDao.updateSet(set) == 1) { "Unknown session set ${set.id}" }
+    suspend fun updateSessionSet(set: SessionSetEntity): SessionSetEntity = db.withTransaction {
+        val before = requireNotNull(sessionDao.setById(set.id)) { "Unknown session set ${set.id}" }
+        val written = set.carryingSidesFrom(before)
+        require(sessionDao.updateSet(written) == 1) { "Unknown session set ${set.id}" }
+        written
     }
 
     /** Deletes history only; in particular, the DataStore rotation pointer is untouched. */
@@ -477,6 +482,7 @@ class HistoryRepository(
         startedAtMillis = startedAtMillis,
         completedAtMillis = completedAtMillis,
         plannedIndex = plannedIndex,
+        sides = sides(),
     )
 
 }

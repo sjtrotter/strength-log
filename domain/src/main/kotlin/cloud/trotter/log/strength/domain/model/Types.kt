@@ -54,6 +54,8 @@ data class LoggedSet(
     val watchEditedAt: Long? = null,
     /** Reported reps in reserve; null = not reported, read as on target. */
     val rir: Int? = null,
+    /** Null is side unknown; the single values are the weaker side ([sidesAgree]). */
+    val sides: Sides? = null,
 )
 
 /** [rule] is the partner's own rule (`program_exercise.partnerRuleJson`); null until a partner path or conversion

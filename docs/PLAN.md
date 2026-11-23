@@ -257,8 +257,8 @@ strength day; the shipped cardio vectors stay pinned.
   itself. The lifter records the count.
 - **Timed holds (#628).** Start on a TIMED set runs a hold with the screen kept on: it counts up toward the target,
   buzzes once and logs the target when it gets there. Stop logs the whole seconds held; a Stop under one second
-  logs nothing. A set done each side runs one hold per side, each started with its own tap, and logs the shorter
-  side. Each side comes from the authored prescription, else the catalog entry. A hold in a superset still logs
+  logs nothing. A set done each side runs one hold per side, left first, each started with its own tap; it keeps both
+  sides and its value is the shorter side (#644). Each side comes from the authored prescription, else the catalog entry. A hold in a superset still logs
   with its round, and leaving the day drops a hold in progress.
 - **Reps in time (#642).** The window stays fixed. With a rep aim, the rows open at the aim; when every window reaches
   it for the full duration, including at Max, the aim rises one rep at the lift's cadence, and any miss repeats it.
@@ -429,6 +429,17 @@ Accepting or reverting an offer reaches the slots still holding what Finish copi
 other; there the log is evidence only, as decided 2026-10-19. The Lift sheet's and the Today preview's Last (#645)
 name the day, and the plan when it is another, that the newest session came from when that is not the day shown.
 For matching slots this supersedes design §19's "It never writes another slot's load."
+
+### A21. Each side keeps left and right (council 2026-11-21, #644)
+
+An each-side set stores left and right (load, reps, seconds) when they were measured or entered; its single value is
+the weaker side, field by field, so progression needs both sides to meet the target and never reads the better side
+or an average. A side at zero was not done. Sets logged as one value, and all history from before v33, are side
+unknown; nothing invents two results from one. An edit to a value both sides share moves both; an edit to a value
+they differ on drops the sides. Room v33, backup v33 and the CSV's six side columns carry them; the watch shows and
+sends the single value. A comparison against a published norm follows the protocol behind the norm: Springer 2007
+measured a leg the subject chose, so a unipedal stance comparison uses the leg the lifter names, not the weaker or
+the better side by default.
 
 ## Architecture
 

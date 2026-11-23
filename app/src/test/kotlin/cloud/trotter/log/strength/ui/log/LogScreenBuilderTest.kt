@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.data.mapping.withSides
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.Bodyweight
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -149,8 +150,18 @@ class LogScreenBuilderTest {
         val legacy = set("side_plank", "Side Plank", SetKind.WORK, 0.0, 0, seconds = 40)
         val split = legacy.withSides(Sides(SideResult(0.0, 0, 40), SideResult(0.0, 0, 52)))
         val rows = LogScreenBuilder.groupByExercise(listOf(split, legacy), WeightUnit.LB).single().sets
-        assertEquals("L 40 s · R 52 s", rows[0].weightRepsDisplay)
+        // #644: History uses compact notation per side, matching single values.
+        assertEquals("L 40s · R 52s", rows[0].weightRepsDisplay)
         assertEquals("40s", rows[1].weightRepsDisplay)
+    }
+
+    @Test fun `a hold with a side at zero still reads as a hold`() {
+        val hold = set("side_plank", "Side Plank", SetKind.WORK, 0.0, 0)
+            .withSides(Sides(SideResult(0.0, 0, 18), SideResult(0.0, 0, 0)))
+        val row = LogScreenBuilder.groupByExercise(listOf(hold), WeightUnit.LB).single().sets.single()
+        assertEquals(TrackingType.TIMED, row.tracking)
+        // #644: History uses compact notation per side, including zero seconds.
+        assertEquals("L 18s · R 0s", row.weightRepsDisplay)
     }
 
 }

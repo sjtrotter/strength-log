@@ -7,6 +7,7 @@ import cloud.trotter.log.strength.data.decodedCardioMode
 import cloud.trotter.log.strength.domain.model.CardioMode
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.units.ClockText
@@ -95,7 +96,7 @@ object LogScreenBuilder {
      * order. A superset's partner has its own `exerciseId`/name, so it lands in
      * its own group — this is "grouped by exercise", not by program slot.
      *
-     * Each row formats by its logged VALUE ([SetFormatter.summaryOfValues]),
+     * Each row formats by its logged VALUE ([SetFormatter.trackingOfSet]),
      * not by looking the exercise back up in the catalog: a `session_set` row
      * can predate a reclassification (the legacy reps→seconds fixup only
      * touches live `exercise_log` rows, never history), so a legacy plank
@@ -111,17 +112,17 @@ object LogScreenBuilder {
             SessionExerciseGroup(
                 exerciseName = group.first().exerciseName,
                 sets = group.mapIndexed { i, s ->
+                    val set = LoggedSet(s.weightLb, s.reps, SetKind.WORK, s.done, s.seconds, sides = s.sides())
                     SessionSetSummary(
                         kindLabel = labels[i],
-                        weightRepsDisplay = s.sides()?.let {
-                            SetFormatter.sides(SetFormatter.trackingOfValues(s.weightLb, s.reps, s.seconds), it, unit)
-                        } ?: SetFormatter.summaryOfValues(s.weightLb, s.reps, s.seconds, unit),
+                        weightRepsDisplay = SetFormatter.summary(set, unit),
                         id = s.id,
                         weightLb = s.weightLb,
                         reps = s.reps,
                         seconds = s.seconds,
                         done = s.done,
-                        tracking = SetFormatter.trackingOfValues(s.weightLb, s.reps, s.seconds),
+                        tracking = SetFormatter.trackingOfSet(set),
+                        sides = set.sides,
                     )
                 },
             )

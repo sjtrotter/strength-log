@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.ui.log
 
+import cloud.trotter.log.strength.ui.day.receipt.spokenSides
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -465,7 +466,7 @@ private fun SessionCard(
                     groups.forEach { group ->
                         if (item.editing) EditableExerciseGroupRow(
                             group, item.unit, onWeightChange, onRepsChange, onSecondsChange, onDoneChange,
-                        ) else ExerciseGroupRow(group)
+                        ) else ExerciseGroupRow(group, item.unit)
                     }
                     if (item.liftNotes.isNotEmpty()) {
                         Column(Modifier.padding(vertical = 4.dp)) {
@@ -574,15 +575,20 @@ private fun UndoDeletedSessionRow(dayIndex: Int, onUndo: () -> Unit) {
 }
 
 @Composable
-private fun ExerciseGroupRow(group: SessionExerciseGroup) {
+private fun ExerciseGroupRow(group: SessionExerciseGroup, unit: WeightUnit) {
     val separator = " \u00B7 "
     val summaries = group.sets.map {
         stringResource(R.string.log_set_summary, it.kindLabel, it.weightRepsDisplay)
     }
+    val spoken = group.sets.map {
+        val value = it.sides?.let { sides -> spokenSides(sides, it.tracking, unit) } ?: it.weightRepsDisplay
+        stringResource(R.string.log_set_summary, it.kindLabel, value)
+    }.joinToString(separator)
     Column(Modifier.padding(vertical = 4.dp)) {
         Text(group.exerciseName, color = TextPrimary, style = MaterialTheme.typography.labelLarge)
         Text(
             summaries.joinToString(separator),
+            modifier = Modifier.semantics { contentDescription = spoken },
             color = TextSecondary,
             style = SummaryLine,
         )

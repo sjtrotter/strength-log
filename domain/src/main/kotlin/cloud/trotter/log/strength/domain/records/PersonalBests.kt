@@ -21,7 +21,7 @@ object PersonalBests {
         set.done && set.kind != SetKind.RAMP && (set.weightLb > 0.0 || set.reps > 0 || set.seconds > 0)
 
     fun tracking(set: LoggedSet): TrackingType =
-        SetFormatter.trackingOfValues(set.weightLb, set.reps, set.seconds)
+        SetFormatter.trackingOfSet(set)
 
     /** Requires [a] and [b] to have the same value-derived tracking type. */
     fun compare(a: LoggedSet, b: LoggedSet): Int {

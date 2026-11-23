@@ -7,6 +7,8 @@ import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SideResult
+import cloud.trotter.log.strength.domain.model.Sides
 import cloud.trotter.log.strength.domain.standards.PhoneRest
 
 @Composable
@@ -35,6 +37,19 @@ internal fun workoutSetSingleFixture(): DayUiState {
     return DayUiState(hasProgram = true, viewDayId = "A", exercises = listOf(card), workout = WorkoutState(
         WorkoutSelection.Shown.Group("exercise:1", false), WorkoutFocus(1L, Slot.MAIN, 2), false, null, null,
     ))
+}
+
+internal fun workoutSetEachSideFixture(split: Boolean = false): DayUiState {
+    val base = workoutSetSingleFixture()
+    val card = base.exercises.single().copy(
+        title = "Skater Squat", exerciseId = "skater_squat", tracking = TrackingType.REPS,
+        equipment = listOf(Equipment.BODYWEIGHT), headerTarget = HeaderTarget.Prescribed("2 × 10", eachSide = true),
+        rows = List(2) { index -> SetRowState(index, "${index + 1}", false, 0.0, 10, false) }, focusIndex = 0,
+    )
+    val sides = if (split) Sides(SideResult(0.0, 10, 0), SideResult(0.0, 8, 0)) else null
+    return base.copy(runOpen = true, runId = "each-side-preview", exercises = listOf(card.copy(
+        rows = card.rows.map { if (it.index == 0 && sides != null) it.copy(reps = sides.reps, sides = sides) else it },
+    ))).withWorkoutSelection()
 }
 
 internal fun workoutSetLoggedFixture(rir: Int? = null, resting: Boolean = true): DayUiState {

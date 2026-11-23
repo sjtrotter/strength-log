@@ -161,4 +161,25 @@ class FinishHoldProgressionTest : FinishProgressionFixture() {
         assertEquals(listOf(45, 45, 45), repo.history.slotSessionsById(plan, "A").getValue(id to Slot.MAIN).planned.map { it.seconds })
         assertEquals(holdRows(50), rows(plan, id))
     }
+    @Test fun `case 50 the side not held makes the finished hold a miss`() = runTest {
+        val plan = authored()
+        val id = add(plan, "plank")
+        repo.setPrescription(id, Prescription(PrescribedTarget.Hold(30), eachSide = true))
+        lifter(plan, id, holdRows(30), rule(SlotRole.CORE, 10))
+        val run = start(plan)
+        val sides = Sides(SideResult(0.0, 0, 30), SideResult(0.0, 0, 0))
+        repo.applyToRun(run, plan, "A", listOf(TrackEdit(id, Slot.MAIN) { rows ->
+            rows.indices.fold(rows) { logged, index -> SetEditor.edit(logged, index, SetEdit(done = true, sides = sides)) }
+        }))
+        val session = assertNotNull(repo.finishRun(run))
+        assertEquals(cloud.trotter.log.strength.domain.library.TrackingType.TIMED,
+            cloud.trotter.log.strength.domain.standards.SetFormatter.trackingOfSet(
+                LoggedSet(0.0, 0, SetKind.WORK, true, sides = sides)))
+        assertEquals(List(3) { 0 }, repo.history.sessionSets(session).map { it.seconds })
+        assertEquals(List(3) { sides }, repo.history.sessionSets(session).map { it.sides() })
+        assertEquals("REP_MISS", repo.history.slotSessionsById(plan, "A").getValue(id to Slot.MAIN).reason)
+        assertEquals(holdRows(30), rows(plan, id))
+        assertNull(offer(plan, "plank"))
+    }
+
 }

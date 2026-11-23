@@ -2,6 +2,7 @@ package cloud.trotter.log.strength.ui.day
 
 import cloud.trotter.log.strength.domain.model.SideResult
 import cloud.trotter.log.strength.domain.model.Sides
+import cloud.trotter.log.strength.domain.model.sidesAgree
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.cardio.CardioBlocks
 import android.content.Context
@@ -355,7 +356,7 @@ class DayViewModelHoldTimerTest {
         assertEquals(1, alarm.buzzes)
     }
 
-    @Test fun `ending between sides logs side one and frees cardio Start`() = test {
+    @Test fun `ending between sides records the right side at zero and frees cardio Start`() = test {
         prepare(Prescription(PrescribedTarget.Hold(30), eachSide = true))
         val vm = readyVm()
         vm.startWorkout()
@@ -370,7 +371,9 @@ class DayViewModelHoldTimerTest {
         vm.stopHold()
         runCurrent()
         assertTrue(row().done)
-        assertEquals(30, row().seconds)
+        // #644: the side not held is 0 s.
+        assertEquals(0, row().seconds)
+        assertEquals(Sides(SideResult(0.0, 0, 30), SideResult(0.0, 0, 0)), row().sides)
         assertEquals(start, row().startedAtMillis)
         assertEquals(start + 30_000, row().completedAtMillis)
         assertNull(vm.uiState.value.hold)
@@ -383,7 +386,7 @@ class DayViewModelHoldTimerTest {
         assertNotNull(vm.uiState.value.cardio?.run)
     }
 
-    @Test fun `ending between sides after Stop logs the whole seconds held`() = test {
+    @Test fun `ending between sides after Stop keeps the left side's whole seconds`() = test {
         prepare(Prescription(PrescribedTarget.Hold(30), eachSide = true))
         val vm = readyVm()
         vm.startWorkout()
@@ -400,12 +403,48 @@ class DayViewModelHoldTimerTest {
         vm.stopHold()
         runCurrent()
         assertTrue(row().done)
-        assertEquals(18, row().seconds)
+        // #644: the side not held is 0 s.
+        assertEquals(0, row().seconds)
+        assertEquals(Sides(SideResult(0.0, 0, 18), SideResult(0.0, 0, 0)), row().sides)
         assertEquals(start + 18_000, row().completedAtMillis)
         assertNull(vm.uiState.value.hold)
         assertNotNull(vm.uiState.value.workout?.undo)
         assertTrue(vm.uiState.value.cardioStartEnabled)
         assertEquals(0, alarm.buzzes)
+    }
+
+    @Test fun `case 50 stopping the right side before a second keeps the left and records zero`() = test {
+        prepare(Prescription(PrescribedTarget.Hold(30), eachSide = true))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val start = clock.wall
+        vm.startHold()
+        runCurrent()
+        tick(18_400)
+        vm.stopHold()
+        runCurrent()
+        vm.startHold()
+        runCurrent()
+        clock.advance(400)
+        vm.stopHold()
+        runCurrent()
+        assertTrue(row().done)
+        assertEquals(0, row().seconds)
+        assertEquals(Sides(SideResult(0.0, 0, 18), SideResult(0.0, 0, 0)), row().sides)
+        assertTrue(row().sidesAgree)
+        assertEquals(start, row().startedAtMillis)
+        assertEquals(start + 18_400, row().completedAtMillis)
+        assertEquals(row(), vm.uiState.value.workout?.undo?.set)
+        assertNull(vm.uiState.value.hold)
+        assertNull(alarm.deadline)
+        assertEquals(0, alarm.buzzes)
+        assertEquals(1, rest.armed.size)
+        vm.undoLastLog()
+        runCurrent()
+        assertFalse(row().done)
+        assertEquals(30, row().seconds)
+        assertNull(row().sides)
     }
 
     @Test fun `a catalog each side entry runs two holds`() = test {
@@ -934,6 +973,29 @@ class DayViewModelHoldTimerTest {
         runCurrent()
         assertEquals(Effort.EASY.rir, row().rir)
         assertEquals(sides, row().sides)
+    }
+
+    @Test fun `case 50 ending between sides records the right side at zero`() = test {
+        prepare(Prescription(PrescribedTarget.Hold(30), eachSide = true))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.startHold()
+        runCurrent()
+        tick(18_400)
+        vm.stopHold()
+        runCurrent()
+        vm.stopHold()
+        runCurrent()
+        assertTrue(row().done)
+        assertEquals(0, row().seconds)
+        assertEquals(Sides(SideResult(0.0, 0, 18), SideResult(0.0, 0, 0)), row().sides)
+        assertEquals(row(), vm.uiState.value.workout?.undo?.set)
+        vm.undoLastLog()
+        runCurrent()
+        assertFalse(row().done)
+        assertEquals(30, row().seconds)
+        assertNull(row().sides)
     }
 
 }

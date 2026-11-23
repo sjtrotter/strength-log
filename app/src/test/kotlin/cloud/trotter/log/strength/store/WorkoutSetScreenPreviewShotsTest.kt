@@ -6,6 +6,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.click
@@ -43,6 +45,7 @@ import cloud.trotter.log.strength.ui.day.workoutSetNextLiftFixture
 import cloud.trotter.log.strength.ui.day.workoutSetLastSetFixture
 import cloud.trotter.log.strength.ui.day.workoutSetSupersetLoggedFixture
 import cloud.trotter.log.strength.ui.day.workoutSetSingleFixture
+import cloud.trotter.log.strength.ui.day.workoutSetEachSideFixture
 import cloud.trotter.log.strength.ui.day.workoutSetSupersetFixture
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -231,6 +234,34 @@ class WorkoutSetScreenPreviewShotsTest {
     @Test fun restOffLogged() = render("41-rest-off-logged.png", workoutSetLoggedFixture(resting = false))
 
     @Test fun lastSet() = render("42-last-set.png", workoutSetLastSetFixture())
+
+    @Test fun eachSideReady() = eachSideReady("p90-each-side-ready.png", 1f)
+
+    @Test fun eachSideReadyLargeFont() = eachSideReady("p90-each-side-ready-2x.png", 2f)
+
+    @Test @Config(qualifiers = "w360dp-h640dp-xxhdpi")
+    fun eachSideReadyShort() = eachSideReady("p91-each-side-ready-short.png", 1f)
+
+    @Test @Config(qualifiers = "w360dp-h640dp-xxhdpi")
+    fun eachSideReadyShortLargeFont() = eachSideReady("p91-each-side-ready-short-2x.png", 2f)
+
+    @Test fun eachSideHero() = eachSideHero("p92-each-side-hero.png", 1f)
+
+    @Test fun eachSideHeroLargeFont() = eachSideHero("p92-each-side-hero-2x.png", 2f)
+
+    private fun eachSideReady(name: String, scale: Float) = render(
+        name, workoutSetEachSideFixture(), fontScale = scale, verify = {
+            rule.onNodeWithTag("workout-left-and-right").assertExists()
+            rule.onNodeWithTag("workout-action-filled").assertIsDisplayed().assert(hasText("Log 10 reps"))
+        },
+    )
+
+    private fun eachSideHero(name: String, scale: Float) = render(
+        name, workoutSetEachSideFixture(split = true), fontScale = scale, verify = {
+            rule.onNodeWithText("L 10 · R 8 reps").assertIsDisplayed()
+            rule.onNodeWithTag("workout-action-filled").assertIsDisplayed().assert(hasText("Log L 10 · R 8 reps"))
+        },
+    )
 
     private fun assertNextSetVisibleDuringRest() {
         val restBounds = rule.onNodeWithTag("workout-rest").assertIsDisplayed().fetchSemanticsNode().boundsInRoot

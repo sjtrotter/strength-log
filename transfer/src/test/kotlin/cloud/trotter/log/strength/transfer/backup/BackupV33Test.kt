@@ -113,4 +113,12 @@ class BackupV33Test {
             assertTrue(error.message.orEmpty().contains("require schema v33"))
         }
     }
+    @Test fun `a schema version 33 document still decodes with sides after version 34`() {
+        val source = withLive(document(version = 33), payload)
+        val decoded = codec.decode(codec.encode(source))
+        assertEquals(33, decoded.schemaVersion)
+        assertEquals(sides.toDomain(), decoded.toSnapshot().sessionSets.single().sides())
+        assertEquals(row, SetJson.decodeSets(decoded.liveLogs.single().setsJson).single())
+    }
+
 }

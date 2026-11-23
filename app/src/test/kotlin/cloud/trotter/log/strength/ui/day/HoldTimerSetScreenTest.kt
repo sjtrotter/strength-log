@@ -257,4 +257,20 @@ class HoldTimerSetScreenTest {
         rule.onNodeWithText("4 left", substring = true).assertDoesNotExist()
     }
 
+    @Test fun `the logged snackbar speaks the side names and units`() {
+        val base = state()
+        val logged = LoggedSet(0.0, 0, SetKind.WORK, done = true, seconds = 40,
+            sides = Sides(SideResult(0.0, 0, 40), SideResult(0.0, 0, 52)))
+        val moved = base.copy(exercises = base.exercises.map { card -> card.copy(
+            rows = card.rows.map { it.copy(done = it.index == 0) }, focusIndex = 1,
+        ) }).withWorkoutSelection()
+        val current = moved.copy(workout = requireNotNull(moved.workout).copy(
+            undo = UndoOffer(1L, Slot.MAIN, 0, "Plank", logged, TrackingType.TIMED, base.unit),
+        ))
+        rule.setContent { AppTheme { WorkoutSetHost(current, workoutActions()) } }
+        rule.onNodeWithText("✓ Set 1 · L 40 s · R 52 s").assertIsDisplayed()
+        rule.onNodeWithContentDescription("✓ Set 1 · left 40 seconds, right 52 seconds").assertIsDisplayed()
+        rule.onNodeWithText("Undo").assertIsEnabled()
+    }
+
 }

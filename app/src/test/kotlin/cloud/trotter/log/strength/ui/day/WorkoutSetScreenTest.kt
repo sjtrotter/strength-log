@@ -69,6 +69,8 @@ import cloud.trotter.log.strength.domain.model.DistanceSource
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.SideResult
+import cloud.trotter.log.strength.domain.model.Sides
 import cloud.trotter.log.strength.domain.standards.SetFormatter
 import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -758,6 +760,37 @@ class WorkoutSetScreenTest {
         }
         rule.onNodeWithText("✓ Round 2 · ${summaries[0]} · ${summaries[1]}").assertIsDisplayed()
         rule.onNodeWithText("Undo").assertIsDisplayed().assertIsEnabled()
+    }
+
+    @Test fun `round snackbar shows and speaks MAIN sides when either slot logs last`() {
+        val base = workoutSetSupersetFixture()
+        val main = LoggedSet(80.0, 8, SetKind.WORK, done = true, completedAtMillis = 100L,
+            sides = Sides(SideResult(80.0, 10, 0), SideResult(80.0, 8, 0)))
+        val ss = LoggedSet(120.0, 10, SetKind.WORK, done = true, completedAtMillis = 100L)
+        val offer = UndoOffer(1L, Slot.MAIN, 1, "DB Bench Press", main, TrackingType.WEIGHTED, WeightUnit.LB, ss)
+        var current by mutableStateOf(base.copy(workout = base.workout?.copy(undo = offer)))
+        rule.setContent { AppTheme { WorkoutSetHost(current, workoutActions()) } }
+        fun assertRound() {
+            rule.onNodeWithText("✓ Round 2 · 80 lb × L 10 · R 8 · 120 × 10").assertIsDisplayed()
+            rule.onNodeWithContentDescription("✓ Round 2 · left 80 pounds for 10 reps, right 80 pounds for 8 reps · 120 × 10").assertExists()
+            rule.onNodeWithText("Undo").assertIsDisplayed().assertIsEnabled()
+        }
+        assertRound()
+        rule.runOnIdle { current = base.copy(workout = base.workout?.copy(
+            undo = offer.copy(slot = Slot.SS, set = ss, partnerSet = main))) }
+        assertRound()
+    }
+
+    @Test fun `round snackbar shows and speaks sides in both halves`() {
+        val base = workoutSetSupersetFixture()
+        val main = LoggedSet(80.0, 8, SetKind.WORK, done = true, completedAtMillis = 100L,
+            sides = Sides(SideResult(80.0, 10, 0), SideResult(80.0, 8, 0)))
+        val ss = LoggedSet(120.0, 9, SetKind.WORK, done = true, completedAtMillis = 100L,
+            sides = Sides(SideResult(120.0, 9, 0), SideResult(120.0, 10, 0)))
+        val offer = UndoOffer(1L, Slot.MAIN, 1, "DB Bench Press", main, TrackingType.WEIGHTED, WeightUnit.LB, ss)
+        show(base.copy(workout = base.workout?.copy(undo = offer)))
+        rule.onNodeWithText("✓ Round 2 · 80 lb × L 10 · R 8 · 120 lb × L 9 · R 10").assertIsDisplayed()
+        rule.onNodeWithContentDescription("✓ Round 2 · left 80 pounds for 10 reps, right 80 pounds for 8 reps · left 120 pounds for 9 reps, right 120 pounds for 10 reps").assertExists()
     }
 
     @Test fun supersetReadyShowsBothCardsAndOneRoundButton() {

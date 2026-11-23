@@ -1035,6 +1035,7 @@
     <string name="marker_light_week">Light week</string>
     <string name="marker_lighter_today">Lighter today</string>
     <string name="marker_after_break">After a break</string>
+    <string name="marker_benchmark">Benchmark</string>
     <string name="lift_sheet_marker">%1$s.</string>
     <string name="today_lighter">Lighter today</string>
     <string name="cardio_leg_at">%1$s at %2$s</string>

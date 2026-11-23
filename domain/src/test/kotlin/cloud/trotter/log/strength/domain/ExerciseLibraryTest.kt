@@ -94,11 +94,11 @@ class ExerciseLibraryTest {
     // --- Tracking types (catalog classification + variant pairs) ------------
 
     @Test
-    fun `catalog totals are 192 entries, 149 weighted, 33 reps, 10 timed`() {
+    fun `catalog totals are 194 entries, 149 weighted, 35 reps, 10 timed`() {
         val byType = ExerciseLibrary.entries.groupingBy { it.tracking }.eachCount()
-        assertEquals(192, ExerciseLibrary.entries.size)
+        assertEquals(194, ExerciseLibrary.entries.size) // #646: hand_release_pushup and situp
         assertEquals(149, byType[TrackingType.WEIGHTED] ?: 0)
-        assertEquals(33, byType[TrackingType.REPS] ?: 0)
+        assertEquals(35, byType[TrackingType.REPS] ?: 0) // #646: hand_release_pushup and situp
         assertEquals(10, byType[TrackingType.TIMED] ?: 0)
     }
 
@@ -111,6 +111,7 @@ class ExerciseLibraryTest {
             "body_saw", "hanging_raise", "decline_situp", "reverse_crunch", "v_up", "knee_raise",
             "bw_dip", "hanging_knee_raise",
             "pogo_hop", "a_skip", "bound", "box_jump", "sit_to_stand",
+            "hand_release_pushup", "situp", // #646: hand_release_pushup and situp are reps entries
         )
         val actual = ExerciseLibrary.entries.filter { it.tracking == TrackingType.REPS }.map { it.id }.toSet()
         assertEquals(expected, actual)
@@ -550,11 +551,11 @@ class ExerciseLibraryTest {
     )
 
     @Test
-    fun `no id churn - all 175 pre-existing ids are present, catalog grows to 192`() {
+    fun `no id churn - all 175 pre-existing ids are present, catalog grows to 194`() {
         assertEquals(175, preExistingRanks.size)
         val currentIds = ExerciseLibrary.entries.map { it.id }.toSet()
         assertTrue(preExistingRanks.keys.all { it in currentIds })
-        assertEquals(192, currentIds.size)
+        assertEquals(194, currentIds.size) // #646: hand_release_pushup and situp
     }
 
     @Test

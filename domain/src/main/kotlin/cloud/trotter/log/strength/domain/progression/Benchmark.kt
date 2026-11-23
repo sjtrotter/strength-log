@@ -18,6 +18,7 @@ object Benchmark {
         return newestEpochDay == null || todayEpochDay - newestEpochDay >= MIN_DAYS_BETWEEN
     }
 
+    /** A hold uses the event's ceiling, or the clock's limit when the event has none. */
     fun target(event: TestEvent, ref: TestRef): PrescribedTarget = when (event.setType) {
         TestSetType.REPS_IN_WINDOW -> PrescribedTarget.RepsInTime(requireNotNull(ref.windowSeconds))
         TestSetType.MAX_HOLD -> PrescribedTarget.Hold(event.ceilingSeconds ?: HoldClock.PAST_TARGET_LIMIT_SECONDS)

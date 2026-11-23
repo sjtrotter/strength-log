@@ -59,9 +59,9 @@ object TestEvents {
             id = "aft_hrp", version = 1, name = "AFT hand-release push-up", exerciseId = "hand_release_pushup",
             setType = TestSetType.REPS_IN_WINDOW, windowSeconds = 120,
             form = "From the front leaning rest, lower until the chest touches the ground, lift both hands clear of the ground and extend the arms out to the sides, return the hands and push up to full arm extension. The body stays in a straight line from head to ankles.",
-            faults = "A rep without the hands lifted and arms extended, a rep without full elbow extension at the top, or a body that bends or sags does not count. Rest only in the front leaning rest.",
-            rest = "Rest in the up position only; time keeps running.",
-            scoring = "AFT Scoring Scales effective 2025-06-01: points by age and sex from the count of correct reps in 2:00; point table not reproduced.",
+            faults = "A rep without the hands lifted and arms extended, a rep without full elbow extension at the top, or a body that bends or sags does not count.",
+            rest = "Time keeps running.",
+            scoring = "AFT Scoring Scales effective 2025-06-01: points from correct reps in 2:00 by age, and by sex outside the 21 combat MOSs; those MOSs use a sex-neutral, age-normed standard from 2026-01-01 for active duty; point table not reproduced.",
             sourceUrl = "https://www.army.mil/aft/", sourceDate = "2025-06-01",
         ),
         TestEvent(

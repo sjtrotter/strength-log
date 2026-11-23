@@ -70,6 +70,12 @@ data class ExerciseEntry(
     val eachSide: Boolean = false,
     /** The owner's set count and rest for this exercise wherever the planner places it outside a main slot. */
     val dose: Dose? = null,
+    /** A bodyweight hold's training ceiling in seconds: Finish adds time up to here and no further (#643).
+     *  Null keeps the hold's seconds as they are. */
+    val holdCeilingSeconds: Int? = null,
+    /** A large-muscle hold that raises blood pressure while held (Edwards 2023): it never runs past its target and
+     *  its clock shows a breathing cue (#643). */
+    val pressureCaution: Boolean = false,
 )
 
 data class Dose(val sets: Int, val restSeconds: Int)

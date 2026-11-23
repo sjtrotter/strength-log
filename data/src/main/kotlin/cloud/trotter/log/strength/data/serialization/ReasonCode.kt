@@ -20,6 +20,8 @@ object ReasonCode {
         Reason.Incomplete -> "INCOMPLETE"
         Reason.AddWeight -> "ADD_WEIGHT"
         Reason.Timed -> "TIMED"
+        Reason.HoldStep -> "HOLD_STEP"
+        Reason.HoldCeiling -> "HOLD_CEILING"
         Reason.Measured -> "MEASURED"
     }
 
@@ -40,6 +42,8 @@ object ReasonCode {
         "INCOMPLETE" -> Reason.Incomplete
         "ADD_WEIGHT" -> Reason.AddWeight
         "TIMED" -> Reason.Timed
+        "HOLD_STEP" -> Reason.HoldStep
+        "HOLD_CEILING" -> Reason.HoldCeiling
         "MEASURED" -> Reason.Measured
         else -> null
     }

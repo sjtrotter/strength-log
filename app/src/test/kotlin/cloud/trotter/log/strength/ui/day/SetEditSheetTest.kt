@@ -23,6 +23,7 @@ import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.Effort
+import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import org.junit.Assert.assertEquals
@@ -74,6 +75,22 @@ class SetEditSheetTest {
             rule.runOnIdle { row = candidate; card = base.copy(tracking = tracking) }
             for (effort in Effort.entries) rule.onNodeWithTag("set-edit-effort-${Slot.MAIN}-${effort.name}").assertDoesNotExist()
         }
+    }
+
+    @Test fun aLoggedHoldUsesEffortWordsEvenWhenLiftsUseRepsLeft() {
+        val card = workoutDayFixture().exercises[1].copy(tracking = TrackingType.TIMED, timedShowsWeight = false)
+        val row = card.rows[1].copy(done = true, kind = SetKind.WORK, reps = 0, seconds = 45, rir = 4)
+        var picked: List<Any?>? = null
+        rule.setContent { AppTheme {
+            SetEditSheet(card, row, WeightUnit.LB, 0, workoutActions().copy(
+                onSetEffort = { id, slot, index, effort -> picked = listOf(id, slot, index, effort) },
+            ), {}, effortScale = EffortScale.REPS_LEFT)
+        } }
+        for (effort in Effort.entries) rule.onNodeWithTag("set-edit-effort-${Slot.MAIN}-${effort.name}").assertExists()
+        rule.onNodeWithText("Reps left").assertDoesNotExist()
+        rule.onNodeWithTag("set-edit-effort-${Slot.MAIN}-4").assertDoesNotExist()
+        rule.onNodeWithTag("set-edit-effort-${Slot.MAIN}-EASY").performClick()
+        rule.runOnIdle { assertEquals(listOf(card.programExerciseId, Slot.MAIN, row.index, null), picked) }
     }
 
     @Test fun topSetWithBackoffExplainsBothFollowingWeights() {

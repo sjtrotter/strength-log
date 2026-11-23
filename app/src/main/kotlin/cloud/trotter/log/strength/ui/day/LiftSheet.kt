@@ -158,7 +158,7 @@ internal fun LiftSheet(
                         leadingContent = { Text(notation, modifier = Modifier.width(48.dp)) },
                         headlineContent = { Text(value, style = MaterialTheme.typography.titleLarge) },
                         supportingContent = when {
-                            rir != null -> { { SetEffortText(rir, effortScale) } }
+                            rir != null -> { { SetEffortText(rir, effortScale.forTracking(card.tracking(slot))) } }
                             current -> { { Text(stringResource(R.string.lift_sheet_now)) } }
                             else -> null
                         },

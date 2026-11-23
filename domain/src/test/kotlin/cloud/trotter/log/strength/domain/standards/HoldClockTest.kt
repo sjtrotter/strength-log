@@ -32,4 +32,13 @@ class HoldClockTest {
         assertEquals(30, HoldClock.loggedSeconds(listOf(30)))
         assertEquals(0, HoldClock.loggedSeconds(emptyList<Int>()))
     }
+    @Test fun `a hold past its target counts to the ten minute limit`() {
+        assertEquals(30, HoldClock.limitSeconds(30, false))
+        assertEquals(600, HoldClock.limitSeconds(30, true))
+        assertEquals(900, HoldClock.limitSeconds(900, true))
+        assertEquals(47, HoldClock.heldSeconds(47_400, 600))
+        assertEquals(600, HoldClock.heldSeconds(700_000, 600))
+        assertEquals(1f, HoldClock.fraction(47, 30))
+    }
+
 }

@@ -211,8 +211,8 @@ private fun workoutLoggedMessage(state: DayUiState, undo: UndoOffer, catalog: Ex
         stringResource(R.string.workout_lift_set_number, shortName, undo.index + 1)
     }
     val summary = SetFormatter.summary(undo.tracking, undo.set.weightLb, undo.set.reps, undo.set.seconds, undo.unit, spaced = true).trim()
-    val effort = undo.set.rir?.takeIf { showsEffort(undo.set.kind, undo.tracking) }?.let { rir ->
-        if (state.effortScale == EffortScale.REPS_LEFT) stringResource(R.string.effort_reps_left_value, rir)
+    val effort = undo.set.rir?.takeIf { showsEffort(undo.set.kind, undo.tracking, undo.set.seconds) }?.let { rir ->
+        if (state.effortScale.forTracking(undo.tracking) == EffortScale.REPS_LEFT) stringResource(R.string.effort_reps_left_value, rir)
         else effortWord(rir)?.let { stringResource(effortResource(it)) }
     }
     return if (effort == null) stringResource(R.string.workout_logged, label, summary)
@@ -387,7 +387,9 @@ private fun WorkoutSetContent(
                                         stringResource(R.string.workout_hold_end), actions.onStopHold), guardKey = guardKey)
                                 resting -> WorkoutActionSpec(stringResource(R.string.workout_end_rest), true, true, actions.onContinueWorkout)
                                 else -> WorkoutActionSpec(stringResource(R.string.day_cardio_start_button), false,
-                                    !state.executionBusy && state.timedRep == null, { actions.onStartHold(card.programExerciseId, index) })
+                                    !state.executionBusy && state.timedRep == null, { actions.onStartHold(card.programExerciseId, index) },
+                                    secondary = if (card.holdPressureCaution) null else WorkoutSecondaryAction.Text(
+                                        stringResource(R.string.workout_hold_past_target)) { actions.onStartHoldPastTarget(card.programExerciseId, index) })
                             }
                         }
                         values != null && card != null -> if (resting) WorkoutActionSpec(
@@ -500,7 +502,7 @@ private fun WorkoutTimedRepHero(card: ExerciseCardState, timed: TimedRepState?, 
 }
 
 @Composable
-private fun WorkoutHoldHero(hold: HoldState, maxFontSize: TextUnit) {
+private fun WorkoutHoldHero(hold: HoldState, breathingCue: Boolean, maxFontSize: TextUnit) {
     val event = hold.event
     WorkoutHeroText(formatCardioTime(hold.heldSeconds), maxFontSize = maxFontSize)
     Text(stringResource(R.string.workout_hold_held), style = MaterialTheme.typography.bodyMedium,
@@ -511,6 +513,8 @@ private fun WorkoutHoldHero(hold: HoldState, maxFontSize: TextUnit) {
     if (event.sides > 1) Text(stringResource(R.string.workout_hold_side, event.sideNumber, event.sides),
         style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+    if (breathingCue && event.running) Text(stringResource(R.string.workout_hold_keep_breathing),
+        style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
 }
 
 @Composable
@@ -933,7 +937,7 @@ private fun WorkoutSetCard(
                 }
                 val hero: @Composable () -> Unit = {
                     if (timed) WorkoutTimedRepHero(card, event, index, actions, if (compact) 56.sp else SetNumerals.fontSize)
-                    else if (hold != null) WorkoutHoldHero(hold, if (compact) 56.sp else SetNumerals.fontSize)
+                    else if (hold != null) WorkoutHoldHero(hold, card.holdPressureCaution, if (compact) 56.sp else SetNumerals.fontSize)
                     else {
                         WorkoutEditableHero(card, slot, index, actions) {
                             Crossfade(values to tracking,
@@ -964,7 +968,7 @@ private fun WorkoutSetCard(
                 }
             }
             if (logged && slot in effortSlots) {
-                SetEffortRow(values.rir, state.effortScale, { actions.onSetEffort(card.programExerciseId, slot, index, it) },
+                SetEffortRow(values.rir, state.effortScale.forTracking(tracking), { actions.onSetEffort(card.programExerciseId, slot, index, it) },
                     { actions.onSetRepsLeft(card.programExerciseId, slot, index, it) },
                     if (slot == Slot.SS) "workout-effort-ss" else "workout-effort",
                     if (slot in highlighted) accentEmphasis(state.dayIndex) else null)

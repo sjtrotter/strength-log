@@ -238,6 +238,8 @@ class DayViewModel @Inject constructor(
     // The timed-rep buzz rule: an alarm armed in this process owes this side one buzz.
     private var holdAlertAnchor: Long? = null
     private var holdLogging: HoldEvent? = null
+    /** The hold in progress, or reserved behind the start sheet, runs past its target (#643). */
+    private val holdPastTarget: Boolean get() = savedState.get<Boolean>(KEY_HOLD_PAST_TARGET) == true
 
     /** A timed-rep clock runs or a hold is in progress. One set timer at a time, and cardio waits for it. */
     private val setTimerBusy: Boolean get() = timedRepEvent.value?.awaitingCount == false || holdEvent.value != null
@@ -1666,6 +1668,7 @@ class DayViewModel @Inject constructor(
         savedState[KEY_PENDING_START] = null
         savedState[KEY_PENDING_START_TIMER] = null
         savedState[KEY_PENDING_START_HOLD] = null
+        if (holdEvent.value == null) savedState.remove<Boolean>(KEY_HOLD_PAST_TARGET)
     }
 
     fun confirmStart() {
@@ -1712,7 +1715,11 @@ class DayViewModel @Inject constructor(
             savedState[KEY_TIMED_REP_EVENT] = it
         }
 
-    fun startHold(programExerciseId: Long, setIndex: Int) {
+    fun startHold(programExerciseId: Long, setIndex: Int) = beginHold(programExerciseId, setIndex, pastTarget = false)
+
+    fun startHoldPastTarget(programExerciseId: Long, setIndex: Int) = beginHold(programExerciseId, setIndex, pastTarget = true)
+
+    private fun beginHold(programExerciseId: Long, setIndex: Int, pastTarget: Boolean) {
         val waiting = holdEvent.value
         if (waiting != null) {
             if (!waiting.running && !waiting.complete && waiting.programExerciseId == programExerciseId &&
@@ -1722,7 +1729,9 @@ class DayViewModel @Inject constructor(
             }
             return
         }
-        startSetTimer(programExerciseId, setIndex, { holdToStart(programExerciseId, setIndex) }, { it.dayId }) {
+        val caution = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }?.holdPressureCaution == true
+        startSetTimer(programExerciseId, setIndex, { holdToStart(programExerciseId, setIndex) }, { it.dayId },
+            onAccepted = { savedState[KEY_HOLD_PAST_TARGET] = pastTarget && !caution }) {
             savedState[KEY_HOLD] = it
         }
     }
@@ -1736,19 +1745,21 @@ class DayViewModel @Inject constructor(
             return
         }
         val elapsed = BootAnchor(event.wallStart, event.elapsedStart, event.bootCount).elapsedSince(cardioClock.clocks())
-        val held = HoldClock.heldSeconds(elapsed, event.targetSeconds)
+        val held = HoldClock.heldSeconds(elapsed, HoldClock.limitSeconds(event.targetSeconds, holdPastTarget))
         if (held < 1) clearHold() else endHoldSide(event, held, buzz = false)
     }
 
     /** Starts a set timer now when this day's workout is open, else reserves it behind the start sheet. */
     private fun <T : Any> startSetTimer(
-        programExerciseId: Long, setIndex: Int, build: () -> T?, dayOf: (T) -> String, save: (T) -> Unit,
+        programExerciseId: Long, setIndex: Int, build: () -> T?, dayOf: (T) -> String,
+        onAccepted: () -> Unit = {}, save: (T) -> Unit,
     ) {
         val event = build() ?: return
         val state = dayState.value
         val planId = state.planId ?: return
         if (!state.beforeStart && state.openRunElsewhere == null) {
             // Reserve synchronously, so a queued cardio Start cannot replace the alarm.
+            onAccepted()
             save(event)
             return
         }
@@ -1759,10 +1770,14 @@ class DayViewModel @Inject constructor(
                 reportOtherDay(RunWriteResult.Rejected, planId, dayOf(current))
             } else if (open == null || open.draft) {
                 if (pendingStart.value != null) return@mutate
+                onAccepted()
                 closeSheet()
                 savedState[KEY_PENDING_START] = PendingStartTick(dayOf(current), programExerciseId, Slot.MAIN, setIndex,
                     actionLog = false, timedRep = false, startTimer = true)
-            } else save(current)
+            } else {
+                onAccepted()
+                save(current)
+            }
         }
     }
 
@@ -2104,7 +2119,7 @@ class DayViewModel @Inject constructor(
                 val record = settings.workoutRecordFlow.first()?.takeIf { it.runId == runId }
                     ?: WorkoutRecord(runId, selectedPage.value)
                 // The target stays inert until Room commits the completed row.
-                settings.setWorkoutRecord(record.copy(review = ReviewTarget(programExerciseId, index, loggedAt)))
+                settings.setWorkoutRecord(record.copy(review = ReviewTarget(programExerciseId, index, hold?.endedAtMillis ?: loggedAt)))
             }
         }
         val result = repo.applyToRun(runId, planId, day, slots.map { slot ->
@@ -2167,10 +2182,10 @@ class DayViewModel @Inject constructor(
                 }
             }
             if (recordLog) {
-                val candidate = ReviewTarget(programExerciseId, index, loggedAt)
+                val candidate = ReviewTarget(programExerciseId, index, logged.completedAtMillis ?: loggedAt)
                 val review = candidate.takeIf {
                     workoutReview(projected.exercises, latest, WorkoutRecord(runId, selection, review = it))
-                        ?.unrated?.isNotEmpty() == true
+                        ?.effortSlots?.isNotEmpty() == true
                 }
                 settings.setWorkoutRecord(WorkoutRecord(runId, selection, UndoTarget(
                     programExerciseId, slot, index, SetDto.of(row), SetDto.of(logged), logged.completedAtMillis ?: loggedAt,
@@ -2583,7 +2598,7 @@ class DayViewModel @Inject constructor(
             val row = tracks.tracks.firstOrNull { it.programExerciseId == card.programExerciseId && it.slot == slot }
                 ?.sets?.getOrNull(index)
             // Partner rows carry no set kind and are never warm-ups.
-            row != null && showsEffort(if (slot == Slot.SS) SetKind.WORK else row.kind, card.tracking(slot))
+            row != null && showsEffort(if (slot == Slot.SS) SetKind.WORK else row.kind, card.tracking(slot), row.seconds)
         }
     }
 
@@ -2600,7 +2615,7 @@ class DayViewModel @Inject constructor(
             runRows(tracks).any { (it.completedAtMillis ?: Long.MIN_VALUE) > target.loggedAtMillis }) return null
         val effortSlots = roundEffortSlots(card, tracks, target.index)
         return WorkoutReview(target.programExerciseId, target.index, effortSlots,
-            effortSlots.filter { rows[slots.indexOf(it)].rir == null })
+            effortSlots.filter { card.tracking(it) != TrackingType.TIMED && rows[slots.indexOf(it)].rir == null })
     }
 
     private fun undoHalves(target: UndoTarget): List<UndoTarget> = listOfNotNull(target, target.partner?.let {
@@ -2853,24 +2868,39 @@ class DayViewModel @Inject constructor(
         }
         if (!event.running) return HoldState(event, 0)
         val elapsed = BootAnchor(event.wallStart, event.elapsedStart, event.bootCount).elapsedSince(cardioClock.clocks())
-        if (HoldClock.reached(elapsed, event.targetSeconds)) {
-            endHoldSide(event, event.targetSeconds, buzz = holdAlertAnchor == event.wallStart)
+        val limit = HoldClock.limitSeconds(event.targetSeconds, holdPastTarget)
+        if (HoldClock.reached(elapsed, limit)) {
+            endHoldSide(event, limit, buzz = holdAlertAnchor == event.wallStart)
             return holdEvent.value?.let { HoldState(it, if (it.complete) it.loggedSeconds else 0) }
         }
-        if (cardioScreenLive) {
+        if (HoldClock.reached(elapsed, event.targetSeconds)) {
+            // Past target: the target owes one buzz, from the ticker or the alarm, whichever comes first.
+            if (holdAlertAnchor == event.wallStart) {
+                holdAlertAnchor = null
+                cardioAlarm.cancel()
+                cardioAlarm.buzz()
+            }
+        } else if (cardioScreenLive) {
             holdAlertAnchor = event.wallStart
             cardioAlarm.armQuiet(
                 cardioClock.elapsedRealtimeMillis() + event.targetSeconds * 1_000L - elapsed,
                 "hold:${event.programExerciseId}:${event.setIndex}:${event.wallStart}",
             ) { onHoldDeadline(event) }
         }
-        return HoldState(event, HoldClock.heldSeconds(elapsed, event.targetSeconds))
+        return HoldState(event, HoldClock.heldSeconds(elapsed, limit))
     }
 
     private fun onHoldDeadline(event: HoldEvent) {
         if (holdEvent.value != event) return
         val state = dayState.value
-        if (!state.loading && !holdMatches(state, event)) clearHold() else endHoldSide(event, event.targetSeconds, buzz = true)
+        when {
+            !state.loading && !holdMatches(state, event) -> clearHold()
+            holdPastTarget -> if (holdAlertAnchor == event.wallStart) {
+                holdAlertAnchor = null
+                cardioAlarm.buzz()
+            }
+            else -> endHoldSide(event, event.targetSeconds, buzz = true)
+        }
     }
 
     private fun endHoldSide(event: HoldEvent, seconds: Int, buzz: Boolean) {
@@ -2905,6 +2935,7 @@ class DayViewModel @Inject constructor(
     private fun clearHold() {
         if (holdEvent.value?.running == true) cardioAlarm.cancel()
         holdAlertAnchor = null
+        savedState.remove<Boolean>(KEY_HOLD_PAST_TARGET)
         savedState[KEY_HOLD] = null
     }
 
@@ -3226,6 +3257,7 @@ class DayViewModel @Inject constructor(
             rows = rows,
             rule = pe.rule,
             liftGoal = liftGoal,
+            holdPressureCaution = entry?.pressureCaution == true,
         )
     }
 
@@ -3265,6 +3297,7 @@ class DayViewModel @Inject constructor(
         const val KEY_SELECTED_PAGE = "selectedPageKey"
         const val KEY_TIMED_REP_EVENT = "day_timed_rep_event"
         const val KEY_HOLD = "day_hold"
+        const val KEY_HOLD_PAST_TARGET = "day_hold_past_target"
         const val KEY_PAST_CARDIO_EFFORT = "day_past_cardio_effort"
         const val KEY_PAST_CARDIO_START_SET = "day_past_cardio_start_set"
         const val KEY_PAST_CARDIO = "day_past_cardio_draft"

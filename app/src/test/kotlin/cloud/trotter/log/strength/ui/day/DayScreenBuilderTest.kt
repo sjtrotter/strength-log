@@ -840,4 +840,15 @@ class DayScreenBuilderTest {
         assertEquals(true, carefulStart.nineTenths)
     }
 
+    @Test fun `a seconds offer is applied by its seconds`() {
+        val planned = List(3) { work(0.0, 0, seconds = 45) }
+        val history = SlotSession(planned, planned.map { it.copy(done = true) }, false,
+            NextOffer(0.0, 0.0, fromSeconds = 45, toSeconds = 50))
+        assertEquals(NextTime.Offer("0:50", false, 0.0, 0.0, null, false, 50),
+            DayScreenBuilder.nextTime(planned, history, false, WeightUnit.LB, offersOn = true))
+        assertEquals(NextTime.Offer("0:50", true, 0.0, 0.0, null, false, 50),
+            DayScreenBuilder.nextTime(planned.map { it.copy(seconds = 50) }, history, false, WeightUnit.LB, offersOn = true))
+        assertNull(DayScreenBuilder.nextTime(planned.map { it.copy(seconds = 55) }, history, false, WeightUnit.LB, offersOn = true))
+    }
+
 }

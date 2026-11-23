@@ -7,6 +7,7 @@ sealed interface Change {
     data class Increase(val fromLb: Double, val toLb: Double) : Change
     data class Decrease(val fromLb: Double, val toLb: Double) : Change
     data class RepsTo(val reps: Int) : Change
+    data class SecondsTo(val seconds: Int) : Change
     data class Calibrated(val lb: Double) : Change
     data class KeptLowered(val lb: Double) : Change
     /** A layoff's scaled load became the working load. */

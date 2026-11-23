@@ -27,6 +27,9 @@ object Progression {
      *  (six months; design §3.2 Layoff). */
     const val NEW_LIFTER_LOG_DAYS = 182
 
+    /** A met hold's step at its cadence (#643); the seconds stepper's step, so targets stay on its grid. */
+    const val HOLD_STEP_SECONDS = 5
+
     /** [planned] is the run's opening view; actual rows identify it through plannedIndex. */
     data class Exposure(
         val planned: List<LoggedSet>,
@@ -44,6 +47,8 @@ object Progression {
         val todayEpochDay: Long,
         val light: Boolean = false,
         val baseCadence: Int = 1,
+        /** The exercise's [cloud.trotter.log.strength.domain.library.ExerciseEntry.holdCeilingSeconds]; null keeps a hold's seconds. */
+        val holdCeilingSeconds: Int? = null,
     )
 
     /** ceil(7 × strength entries ÷ (strength days a week × strength entries with the exercise per rotation)). */
@@ -178,7 +183,14 @@ object Progression {
             }
         }
         val workingSets = WorkingRows.workSetIndices(working).map { working[it] }
-        if (workingSets.any { it.seconds > 0 }) return result(Reason.Timed)
+        if (workingSets.any { it.seconds > 0 }) {
+            val ceiling = ctx.holdCeilingSeconds
+            return when {
+                ceiling == null || workingSets.any { it.weightLb > 0.0 } -> result(Reason.Timed)
+                exposure.layoff is LayoffKind.Scaled -> result(Reason.Layoff, rows = WorkingRows.cleared(working))
+                else -> held(current, base, exposure, done, work.size, ceiling, ctx)
+            }
+        }
         val judgment = when {
             lowerBlocked || done.any { (i, row) -> row.reps < exposure.planned[i].reps } -> Judgment.REP_MISS
             done.size < work.size || carried == null -> Judgment.INCOMPLETE
@@ -515,6 +527,33 @@ object Progression {
             }
         }
         return Outcome(rows, current, change, reason)
+    }
+
+    /** A bodyweight training hold (#643). A logged hold at or past its planned seconds is one success, however far
+     *  past; at the cadence the target gains [HOLD_STEP_SECONDS], doubled when every hold was Easy, up to [ceiling].
+     *  Misses keep the target. */
+    private fun held(
+        rule: SlotRule,
+        base: List<LoggedSet>,
+        exposure: Exposure,
+        done: List<Pair<Int, LoggedSet>>,
+        plannedHolds: Int,
+        ceiling: Int,
+        ctx: Context,
+    ): Outcome {
+        val unmet = rule.copy(state = rule.state.copy(successStreak = 0, pendingIncrease = false))
+        if (done.any { (i, row) -> row.seconds < exposure.planned[i].seconds }) return Outcome(base, unmet, Change.Hold, Reason.RepMiss)
+        if (done.size < plannedHolds) return Outcome(base, unmet, Change.Hold, Reason.Incomplete)
+        val (current, increaseDue) = cadence(rule, ctx)
+        if (!increaseDue) return Outcome(base, current, Change.Hold, Reason.Streak)
+        val anchors = WorkingRows.workingIndices(base)
+        val target = anchors.firstOrNull()?.let { base[it].seconds } ?: return Outcome(base, current, Change.Hold, Reason.Streak)
+        if (target > ceiling) return Outcome(base, current, Change.Hold, Reason.Timed)
+        if (target == ceiling) return Outcome(base, current, Change.Hold, Reason.HoldCeiling)
+        val easy = done.all { Effort.of(it.second.rir) == Effort.EASY }
+        val next = minOf(ceiling, target + HOLD_STEP_SECONDS * if (easy) 2 else 1)
+        val rows = base.mapIndexed { i, row -> if (i in anchors) row.copy(seconds = next) else row }
+        return Outcome(rows, current, Change.SecondsTo(next), Reason.HoldStep)
     }
 
     private enum class Judgment { SUCCESS, REP_MISS, INCOMPLETE, EFFORT_MISS }

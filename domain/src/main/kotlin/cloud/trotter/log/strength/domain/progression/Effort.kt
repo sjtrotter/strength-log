@@ -1,6 +1,6 @@
 package cloud.trotter.log.strength.domain.progression
 
-/** Four effort words mapped to stored reps in reserve; null means on target and has no word. */
+/** Four effort words stored in rir; on holds they describe perceived effort, not time remaining. */
 enum class Effort(val rir: Int) {
     EASY(4), GOOD(2), HARD(1), MAX(0);
 

@@ -695,6 +695,8 @@
     <string name="workout_hold_target">Target %1$s</string>
     <string name="workout_hold_side">Side %1$d of %2$d</string>
     <string name="workout_hold_end">End hold</string>
+    <string name="workout_hold_past_target">Past target</string>
+    <string name="workout_hold_keep_breathing">Keep breathing</string>
     <string name="workout_rest_duration">Rest %1$s</string>
     <string name="workout_timed_rep_target">%1$d reps in %2$s</string>
     <string name="timed_rep_log_empty">Log reps</string>
@@ -985,6 +987,8 @@
     <string name="receipt_why_calibrating">%1$s %2$s %5$s: still finding the weight.</string>
     <string name="receipt_why_calibrated">%1$s %2$s %5$s: found from today\'s sets.</string>
     <string name="receipt_why_add_weight">%1$s %2$s reps: the most reps this plan counts.</string>
+    <string name="receipt_why_hold_step">%1$s %2$s %5$s: all holds made.</string>
+    <string name="receipt_why_hold_ceiling">%1$s %2$s: the longest hold this plan counts.</string>
     <string name="receipt_why_light_done">Light week done.</string>
     <string name="receipt_why_rough_light">Two rough days in a row: light week next.</string>
     <string name="receipt_why_rough">Rough day: next time stays as it was.</string>

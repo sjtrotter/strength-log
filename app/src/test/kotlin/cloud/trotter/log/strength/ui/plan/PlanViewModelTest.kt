@@ -1,5 +1,10 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.data.serialization.TestGoalJson
+import cloud.trotter.log.strength.domain.model.TestGoal
+import cloud.trotter.log.strength.domain.model.TestEventGoal
+import cloud.trotter.log.strength.domain.standards.TestRef
+import cloud.trotter.log.strength.ui.log.testResultFixture
 import cloud.trotter.log.strength.data.OldWizardPlans
 import cloud.trotter.log.strength.data.insertRuledOldWizardPlan
 import cloud.trotter.log.strength.data.runLaunchFixups
@@ -71,6 +76,90 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class PlanViewModelTest {
+
+    @Test fun `saving the test goal writes the plan column and removing it clears it`() = runTest(dispatcher) {
+        val viewed = repo.plans.createAuthoredPlan("Viewed", "Test prep")
+        val other = repo.plans.createAuthoredPlan("Other", "Day")
+        val goal = TestGoal(listOf(TestEventGoal(TestRef("aft_hrp", 1, 120), 40), TestEventGoal(TestRef("aft_plank", 1), 220)))
+        repo.plans.setTestGoal(viewed, goal)
+        val handle = SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString()))
+        val vm = viewModel(handle)
+        advanceUntilIdle()
+        vm.openTestGoal()
+        advanceUntilIdle()
+        assertEquals(TestGoalDraft(mapOf("aft_hrp" to "40", "aft_plank" to "3:40")), vm.uiState.value.testGoalDraft)
+        val draft = TestGoalDraft(mapOf("aft_hrp" to "45", "aft_plank" to "3:30"), 21000)
+        vm.changeTestGoalDraft(draft)
+        vm.saveTestGoal()
+        advanceUntilIdle()
+        assertEquals(goal.copy(events = goal.events.mapIndexed { index, event -> event.copy(required = if (index == 0) 45 else 210) },
+            byEpochDay = 21000), TestGoalJson.decode(db.planDao().plan(viewed)!!.testGoalJson))
+        assertNull(handle.get<TestGoalDraft>("plan_test_goal_draft"))
+        assertNull(db.planDao().plan(other)!!.testGoalJson)
+        vm.openTestGoal()
+        vm.removeTestGoal()
+        advanceUntilIdle()
+        assertNull(db.planDao().plan(viewed)!!.testGoalJson)
+        assertNull(vm.uiState.value.testGoalDraft)
+        assertNull(vm.uiState.value.testGoal)
+    }
+
+    @Test fun `the test draft survives parcel recreation and rejects invalid values without closing`() = runTest(dispatcher) {
+        val viewed = repo.plans.createAuthoredPlan("Viewed", "Test prep")
+        val goal = TestGoal(listOf(TestEventGoal(TestRef("aft_hrp", 1, 120), 40), TestEventGoal(TestRef("aft_plank", 1), 220)))
+        repo.plans.setTestGoal(viewed, goal)
+        val draft = TestGoalDraft(mapOf("aft_hrp" to "45", "aft_plank" to "3:30"), 21000)
+        val parcel = Parcel.obtain()
+        val restored = try {
+            draft.writeToParcel(parcel, 0)
+            parcel.setDataPosition(0)
+            parcelableCreator<TestGoalDraft>().createFromParcel(parcel)
+        } finally { parcel.recycle() }
+        val handle = SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString(), "plan_test_goal_draft" to restored))
+        val vm = viewModel(handle)
+        advanceUntilIdle()
+        assertEquals(draft, vm.uiState.value.testGoalDraft)
+        for (invalid in listOf("", "0", "3601", "abc", "1.5")) {
+            val bad = draft.copy(required = draft.required + ("aft_hrp" to invalid))
+            vm.changeTestGoalDraft(bad)
+            vm.saveTestGoal()
+            advanceUntilIdle()
+            assertEquals(bad, vm.uiState.value.testGoalDraft)
+            assertEquals(goal, TestGoalJson.decode(db.planDao().plan(viewed)!!.testGoalJson))
+        }
+        for (invalid in listOf("", "0:00", "60:01", "3:60")) {
+            val bad = draft.copy(required = draft.required + ("aft_plank" to invalid))
+            vm.changeTestGoalDraft(bad)
+            vm.saveTestGoal()
+            advanceUntilIdle()
+            assertEquals(bad, vm.uiState.value.testGoalDraft)
+            assertEquals(goal, TestGoalJson.decode(db.planDao().plan(viewed)!!.testGoalJson))
+        }
+        vm.changeTestGoalDraft(draft.copy(byEpochDay = Long.MAX_VALUE))
+        vm.saveTestGoal()
+        advanceUntilIdle()
+        assertEquals(goal, TestGoalJson.decode(db.planDao().plan(viewed)!!.testGoalJson))
+        vm.changeTestGoalDraft(draft.copy(required = mapOf("aft_hrp" to "3600", "aft_plank" to "60:00")))
+        vm.saveTestGoal()
+        advanceUntilIdle()
+        assertEquals(listOf(3600, 3600), TestGoalJson.decode(db.planDao().plan(viewed)!!.testGoalJson)!!.events.map { it.required })
+        vm.openTestGoal()
+        vm.dismissTestGoal()
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.testGoalDraft)
+    }
+
+    @Test fun `new test results update the goal card while the plan remains open`() = runTest(dispatcher) {
+        val viewed = repo.plans.createAuthoredPlan("Viewed", "Test prep")
+        repo.plans.setTestGoal(viewed, TestGoal(listOf(TestEventGoal(TestRef("aft_hrp", 1, 120), 40))))
+        val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to viewed.toString())))
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.testGoal!!.rows.single().best)
+        repo.history.logTestResult(testResultFixture(value = 40))
+        advanceUntilIdle()
+        assertEquals(40, vm.uiState.value.testGoal!!.rows.single().best)
+        assertEquals(true, vm.uiState.value.testGoal!!.rows.single().met)
+    }
 
     @Test fun `opening and saving a sprint goal uses its own draft and preserves attempts`() = runTest(dispatcher) {
         val viewed = repo.plans.createAuthoredPlan("Viewed", "Sprint")

@@ -4,6 +4,7 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.standards.TestRef
 import java.time.LocalDate
 
 /** Derived History sections. Dates and totals retain their values for localized presentation. */
@@ -13,7 +14,13 @@ data class JournalUiState(
     val calendar: CalendarMonth? = null,
     val weeklyDistance: List<WeeklyDistance> = emptyList(),
     val cardioTrends: List<CardioTrendCard> = emptyList(),
+    val testTrends: List<TestTrendCard> = emptyList(),
 )
+
+/** One identity's benchmarks, oldest first, at least two. Timed values are seconds. */
+data class TestTrendCard(val ref: TestRef, val name: String, val timed: Boolean, val dayIndex: Int,
+    val points: List<TrajectoryPoint>, val first: Int, val latest: Int, val axisMin: Float, val axisMax: Float,
+    val custom: Boolean = false)
 
 /** One activity at one planned end (#532), using the records rule's reading per session, oldest first.
  *  At least two points; distance ends plot inverted because lower is better. */

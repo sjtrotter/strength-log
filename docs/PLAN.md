@@ -288,6 +288,8 @@ strength day; the shipped cardio vectors stay pinned.
   Setup asks for the events on Lift and Both plans (not Sprint or Run); each lifting day, three at most, gets
   three sets of the test movement at about half the last or required number, with the required number as the
   ceiling of a prep hold (or its catalog ceiling when higher). Pinned as §11.2 case 52.
+  The Plan screen lists each event with its best and required number and the date; History draws a trend per
+  identity from two results on. Pinned as §11.2 case 53.
 - **Before production:** plans, run identity, authored prescriptions and
   timed rep events, on phone and watch; a plan switcher on Today; and cardio
   as typed sets (warm-up, work, recovery, cool-down; time ends a set by

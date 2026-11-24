@@ -228,13 +228,15 @@ class LogViewModel @Inject constructor(
         mainLifts,
         calendarOffset,
         civilTimeSource.civilTime,
-    ) { (history, sets), mains, offset, now ->
+        repo.testResultsFlow,
+    ) { (history, sets), mains, offset, now, results ->
         JournalUiState(
             trajectories = JournalBuilder.trajectories(mains, history.topSets, history.unit, now.zone),
             volume = JournalBuilder.volume(history.tonnage, history.unit, now.date, now.zone),
             calendar = JournalBuilder.calendar(history.sessions, offset, now.date, now.zone, history.cardio),
             weeklyDistance = JournalBuilder.weeklyDistance(history.cardio, sets, now.date, now.zone),
             cardioTrends = JournalBuilder.cardioTrends(history.cardio, sets, now.zone),
+            testTrends = JournalBuilder.testTrends(results, now.zone),
         )
     }
 

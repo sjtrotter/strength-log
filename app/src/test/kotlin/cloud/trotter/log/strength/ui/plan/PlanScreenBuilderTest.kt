@@ -41,8 +41,31 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import cloud.trotter.log.strength.data.serialization.TestGoalJson
+import cloud.trotter.log.strength.domain.model.TestGoal
+import cloud.trotter.log.strength.domain.model.TestEventGoal
+import cloud.trotter.log.strength.domain.records.TestResult
+import cloud.trotter.log.strength.domain.standards.TestRef
+import cloud.trotter.log.strength.domain.standards.TestStop
 
 class PlanScreenBuilderTest {
+    @Test fun `case 53 the test goal card shows best and required per event`() {
+        val hrp = TestRef("aft_hrp", 1, 120)
+        val plank = TestRef("aft_plank", 1)
+        val goal = TestGoal(listOf(TestEventGoal(hrp, 40), TestEventGoal(plank, 220)))
+        val plan = PlanEntity(1, "Test prep", PlanOrigin.GENERATED.name, 0, 0, testGoalJson = TestGoalJson.encode(goal))
+        val results = listOf(TestResult(hrp, 10, 24, null, TestStop.TIME_UP),
+            TestResult(hrp, 20, 31, null, TestStop.TIME_UP), TestResult(plank, 30, null, 190, TestStop.STOPPED),
+            TestResult(TestRef("custom_pushup_window", 1, 120), 40, 50, null, TestStop.TIME_UP))
+        fun state(values: List<TestResult>, entity: PlanEntity = plan) = PlanScreenBuilder.buildUiState(
+            entity, Program(emptyList()), catalog, WeightUnit.LB, todayEpochDay = 0, testResults = values)
+        val ui = requireNotNull(state(results).testGoal)
+        assertEquals(listOf(PlanTestEventUi(goal.events[0], "AFT hand-release push-up", false, 31, false),
+            PlanTestEventUi(goal.events[1], "AFT plank", true, 190, false)), ui.rows)
+        assertTrue(requireNotNull(state(results + TestResult(hrp, 50, 40, null, TestStop.TIME_UP)).testGoal).rows.first().met)
+        assertNull(state(results, plan.copy(testGoalJson = null)).testGoal)
+    }
+
     @Test fun `cardio goal progress comes from matching history`() {
         val goal = PlanGoal.Timed(CardioActivity.ROAD_RUN, 3219, 960)
         val plan = PlanEntity(1, "Running", PlanOrigin.AUTHORED.name, 0, 0, goalJson = PlanGoalJson.encode(goal))

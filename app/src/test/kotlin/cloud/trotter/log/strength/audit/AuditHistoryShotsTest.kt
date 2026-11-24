@@ -12,6 +12,11 @@ import cloud.trotter.log.strength.transfer.health.ExternalSessionRow
 import cloud.trotter.log.strength.ui.log.BackfillOfferUi
 import cloud.trotter.log.strength.ui.log.BodyweightPromptUi
 import cloud.trotter.log.strength.ui.log.HealthSectionUi
+import cloud.trotter.log.strength.ui.log.JournalBuilder
+import cloud.trotter.log.strength.ui.log.JournalUiState
+import cloud.trotter.log.strength.ui.log.testResultFixture
+import java.time.LocalDate
+import java.time.ZoneOffset
 import cloud.trotter.log.strength.ui.log.LogActions
 import cloud.trotter.log.strength.ui.log.LogScreen
 import cloud.trotter.log.strength.ui.log.LogScreenBuilder
@@ -170,6 +175,31 @@ class AuditHistoryShotsTest : UiAuditTest() {
     @Test fun shot24HistoryExpandedEmpty() {
         assumeTrue(System.getProperty("uiAudit.record") == "true")
         rule.auditShot("history/24-history-expanded-empty") { AuditDestination(TopLevelDestination.LOG) { LogScreen(LogUiState(sessions = listOf(logSessionFixture(true).copy(exerciseGroups = emptyList()))), logActions()) } }
+    }
+
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun shot25HistoryTestTrend() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        rule.auditShot("history/25-history-test-trend") { AuditDestination(TopLevelDestination.LOG) {
+            LogScreen(testTrendHistory(), logActions())
+        } }
+    }
+
+    @Test @Config(fontScale = 2f, qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun shot26HistoryTestTrendFont2() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        rule.auditShot("history/26-history-test-trend-font2", fontScale = 2f) { AuditDestination(TopLevelDestination.LOG) {
+            LogScreen(testTrendHistory(), logActions())
+        } }
+    }
+
+    private fun testTrendHistory(): LogUiState {
+        val results = listOf(24, 27, 31).mapIndexed { index, value ->
+            testResultFixture(value = value, id = index + 1L, completedAt = LocalDate.of(2026, 9, 21)
+                .plusDays(index * 21L).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
+        }
+        return LogUiState(sessions = listOf(logSessionFixture(false)),
+            journal = JournalUiState(testTrends = JournalBuilder.testTrends(results, ZoneOffset.UTC)))
     }
 
     private fun logActions() = LogActions(onToggleExpanded = {}, onPageCalendar = {}, onConnectHealth = {},

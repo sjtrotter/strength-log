@@ -197,6 +197,29 @@ internal fun CardioTrendCardView(card: CardioTrendCard) {
 }
 
 @Composable
+internal fun TestTrendCardView(card: TestTrendCard) {
+    val dateFormat = shortDateFormatter()
+    val window = card.ref.windowSeconds
+    val heading = if (card.custom && window != null)
+        stringResource(R.string.plan_goal_progress, card.name, ClockText.duration(window)) else card.name
+    fun value(reading: Int): String = if (card.timed) ClockText.duration(reading) else reading.toString()
+    val first = card.points.first()
+    val last = card.points.last()
+    val description = stringResource(R.string.log_cardio_trend_description, heading,
+        dateFormat.format(first.date), value(card.first), dateFormat.format(last.date), value(card.latest))
+    Column(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(heading, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.log_cardio_trend_latest, value(card.latest)),
+            color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
+        TrajectoryPlot(card.points, card.axisMin, card.axisMax, accentEmphasis(card.dayIndex),
+            goalValue = null, goalColor = MaterialTheme.colorScheme.onSurfaceVariant, inverted = false,
+            modifier = Modifier.fillMaxWidth().height(128.dp).semantics { contentDescription = description })
+        Text(stringResource(R.string.log_top_set_date_range, dateFormat.format(first.date), dateFormat.format(last.date)),
+            color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+@Composable
 internal fun VolumeWeekRow(week: VolumeWeek) {
     val dateFormat = shortDateFormatter()
     val numberFormat = NumberFormat.getNumberInstance(LocalConfiguration.current.locales[0]).apply {

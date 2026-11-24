@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.ui.log
 
+import cloud.trotter.log.strength.data.db.entity.TestResultEntity
+import cloud.trotter.log.strength.data.mapping.toDomain
+import cloud.trotter.log.strength.data.serialization.TestEventJson
 import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
@@ -20,6 +23,7 @@ import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.records.CardioRecordKey
 import cloud.trotter.log.strength.domain.progression.FinishedRule
+import cloud.trotter.log.strength.domain.records.TestResult
 import cloud.trotter.log.strength.domain.records.PersonalBests
 import cloud.trotter.log.strength.domain.units.WeightStepper
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -45,6 +49,7 @@ object JournalBuilder {
     /** Weeks of tonnage the volume section shows, including the current one. */
     const val VOLUME_WEEKS = 12
     const val CARDIO_TRENDS = 4
+    const val TEST_TRENDS = 4
 
     private val MONTH_TITLE = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US)
     private val CELL_DATE = DateTimeFormatter.ofPattern("MMMM d", Locale.US)
@@ -223,6 +228,30 @@ object JournalBuilder {
         }
         return CardioFamily.entries.mapNotNull { totals[it] }
     }
+
+    fun testTrends(results: List<TestResultEntity>, zone: ZoneId = ZoneId.systemDefault()): List<TestTrendCard> =
+        results.mapNotNull { row -> row.toDomain()?.let { row to it } }
+            .groupBy { it.second.ref }.values.filter { it.size >= 2 }
+            .map { group -> group.sortedWith(compareBy({ it.first.completedAt }, { it.first.id })) }
+            .sortedWith(compareByDescending<List<Pair<TestResultEntity, TestResult>>> {
+                it.last().first.completedAt
+            }.thenByDescending { it.last().first.id })
+            .take(TEST_TRENDS).map { sorted ->
+                val (newest, result) = sorted.last()
+                val rules = TestEventJson.decode(newest.rulesJson)
+                var best: Int? = null
+                val points = sorted.map { (row, value) ->
+                    val newHigh = best == null || value.value > requireNotNull(best)
+                    if (newHigh) best = value.value
+                    TrajectoryPoint(value.value.toFloat(), newHigh,
+                        Instant.ofEpochMilli(row.completedAt).atZone(zone).toLocalDate())
+                }
+                val values = points.map { it.value }
+                TestTrendCard(result.ref, rules?.name ?: result.ref.eventId, result.seconds != null,
+                    newest.dayId?.let(Program::accentIndex) ?: 0, points,
+                    points.first().value.toInt(), result.value,
+                    axisBound(values, null, low = true), axisBound(values, null, low = false), custom = rules?.custom == true)
+            }
 
     fun cardioTrends(
         sessions: List<CardioSessionEntity>,

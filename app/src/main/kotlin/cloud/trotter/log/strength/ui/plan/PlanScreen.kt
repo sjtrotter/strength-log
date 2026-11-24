@@ -167,6 +167,7 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                         PlanCardioGoal(goal, actions)
                     }
                 }
+                item(key = "test_goal") { state.testGoal?.let { PlanTestGoal(it, actions) } }
                 if (state.goals.isNotEmpty()) {
                     item(key = "goals_header") {
                         Box(Modifier.padding(horizontal = 16.dp)) { SectionHeader(stringResource(R.string.plan_goals)) }
@@ -199,6 +200,7 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
         actions.onLightWeekChange, { progressionDialog = null },
     )
     state.sprintGoalDraft?.let { PlanSprintGoalEditor(it, actions, state.sprintGoal?.goal?.metres) }
+    state.testGoalDraft?.let { draft -> state.testGoal?.let { PlanTestGoalEditor(it, draft, actions) } }
     state.goalDraft?.let { PlanCardioGoalEditor(it, state.goal != null, actions) }
     state.shuttleEntry?.let { PlanShuttleEntry(it, actions) }
     state.goalDialog?.let { dialog ->

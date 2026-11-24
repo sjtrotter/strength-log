@@ -33,6 +33,10 @@ import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.standards.GoalFormatter
 import cloud.trotter.log.strength.domain.standards.GoalTarget
+import cloud.trotter.log.strength.data.serialization.TestGoalJson
+import cloud.trotter.log.strength.domain.records.TestResult
+import cloud.trotter.log.strength.domain.records.TestProgress
+import cloud.trotter.log.strength.domain.standards.TestEvents
 import cloud.trotter.log.strength.ui.log.JournalBuilder
 
 object PlanScreenBuilder {
@@ -43,6 +47,7 @@ object PlanScreenBuilder {
         unit: WeightUnit,
         cardio: List<Pair<CardioActivity?, List<CardioSetResult>>> = emptyList(),
         todayEpochDay: Long,
+        testResults: List<TestResult> = emptyList(),
     ): PlanUiState {
         val days = days(program, plan?.suggestedDayId, unit, catalog)
         val generated = plan?.origin == PlanOrigin.GENERATED.name && days.any { it.liftCount > 0 }
@@ -52,6 +57,14 @@ object PlanScreenBuilder {
         val goal = PlanGoalJson.decode(plan?.goalJson)
         val runPhase = run?.let { plan?.recipeJson?.let(SetupRecipeJson::phase) }
         return PlanUiState(
+            testGoal = TestGoalJson.decode(plan?.testGoalJson)?.let { testGoal ->
+                PlanTestGoalUi(testGoal, testGoal.events.map { event ->
+                    val catalogEvent = TestEvents.find(event.ref.eventId)
+                    val best = TestProgress.best(event.ref, testResults)
+                    PlanTestEventUi(event, catalogEvent?.name ?: event.ref.eventId, catalogEvent?.timed == true,
+                        best, TestProgress.met(event.required, best))
+                })
+            },
             runPhase = runPhase,
             taper = run != null && runPhase != RunPhase.LADDER && Taper.factor(goal, todayEpochDay) != null,
             goal = goal?.let { goal ->

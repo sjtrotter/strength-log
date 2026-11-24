@@ -146,54 +146,34 @@
       "checkpoint": "benchmark-logged"
     },
     {
-      "tap": {
-        "tag": "workout-finish"
-      }
+      "back": true
+    },
+    {
+      "back": true
     },
     {
       "tap": {
-        "text": "Finish",
-        "inDialog": true
-      }
-    },
-    {
-      "tap": {
-        "text": "Done"
-      }
-    },
-    {
-      "tap": {
-        "text": "History",
+        "text": "Plans",
         "role": "Tab"
       }
     },
     {
-      "scrollTo": {
-        "text": "Full Body"
-      }
-    },
-    {
-      "expect": {
-        "text": "Full Body"
-      }
-    },
-    {
       "tap": {
-        "text": "Full Body"
+        "text": "General fitness, 3 days"
       }
     },
     {
       "scrollTo": {
-        "text": "Push-Up"
+        "text": "Best 27 · Required 40"
       }
     },
     {
       "expect": {
-        "text": "Push-Up"
+        "text": "Best 27 · Required 40"
       }
     },
     {
-      "checkpoint": "benchmark-receipt"
+      "checkpoint": "benchmark-goal-card"
     }
   ]
 }

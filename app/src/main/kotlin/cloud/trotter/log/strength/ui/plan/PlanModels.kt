@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.domain.model.TestGoal
+import cloud.trotter.log.strength.domain.model.TestEventGoal
 import androidx.compose.runtime.Immutable
 import cloud.trotter.log.strength.domain.planner.RunPhase
 import cloud.trotter.log.strength.domain.planner.RecentRace
@@ -38,7 +40,14 @@ data class PlanUiState(
     val taper: Boolean = false,
     val sprintGoal: PlanSprintGoalUi? = null,
     val sprintGoalDraft: SprintGoalDraft? = null,
+    val testGoal: PlanTestGoalUi? = null,
+    val testGoalDraft: TestGoalDraft? = null,
 )
+
+data class PlanTestGoalUi(val goal: TestGoal, val rows: List<PlanTestEventUi>)
+
+/** [best] is reps or seconds, null before any result. */
+data class PlanTestEventUi(val event: TestEventGoal, val name: String, val timed: Boolean, val best: Int?, val met: Boolean)
 
 data class PlanSprintGoalUi(val goal: PlanGoal.Sprint, val best: SprintAttempt?)
 
@@ -90,6 +99,11 @@ data class PlanActions(
     val onSaveGoal: () -> Unit = {},
     val onRemoveLiftGoal: () -> Unit = {},
     val onDismissGoal: () -> Unit = {},
+    val onOpenTestGoal: () -> Unit = {},
+    val onTestGoalDraft: (TestGoalDraft) -> Unit = {},
+    val onSaveTestGoal: () -> Unit = {},
+    val onRemoveTestGoal: () -> Unit = {},
+    val onDismissTestGoal: () -> Unit = {},
     val onOpenCardioGoal: () -> Unit = {},
     val onSprintGoalDraft: (SprintGoalDraft) -> Unit = {},
     val onSaveSprintGoal: () -> Unit = {},

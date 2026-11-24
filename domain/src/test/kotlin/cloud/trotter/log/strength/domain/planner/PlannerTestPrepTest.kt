@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.TestEventGoal
 import cloud.trotter.log.strength.domain.model.TestGoal
 import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.progression.KnownLoads
 import cloud.trotter.log.strength.domain.progression.RepTarget
 import cloud.trotter.log.strength.domain.progression.Scheme
 import cloud.trotter.log.strength.domain.progression.SlotRole
@@ -79,8 +80,14 @@ class PlannerTestPrepTest {
     }
 
     @Test fun `without tests the plan is unchanged`() {
-        val draft = Planner.plan(answers.copy(tests = emptyList()))
-        assertEquals(Planner.plan(plain), draft)
+        val beforePrep = liftDraft(plain, KnownLoads.NONE).withBalanceDays(plain, KnownLoads.NONE)
+        val draft = Planner.plan(plain)
+        // #646: compare with generation before withTestPrep, so added unlinked exercises cannot pass.
+        assertEquals(beforePrep.program.days.associate { it.id to it.exercises.size },
+            draft.program.days.associate { it.id to it.exercises.size })
+        assertEquals(beforePrep.program, draft.program)
+        assertEquals(beforePrep.working, draft.working)
+        assertTrue(draft.program.days.all { day -> day.exercises.none { it.prescription?.test != null } })
         assertNull(draft.testGoal)
         assertTrue(draft.reasons.none { it is PlanReason.TestPrep })
     }

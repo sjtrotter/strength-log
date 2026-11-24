@@ -694,5 +694,47 @@ class SetupFlowScreenTest {
         rule.onNodeWithText("Required hold").assertDoesNotExist()
     }
 
+    @Test fun `test hold fields show the one hour limit and block invalid entries`() {
+        show(state(SetupStep.TEST, SetupDraft(tests = listOf(TestDraft("aft_plank", 220, 95)))),
+            SetupFlowActions(
+                onTestRequired = { id, value -> shown = shown.copy(draft = shown.draft.copy(tests = shown.draft.tests.map {
+                    if (it.eventId == id) it.copy(required = value) else it
+                })) },
+                onTestLast = { id, value -> shown = shown.copy(draft = shown.draft.copy(tests = shown.draft.tests.map {
+                    if (it.eventId == id) it.copy(lastResult = value) else it
+                })) }))
+        rule.onNodeWithText("Next").assertIsEnabled()
+        for (label in listOf("Required hold", "Last hold")) {
+            rule.onNodeWithText(label).performScrollTo().performTextReplacement("61:00")
+            rule.onNodeWithText(label).performImeAction()
+            rule.onNodeWithText("Enter a time between 0:01 and 1:00:00").assertExists()
+            rule.onNodeWithText("Next").assertIsNotEnabled()
+            rule.onNodeWithText(label).performTextReplacement("60:00")
+            rule.onNodeWithText(label).performImeAction()
+            rule.onNodeWithText("Enter a time between 0:01 and 1:00:00").assertDoesNotExist()
+            rule.onNodeWithText("Next").assertIsEnabled()
+        }
+        rule.runOnIdle { assertEquals(listOf(TestDraft("aft_plank", 3600, 3600)), shown.draft.tests) }
+    }
+
+    @Test fun `a custom test window shows the one hour limit and blocks invalid entries`() {
+        show(state(SetupStep.TEST, SetupDraft(tests = listOf(TestDraft("custom_pushup_window", 40, windowSeconds = 60)))),
+            SetupFlowActions(onTestWindow = { id, value ->
+                shown = shown.copy(draft = shown.draft.copy(tests = shown.draft.tests.map {
+                    if (it.eventId == id) it.copy(windowSeconds = value) else it
+                }))
+            }))
+        rule.onNodeWithText("Next").assertIsEnabled()
+        rule.onNodeWithText("Window").performScrollTo().performTextReplacement("61:00")
+        rule.onNodeWithText("Window").performImeAction()
+        rule.onNodeWithText("Enter a time between 0:10 and 1:00:00").assertExists()
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+        rule.onNodeWithText("Window").performTextReplacement("60:00")
+        rule.onNodeWithText("Window").performImeAction()
+        rule.onNodeWithText("Enter a time between 0:10 and 1:00:00").assertDoesNotExist()
+        rule.onNodeWithText("Next").assertIsEnabled()
+        rule.runOnIdle { assertEquals(3600, shown.draft.tests.single().windowSeconds) }
+    }
+
 
 }

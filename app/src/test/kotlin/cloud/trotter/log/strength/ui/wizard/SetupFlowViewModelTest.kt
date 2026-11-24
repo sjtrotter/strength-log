@@ -840,6 +840,49 @@ class SetupFlowViewModelTest {
             SetupFlowFixtures.sprint.copy(sprintEvent = SprintEvent.YD40, days = 1))))
     }
 
+    @Test fun `a fresh Both flow choosing sprint at Run goal never reaches Test`() = runVmTest {
+        val vm = newViewModel(); advanceUntilIdle()
+        vm.setBranch(PlanBranch.BOTH); advanceUntilIdle()
+        for (step in listOf(SetupStep.GOAL, SetupStep.ORDER, SetupStep.SUB_GOAL)) {
+            assertEquals(step, vm.uiState.value.step)
+            vm.onNext(); advanceUntilIdle()
+        }
+        assertEquals(SetupStep.RUN_GOAL, vm.uiState.value.step)
+        vm.setSprintEvent(SprintEvent.M100); vm.onNext(); advanceUntilIdle()
+        assertFalse(SetupStep.TEST in SetupFlowStateBuilder.steps(vm.uiState.value.draft))
+        for (step in listOf(SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT)) {
+            assertEquals(step, vm.uiState.value.step)
+            vm.onNext(); advanceUntilIdle()
+        }
+        assertEquals(SetupStep.PLAN, vm.uiState.value.step)
+    }
+
+    @Test fun `a fresh Both flow choosing a non sprint run goal reaches Test after Run goal`() = runVmTest {
+        val vm = newViewModel(); advanceUntilIdle()
+        vm.setBranch(PlanBranch.BOTH); advanceUntilIdle()
+        for (step in listOf(SetupStep.GOAL, SetupStep.ORDER, SetupStep.SUB_GOAL)) {
+            assertEquals(step, vm.uiState.value.step)
+            vm.onNext(); advanceUntilIdle()
+        }
+        assertEquals(SetupStep.RUN_GOAL, vm.uiState.value.step)
+        vm.setRunGoal(RunGoal.FIRST_5K); vm.onNext(); advanceUntilIdle()
+        assertEquals(SetupStep.TEST, vm.uiState.value.step)
+        vm.onNext(); advanceUntilIdle()
+        assertEquals(SetupStep.WEEK, vm.uiState.value.step)
+    }
+
+    @Test fun `saved Both drafts on Test and Run goal resume by step name`() = runVmTest {
+        for (step in listOf(SetupStep.TEST, SetupStep.RUN_GOAL)) {
+            val handle = SavedStateHandle(mapOf("setup_initialized" to true, "setup_first_run" to true,
+                "setup_draft" to """{"v":1,"branch":"BOTH","step":"${step.name}","tests":[{"eventId":"aft_hrp","required":40,"lastResult":24}]}"""))
+            val vm = newViewModel(handle); advanceUntilIdle()
+            assertEquals(step, vm.uiState.value.step)
+            assertEquals(listOf(TestDraft("aft_hrp", 40, 24)), vm.uiState.value.draft.tests)
+            vm.onNext(); advanceUntilIdle()
+            assertEquals(if (step == SetupStep.RUN_GOAL) SetupStep.TEST else SetupStep.WEEK, vm.uiState.value.step)
+        }
+    }
+
     @Test fun `a Lift plan with a test goal is created with its goal and prep slots`() = runVmTest {
         val handle = SavedStateHandle()
         val vm = newViewModel(handle)

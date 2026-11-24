@@ -93,7 +93,8 @@ internal fun SetupSegments(labels: List<String>, selected: Int, onSelect: (Int) 
 }
 
 @Composable
-internal fun SetupTime(value: Int?, label: String, minSeconds: Int = 1, invalid: Int? = null, onChange: (Int?) -> Unit) {
+internal fun SetupTime(value: Int?, label: String, minSeconds: Int = 1, maxSeconds: Int = 86_400,
+    invalid: Int? = null, onChange: (Int?) -> Unit) {
     val change: (Double?) -> Unit = { onChange(it?.toInt()) }
     key(minSeconds) {
         // Draft edits persist already; disposing a focused field must not write using its old floor.
@@ -106,7 +107,7 @@ internal fun SetupTime(value: Int?, label: String, minSeconds: Int = 1, invalid:
                     else -> parsed.toInt()
                 })
             },
-            error = value == INVALID_GOAL_TIME, label = label, minValue = minSeconds.toDouble(), maxValue = 86_400.0, format = { ClockText.duration(it.toInt()) },
+            error = value == INVALID_GOAL_TIME, label = label, minValue = minSeconds.toDouble(), maxValue = maxSeconds.toDouble(), format = { ClockText.duration(it.toInt()) },
             parse = { ClockText.parse(it)?.toDouble() }, keyboardType = KeyboardType.Ascii)
     }
 }

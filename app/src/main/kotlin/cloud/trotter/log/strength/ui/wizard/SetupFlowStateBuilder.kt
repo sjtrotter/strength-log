@@ -56,8 +56,8 @@ object SetupFlowStateBuilder {
         add(SetupStep.GOAL)
         if (draft.branch == PlanBranch.BOTH && !draft.sprintCardio) add(SetupStep.ORDER)
         if (draft.branch == PlanBranch.LIFT || draft.branch == PlanBranch.BOTH) add(SetupStep.SUB_GOAL)
-        if (offersTests(draft)) add(SetupStep.TEST)
         if (draft.branch != PlanBranch.LIFT) add(SetupStep.RUN_GOAL)
+        if (offersTests(draft)) add(SetupStep.TEST)
         addAll(listOf(SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT))
         if (draft.branch != PlanBranch.RUN) {
             if (draft.branch != PlanBranch.SPRINT && draft.goal != LiftGoal.GENERAL && Planner.mainChoices(draft.equipment).any { it.isNotEmpty() }) add(SetupStep.LIFTS)

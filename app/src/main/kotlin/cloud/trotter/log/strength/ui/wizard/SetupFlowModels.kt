@@ -20,7 +20,7 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.text.UiText
 
 /** Screens in canonical order; [SetupFlowStateBuilder.steps] picks a draft's subset. Stored by name. */
-enum class SetupStep { GOAL, ORDER, SUB_GOAL, TEST, RUN_GOAL, WEEK, EQUIPMENT, ABOUT, LIFTS, RECENT, EVENT, WHERE, TOGETHER, PLAN }
+enum class SetupStep { GOAL, ORDER, SUB_GOAL, RUN_GOAL, TEST, WEEK, EQUIPMENT, ABOUT, LIFTS, RECENT, EVENT, WHERE, TOGETHER, PLAN }
 enum class StepRow { BAR, DUMBBELL, STACK }
 data class StepRowState(val row: StepRow, val optionsLb: List<Double>, val selected: Int)
 

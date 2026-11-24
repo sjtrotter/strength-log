@@ -28,12 +28,16 @@ internal fun TestStep(state: SetupFlowUiState, actions: SetupFlowActions) {
         val event = TestEvents.find(test.eventId) ?: return@forEach
         key(event.id) {
             SetupLabel(event.name)
-            if (event.custom) SetupTime(test.windowSeconds, stringResource(R.string.setup_flow_test_window), minSeconds = 10) {
+            if (event.custom) SetupTime(test.windowSeconds, stringResource(R.string.setup_flow_test_window), minSeconds = 10, maxSeconds = 3600) {
                 actions.onTestWindow(event.id, it)
             }
             if (event.timed) {
-                SetupTime(test.required, stringResource(R.string.setup_flow_test_required_hold)) { actions.onTestRequired(event.id, it) }
-                SetupTime(test.lastResult, stringResource(R.string.setup_flow_test_last_hold)) { actions.onTestLast(event.id, it) }
+                SetupTime(test.required, stringResource(R.string.setup_flow_test_required_hold), maxSeconds = 3600) {
+                    actions.onTestRequired(event.id, it)
+                }
+                SetupTime(test.lastResult, stringResource(R.string.setup_flow_test_last_hold), maxSeconds = 3600, invalid = INVALID_GOAL_TIME) {
+                    actions.onTestLast(event.id, it)
+                }
             } else {
                 val required: (Double?) -> Unit = { actions.onTestRequired(event.id, it?.toInt()) }
                 NumberField(value = test.required?.toDouble(), onValueChange = required, onDraftChange = required,

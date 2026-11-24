@@ -28,8 +28,18 @@
       }
     },
     {
+      "expect": {
+        "text": "What kind of running?"
+      }
+    },
+    {
       "tap": {
         "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Fitness test"
       }
     },
     {

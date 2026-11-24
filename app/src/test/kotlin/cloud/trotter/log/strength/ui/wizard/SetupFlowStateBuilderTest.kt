@@ -177,8 +177,8 @@ class SetupFlowStateBuilderTest {
             assertEquals(run + listOf(SetupStep.EVENT, SetupStep.WHERE, SetupStep.PLAN),
                 builder.steps(SetupDraft(branch = PlanBranch.RUN, runGoal = goal)))
         }
-        // #646: the Test step follows Sub goal.
-        val both = listOf(SetupStep.GOAL, SetupStep.ORDER, SetupStep.SUB_GOAL, SetupStep.TEST, SetupStep.RUN_GOAL,
+        // #646: Both resolves the run goal before offering Test, so sprint skips it.
+        val both = listOf(SetupStep.GOAL, SetupStep.ORDER, SetupStep.SUB_GOAL, SetupStep.RUN_GOAL, SetupStep.TEST,
             SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT)
         assertEquals(both + listOf(SetupStep.WHERE, SetupStep.TOGETHER, SetupStep.PLAN),
             builder.steps(SetupDraft(branch = PlanBranch.BOTH)))
@@ -273,8 +273,8 @@ class SetupFlowStateBuilderTest {
         assertEquals(listOf("A", "B", "C", "D"), plan.program.days.map { it.id })
         plan.program.days.take(3).forEach { assertEquals(CardioRule(1), it.cardioRule) }
         assertEquals(ProgramDayKind.REST, plan.program.days.last().kind)
-        // #646: the Test step follows Sub goal.
-        assertEquals(listOf(SetupStep.GOAL, SetupStep.ORDER, SetupStep.SUB_GOAL, SetupStep.TEST, SetupStep.RUN_GOAL,
+        // #646: Both resolves the run goal before offering Test, so sprint skips it.
+        assertEquals(listOf(SetupStep.GOAL, SetupStep.ORDER, SetupStep.SUB_GOAL, SetupStep.RUN_GOAL, SetupStep.TEST,
             SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT, SetupStep.WHERE, SetupStep.TOGETHER, SetupStep.PLAN),
             builder.steps(SetupDraft(branch = PlanBranch.BOTH)))
     }
@@ -519,10 +519,12 @@ class SetupFlowStateBuilderTest {
         }
     }
 
-    @Test fun `the Test step follows Sub goal on Lift and Both and is absent on Run and Sprint`() {
-        for (draft in listOf(SetupFlowFixtures.reference, SetupFlowFixtures.both)) {
+    @Test fun `the Test step follows Sub goal on Lift and Run goal on Both and is absent on Run and Sprint`() {
+        for ((draft, previous) in listOf(SetupFlowFixtures.reference to SetupStep.SUB_GOAL,
+            SetupFlowFixtures.both to SetupStep.RUN_GOAL)) {
             val steps = builder.steps(draft)
-            assertEquals(SetupStep.TEST, steps[steps.indexOf(SetupStep.SUB_GOAL) + 1])
+            // #646: Both chooses its cardio subtype before Test; Lift still follows Sub goal.
+            assertEquals(SetupStep.TEST, steps[steps.indexOf(previous) + 1])
         }
         for (draft in listOf(SetupFlowFixtures.run, SetupFlowFixtures.sprint, SetupFlowFixtures.bothSprint)) {
             assertFalse(SetupStep.TEST in builder.steps(draft))

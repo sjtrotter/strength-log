@@ -28,11 +28,6 @@
       }
     },
     {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
       "scrollTo": {
         "text": "100 m"
       }

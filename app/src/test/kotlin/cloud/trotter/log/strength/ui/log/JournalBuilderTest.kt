@@ -35,6 +35,9 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
+import cloud.trotter.log.strength.data.serialization.TestEventJson
+import cloud.trotter.log.strength.domain.standards.TestEvents
+import cloud.trotter.log.strength.domain.standards.TestRef
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -75,6 +78,53 @@ class JournalBuilderTest {
 
     private val squat = JournalBuilder.MainLift("bb_back_squat", "Barbell Back Squat", dayIndex = 0, goalLb = 235.0)
     private val bench = JournalBuilder.MainLift("bb_bench", "Barbell Bench Press", dayIndex = 1, goalLb = 195.0)
+
+    @Test fun `case 53 test trends split by identity and need two points`() {
+        val hrp = TestRef("aft_hrp", 1, 120)
+        val v2 = hrp.copy(version = 2)
+        val custom = TestRef("custom_pushup_window", 1, 120)
+        val rows = listOf(testResultFixture(hrp, 24, 1, 10), testResultFixture(hrp, 31, 2, 20),
+            testResultFixture(custom, 40, 3, 15), testResultFixture(v2, 50, 4, 30), testResultFixture(v2, 52, 5, 40))
+        val cards = JournalBuilder.testTrends(rows.reversed(), zone)
+        assertEquals(listOf(v2, hrp), cards.map { it.ref })
+        val card = cards.last()
+        assertEquals(listOf(24f, 31f), card.points.map { it.value })
+        assertEquals(listOf(true, true), card.points.map { it.newHigh })
+        assertEquals("AFT hand-release push-up", card.name)
+        assertEquals(24, card.first)
+        assertEquals(31, card.latest)
+        assertTrue(card.axisMin < 24 && card.axisMax > 31)
+        val renamed = TestEvents.get("aft_hrp").copy(name = "Stored event name")
+        assertEquals("Stored event name", JournalBuilder.testTrends(listOf(rows[0],
+            rows[1].copy(rulesJson = TestEventJson.encode(renamed))), zone).single().name)
+        val custom60 = TestRef("custom_pushup_window", 1, 60)
+        val customCard = JournalBuilder.testTrends(listOf(testResultFixture(custom60, 24, 6, 50),
+            testResultFixture(custom60, 27, 7, 60)), zone).single()
+        assertTrue(customCard.custom)
+        assertEquals(60, customCard.ref.windowSeconds)
+    }
+
+    @Test fun `test trend values are seconds for a hold`() {
+        val plank = TestRef("aft_plank", 1)
+        val card = JournalBuilder.testTrends(listOf(testResultFixture(plank, 150, 1, 10),
+            testResultFixture(plank, 190, 2, 20)), zone).single()
+        assertTrue(card.timed)
+        assertEquals(150, card.first)
+        assertEquals(190, card.latest)
+    }
+
+    @Test fun `test trends mark only standing highs and keep the newest four identities`() {
+        val hrp = TestRef("aft_hrp", 1, 120)
+        val rows = (1..5).flatMap { version ->
+            listOf(testResultFixture(hrp.copy(version = version), 31, version * 10L, version * 10L),
+                testResultFixture(hrp.copy(version = version), 31, version * 10L + 1, version * 10L + 1),
+                testResultFixture(hrp.copy(version = version), 24, version * 10L + 2, version * 10L + 2))
+        }
+        val cards = JournalBuilder.testTrends(rows, zone)
+        assertEquals(listOf(5, 4, 3, 2), cards.map { it.ref.version })
+        assertEquals(listOf(true, false, false), cards.first().points.map { it.newHigh })
+        assertEquals(emptyList(), JournalBuilder.testTrends(rows.map { it.copy(stop = "UNKNOWN") }, zone))
+    }
 
     @Test fun `cardio trends follow each activity and planned end`() {
         val (sessions, sets) = cardioTrendHistoryFixture()

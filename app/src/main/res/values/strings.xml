@@ -917,6 +917,10 @@
     <string name="plan_goal_remove">Remove goal</string>
     <string name="plan_log_attempt">Log attempt</string>
     <string name="plan_goal_shuttles_label">Shuttles</string>
+    <string name="plan_test_goal">Fitness test</string>
+    <string name="plan_test_required">Required %1$s</string>
+    <string name="plan_test_goal_edit">Fitness test goal</string>
+    <string name="plan_test_goal_remove_confirm">Remove fitness test goal?</string>
     <string name="rest_day_title">Rest</string>
     <string name="today_rest_day">%1$s — Rest</string>
     <string name="today_rest_taken">Rest taken</string>

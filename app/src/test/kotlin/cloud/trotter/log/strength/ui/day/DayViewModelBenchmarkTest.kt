@@ -28,6 +28,7 @@ import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.rest.NoOpRestRuntime
 import cloud.trotter.log.strength.rest.PhoneRestController
 import cloud.trotter.log.strength.transfer.health.SessionPublisher
+import cloud.trotter.log.strength.ui.log.testResultFixture
 import cloud.trotter.log.strength.ui.log.share.ShareCardService
 import java.io.File
 import java.time.Clock
@@ -165,6 +166,37 @@ class DayViewModelBenchmarkTest {
         vm.changeTimedRepDraft("27")
         vm.logTimedRepCount()
         runCurrent()
+    }
+
+    @Test fun `editing the test date removes the pre Start Benchmark without restarting`() = test {
+        prepare()
+        val vm = readyVm()
+        assertEquals(LiftMarker.BENCHMARK, vm.uiState.value.exercises.single().marker)
+        val plan = requireNotNull(repo.plans.selectedPlanIdFlow.first())
+        val today = Instant.ofEpochMilli(clock.millis()).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
+        repo.plans.setTestGoal(plan, TestGoal(listOf(TestEventGoal(hrp, 40)), today + 6))
+        runCurrent()
+        val card = vm.uiState.value.exercises.single()
+        assertNull(card.benchmark)
+        assertTrue(card.marker != LiftMarker.BENCHMARK)
+        assertEquals(20, card.timedRepAim)
+        assertEquals(3, card.rows.size)
+        repo.plans.setTestGoal(plan, TestGoal(listOf(TestEventGoal(hrp, 40)), today + 7))
+        runCurrent()
+        assertEquals(LiftMarker.BENCHMARK, vm.uiState.value.exercises.single().marker)
+    }
+
+    @Test fun `a new result refreshes the pre Start benchmark and deleting it restores the preview`() = test {
+        prepare()
+        val vm = readyVm()
+        assertEquals(LiftMarker.BENCHMARK, vm.uiState.value.exercises.single().marker)
+        repo.history.logTestResult(testResultFixture(completedAt = clock.millis()))
+        runCurrent()
+        assertNull(vm.uiState.value.exercises.single().benchmark)
+        assertEquals(20, vm.uiState.value.exercises.single().timedRepAim)
+        db.testResultDao().deleteAll()
+        runCurrent()
+        assertEquals(LiftMarker.BENCHMARK, vm.uiState.value.exercises.single().marker)
     }
 
     @Test fun `case 51 a window benchmark writes its count and a hold benchmark its seconds`() = test {

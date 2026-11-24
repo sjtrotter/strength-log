@@ -10,8 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -25,7 +23,6 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -53,16 +50,7 @@ import cloud.trotter.log.strength.ui.day.cardioActivityName
 import cloud.trotter.log.strength.ui.day.labelRes
 import cloud.trotter.log.strength.ui.day.timedLabelRes
 import cloud.trotter.log.strength.domain.model.SprintTime
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import kotlin.math.abs
-
-private val goalDateFormat = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US)
-
-private fun goalDate(epochDay: Long): String = LocalDate.ofEpochDay(epochDay).format(goalDateFormat)
 
 @Composable
 internal fun PlanCardioGoal(ui: PlanGoalUi, actions: PlanActions) {
@@ -180,31 +168,11 @@ internal fun PlanCardioGoalEditor(draft: PlanGoalDraft, exists: Boolean, actions
             TextButton(onClick = actions.onDismissGoal) { Text(stringResource(R.string.setup_cancel_button)) }
         },
     )
-    if (showDatePicker) {
-        val displayedDay = date ?: LocalDate.now().toEpochDay().coerceIn(PlanGoalDate.epochDays)
-        val picker = rememberDatePickerState(
-            initialSelectedDateMillis = date?.let {
-                LocalDate.ofEpochDay(it).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-            },
-            initialDisplayedMonthMillis = LocalDate.ofEpochDay(displayedDay)
-                .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
-            yearRange = PlanGoalDate.years,
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    picker.selectedDateMillis?.let {
-                        actions.onCardioGoalDraft(draft.copy(byEpochDay = Instant.ofEpochMilli(it).atOffset(ZoneOffset.UTC).toLocalDate().toEpochDay()))
-                    }
-                    showDatePicker = false
-                }, enabled = picker.selectedDateMillis != null) { Text(stringResource(R.string.plans_save)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.setup_cancel_button)) }
-            },
-        ) { DatePicker(picker) }
-    }
+    if (showDatePicker) GoalDatePicker(
+        epochDay = draft.byEpochDay,
+        onDate = { actions.onCardioGoalDraft(draft.copy(byEpochDay = it)) },
+        onDismiss = { showDatePicker = false },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -362,30 +330,9 @@ internal fun PlanSprintGoalEditor(draft: SprintGoalDraft, actions: PlanActions, 
             TextButton(onClick = actions.onDismissGoal) { Text(stringResource(R.string.setup_cancel_button)) }
         },
     )
-    if (showDatePicker) {
-        val displayedDay = date ?: LocalDate.now().toEpochDay().coerceIn(PlanGoalDate.epochDays)
-        val picker = rememberDatePickerState(
-            initialSelectedDateMillis = date?.let {
-                LocalDate.ofEpochDay(it).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-            },
-            initialDisplayedMonthMillis = LocalDate.ofEpochDay(displayedDay)
-                .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
-            yearRange = PlanGoalDate.years,
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    picker.selectedDateMillis?.let {
-                        actions.onSprintGoalDraft(draft.copy(byEpochDay = Instant.ofEpochMilli(it)
-                            .atOffset(ZoneOffset.UTC).toLocalDate().toEpochDay()))
-                    }
-                    showDatePicker = false
-                }, enabled = picker.selectedDateMillis != null) { Text(stringResource(R.string.plans_save)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.setup_cancel_button)) }
-            },
-        ) { DatePicker(picker) }
-    }
+    if (showDatePicker) GoalDatePicker(
+        epochDay = draft.byEpochDay,
+        onDate = { actions.onSprintGoalDraft(draft.copy(byEpochDay = it)) },
+        onDismiss = { showDatePicker = false },
+    )
 }

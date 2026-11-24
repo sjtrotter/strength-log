@@ -194,6 +194,30 @@
     },
     {
       "checkpoint": "benchmark-receipt"
+    },
+    {
+      "tap": {
+        "text": "Plans",
+        "role": "Tab"
+      }
+    },
+    {
+      "tap": {
+        "text": "General fitness, 3 days"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Best 27 · Required 40"
+      }
+    },
+    {
+      "expect": {
+        "text": "Best 27 · Required 40"
+      }
+    },
+    {
+      "checkpoint": "benchmark-goal-card"
     }
   ]
 }

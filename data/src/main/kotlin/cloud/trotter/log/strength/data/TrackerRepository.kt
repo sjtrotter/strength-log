@@ -761,8 +761,8 @@ class TrackerRepository(
         plans.programFor(planId), plans.slotsFor(planId, dayId), dayTracksFlow(planId, dayId),
         plans.planSettingsFor(planId), combine(catalog.catalogFlow, sessionDao.observeHistoryChanges(), settings.unitFlow,
             combine(settings.lifterProfileFlow, planDao.observePlan(planId)) { profile, plan ->
-                olderAdult(plan, profile)
-            }.distinctUntilChanged(),
+                olderAdult(plan, profile) to plan?.testGoalJson
+            }.distinctUntilChanged().combine(testResultDao.observeAll()) { (olderAdult, _), _ -> olderAdult },
         ) { catalog, _, unit, olderAdult ->
             Triple(catalog, unit, olderAdult)
         },

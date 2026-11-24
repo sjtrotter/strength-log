@@ -1093,6 +1093,22 @@ class LogViewModelTest {
         collect.cancel()
     }
 
+    @Test fun `History observes new test results and removes trends after deletion`() = runVmTest {
+        val vm = newViewModel()
+        val collect = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        repo.history.logTestResult(testResultFixture(value = 24, id = 1, completedAt = 10))
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.journal.testTrends.isEmpty())
+        repo.history.logTestResult(testResultFixture(value = 31, id = 2, completedAt = 20))
+        advanceUntilIdle()
+        assertEquals(listOf(24f, 31f), vm.uiState.value.journal.testTrends.single().points.map { it.value })
+        db.testResultDao().deleteAll()
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.journal.testTrends.isEmpty())
+        collect.cancel()
+    }
+
     @Test fun `History builds cardio trends from the database`() = runVmTest {
         val (sessions, sets) = cardioTrendHistoryFixture()
         for (session in sessions) {

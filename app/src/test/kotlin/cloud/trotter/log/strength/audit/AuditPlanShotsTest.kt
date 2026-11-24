@@ -8,6 +8,8 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.navigation.TopLevelDestination
+import cloud.trotter.log.strength.ui.plan.TestGoalDraft
+import cloud.trotter.log.strength.ui.plan.testGoalPlanFixture
 import cloud.trotter.log.strength.ui.plan.PlanActions
 import cloud.trotter.log.strength.ui.plan.PlanDay
 import cloud.trotter.log.strength.ui.plan.PlanScreen
@@ -129,6 +131,40 @@ class AuditPlanShotsTest : UiAuditTest() {
             rule.onNode(hasScrollAction()).performScrollToNode(hasText("Goals"))
         }) { PlanScreen(planScreenFixture().copy(
             goals = listOf(PlanLiftGoal("bb_back_squat", "Barbell Back Squat", false, 235.0, "235"))), PlanActions({}, {}, {})) }
+    }
+
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun shot24PlanTestGoal() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        rule.auditShot("plan/24-plan-test-goal", beforeCapture = {
+            rule.onNode(hasScrollAction()).performScrollToNode(hasText("Fitness test"))
+        }) { PlanScreen(testGoalPlanFixture(), PlanActions({}, {}, {})) }
+    }
+
+    @Test @Config(fontScale = 2f, qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun shot25PlanTestGoalFont2() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        rule.auditShot("plan/25-plan-test-goal-font2", fontScale = 2f, beforeCapture = {
+            rule.onNode(hasScrollAction()).performScrollToNode(hasText("Fitness test"))
+        }) { PlanScreen(testGoalPlanFixture(), PlanActions({}, {}, {})) }
+    }
+
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun shot26PlanTestGoalEditor() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        val state = testGoalPlanFixture()
+        rule.auditShot("plan/26-plan-test-goal-editor") { PlanScreen(state.copy(
+            testGoalDraft = TestGoalDraft(mapOf("aft_hrp" to "40", "aft_plank" to "3:40"), state.testGoal?.goal?.byEpochDay)),
+            PlanActions({}, {}, {})) }
+    }
+
+    @Test @Config(fontScale = 2f, qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun shot27PlanTestGoalEditorFont2() {
+        assumeTrue(System.getProperty("uiAudit.record") == "true")
+        val state = testGoalPlanFixture()
+        rule.auditShot("plan/27-plan-test-goal-editor-font2", fontScale = 2f) { PlanScreen(state.copy(
+            testGoalDraft = TestGoalDraft(mapOf("aft_hrp" to "40", "aft_plank" to "3:40"), state.testGoal?.goal?.byEpochDay)),
+            PlanActions({}, {}, {})) }
     }
 
     private fun plansFixture(count: Int) = PlansUiState(

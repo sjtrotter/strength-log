@@ -198,6 +198,27 @@ class LogScreenInteractionTest {
         assertTrue(session.getUnclippedBoundsInRoot().top - listTop < 96.dp)
     }
 
+    @Test fun `calendar tap scrolls to its session with test trend cards`() {
+        val history = auditHistoryFixture()
+        val rows = listOf(testResultFixture(value = 24, id = 1, completedAt = 10),
+            testResultFixture(value = 31, id = 2, completedAt = 20))
+        val journal = history.journal.copy(testTrends = JournalBuilder.testTrends(rows, java.time.ZoneOffset.UTC))
+        val sessions = history.sessions + List(20) { i ->
+            logSessionFixture(false).copy(sessionId = 100L + i, dateDisplay = "Older session $i")
+        }
+        setContent(false, sessions = sessions, journal = journal)
+        // The trend cards push the toggle past the lazy list's composed items, so scroll the list to it first.
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Trends and calendar"))
+        composeTestRule.onNodeWithText("Trends and calendar").performClick()
+        composeTestRule.onNode(hasScrollAction())
+            .performScrollToNode(hasContentDescription("November 3, today, day A, 1 session"))
+        composeTestRule.onNodeWithContentDescription("November 3, today, day A, 1 session").performClick()
+        composeTestRule.waitForIdle()
+        val session = composeTestRule.onNodeWithText(history.sessions.first().dateDisplay).assertIsDisplayed()
+        val listTop = composeTestRule.onNode(hasScrollAction()).getUnclippedBoundsInRoot().top
+        assertTrue(session.getUnclippedBoundsInRoot().top - listTop < 96.dp)
+    }
+
     @Test
     fun weeklyDistanceShowsMilesMissingSessionsAndRowingMeters() {
         setContent(false, journal = JournalUiState(weeklyDistance = listOf(

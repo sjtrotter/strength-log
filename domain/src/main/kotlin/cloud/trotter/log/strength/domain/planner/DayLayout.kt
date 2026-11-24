@@ -241,7 +241,9 @@ internal fun PlanDraft.withBalanceDays(answers: SetupAnswers, known: KnownLoads)
     val ids = order.indices.map { ('A' + it).toString() }
     val lift = relabel(this, order.zip(ids).mapNotNull { (day, id) -> day?.let { it.id to id } }.toMap())
     return lift.copy(
-        program = Program(order.zip(ids).map { (day, id) -> day?.copy(id = id) ?: seeded.single().copy(id = id) }),
+        program = Program(order.zip(ids).map { (day, id) ->
+            if (day == null) seeded.single().copy(id = id) else lift.program.days.first { it.id == id }
+        }),
         working = lift.working + order.zip(ids).filter { it.first == null }.flatMap { (_, id) ->
             rows.map { (key, value) -> key.copy(dayId = id) to value }
         },

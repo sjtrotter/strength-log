@@ -76,6 +76,7 @@ import cloud.trotter.log.strength.domain.model.SetLabel
 import cloud.trotter.log.strength.domain.model.SetLabels
 import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.progression.FinishedRule
+import cloud.trotter.log.strength.domain.progression.LoadFollowing
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.seeding.SetEdit
@@ -2771,7 +2772,7 @@ class DayViewModel @Inject constructor(
         val dayIndex = Program.accentIndex(dayId)
         val cards = performedDay.slots.map { slot ->
             buildCard(slot, ctx.unit, history, ctx.plan,
-                ctx.plan?.planSettings?.defaultsFor ?: LiftGoal.STRENGTH).copy(
+                ctx.plan?.planSettings?.defaultsFor ?: LiftGoal.STRENGTH, program, dayId, performedDay.catalog).copy(
                 weightSwap = DayScreenBuilder.weightSwapAffordance(slot.main.performed.entry, performedDay.catalog),
             )
         }
@@ -3221,6 +3222,9 @@ class DayViewModel @Inject constructor(
         history: DayHistory,
         plan: PlanEntity?,
         liftGoal: LiftGoal,
+        program: Program,
+        dayId: String,
+        catalog: ExerciseCatalog,
     ): ExerciseCardState {
         val id = slot.slot.programExerciseId
         val performed = slot.main.performed
@@ -3295,6 +3299,7 @@ class DayViewModel @Inject constructor(
             lastTimeDisplay = DayScreenBuilder.lastTimeDisplay(lastPerformed, history.last.sets[performed.exerciseId].orEmpty(), unit),
             lastTimeDate = history.last.dates[performed.exerciseId]?.let { DayScreenBuilder.lastTimeDate(it, clock.zone) },
             lastTimeSource = history.last.sources[performed.exerciseId],
+            follows = LoadFollowing.followedDay(program, dayId, pe, catalog.loadSourceTracking(pe.exerciseId)),
             partnerSetLabels = DayScreenBuilder.kindLabels(partnerSets.orEmpty()),
             partnerHeaderTarget = partnerHeaderTarget,
             partnerLastTimeDisplay = DayScreenBuilder.lastTimeDisplay(partner?.exerciseId?.let(history.last.performed::get),

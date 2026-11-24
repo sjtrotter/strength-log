@@ -189,6 +189,9 @@ internal fun SessionReceiptScreen(
                 val rows: @Composable ColumnScope.() -> Unit = {
                     group.rows.forEachIndexed { rowIndex, row ->
                         key(receipt.sessionId, groupIndex, rowIndex) {
+                            val lift = progress.lifts.firstOrNull {
+                                it.ref.groupIndex == groupIndex && it.ref.rowIndex == rowIndex
+                            }
                             StrengthReceiptRow(if (receipt.recordsChecked) row else row.copy(record = null), receipt.unit, receipt.dayIndex,
                                 "${receipt.sessionId}:$groupIndex:$rowIndex", { roll.value },
                                 if (group.rounds != null) stringResource(R.string.receipt_superset_gutter, rowIndex + 1) else null,
@@ -198,7 +201,7 @@ internal fun SessionReceiptScreen(
                                     ?.firstOrNull { it.groupIndex == groupIndex && it.rowIndex == rowIndex },
                                 backoffLines = backoffLabels?.takeIf { it.sessionId == receipt.sessionId }?.lines.orEmpty()
                                     .filter { it.groupIndex == groupIndex && it.rowIndex == rowIndex }.map { it.lineIndex }.toSet(),
-                                nextTime = progress.lifts.firstOrNull { it.ref.groupIndex == groupIndex && it.ref.rowIndex == rowIndex }?.line)
+                                nextTime = lift?.line, followers = lift?.followers.orEmpty())
                         }
                     }
                 }

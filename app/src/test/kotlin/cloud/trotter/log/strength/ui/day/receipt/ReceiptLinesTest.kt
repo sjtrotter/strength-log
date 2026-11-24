@@ -199,4 +199,40 @@ class ReceiptLinesTest {
         }
     }
 
+    @Test fun `Why names the day a follower follows and its percentage`() {
+        val rule = rule.copy(loadSource = cloud.trotter.log.strength.domain.progression.LoadSource("A", 170.0 / 185.0))
+        val stored = line(175.0, session(offer = null, reason = "FOLLOWED"), inputRule = rule)
+        assertEquals("Squat 175 lb next time: follows Day A at 92%.",
+            ReceiptLines.why("Squat", stored, WeightUnit.LB, resources))
+        assertEquals("Squat 175 lb next time (+5): follows Day A at 92%.",
+            ReceiptLines.why("Squat", stored.copy(delta = 5.0), WeightUnit.LB, resources))
+        assertEquals("A", stored.followsDay)
+        assertEquals(170.0 / 185.0, stored.ratio)
+    }
+
+    @Test fun `a follower label carries the day and the delta`() {
+        assertEquals("Day C: 175 lb (+5)", ReceiptLines.followerLabel(ReceiptFollower("C", 175.0, 5.0), WeightUnit.LB, resources))
+        assertEquals("Day C: 175 lb", ReceiptLines.followerLabel(ReceiptFollower("C", 175.0, null), WeightUnit.LB, resources))
+        assertEquals("Day C: 175 lb (−5)", ReceiptLines.followerLabel(ReceiptFollower("C", 175.0, -5.0), WeightUnit.LB, resources))
+    }
+
+    @Test fun `Why keeps a followed line after a follower switches to Own results`() {
+        val stored = line(175.0, session(offer = null, reason = "FOLLOWED"))
+        assertEquals("Squat 175 lb next time: set from another day.",
+            ReceiptLines.why("Squat", stored, WeightUnit.LB, resources))
+        assertEquals("Next time: 175 lb", text(stored))
+        assertEquals("Next time: 175 lb (+5)", text(stored.copy(delta = 5.0)))
+    }
+
+    @Test fun `spoken followers name the day load and direction in the chosen unit`() {
+        assertEquals("Day C, 175 pounds, up 5 pounds.",
+            ReceiptLines.spokenFollower(ReceiptFollower("C", 175.0, 5.0), WeightUnit.LB, resources))
+        assertEquals("Day E, 165 pounds, down 5 pounds.",
+            ReceiptLines.spokenFollower(ReceiptFollower("E", 165.0, -5.0), WeightUnit.LB, resources))
+        assertEquals("Day E, 165 pounds.",
+            ReceiptLines.spokenFollower(ReceiptFollower("E", 165.0, null), WeightUnit.LB, resources))
+        assertEquals("Day C, 80 kilograms, up 2.5 kilograms.",
+            ReceiptLines.spokenFollower(ReceiptFollower("C", WeightUnit.KG.toLb(80.0), 2.5), WeightUnit.KG, resources))
+    }
+
 }

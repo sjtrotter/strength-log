@@ -91,6 +91,7 @@ internal fun LiftSheet(
                 else -> stringResource(R.string.lift_sheet_last_date, it, date)
             }
         },
+        card.follows?.takeIf { !partner }?.let { stringResource(R.string.lift_sheet_follows, it) },
         target?.let { DayScreenBuilder.headerTargetDetail(it, stringResource(R.string.day_target_each_side)) }
             ?.takeIf { it.isNotBlank() },
         marker?.let { stringResource(R.string.lift_sheet_marker, stringResource(it.label)) },

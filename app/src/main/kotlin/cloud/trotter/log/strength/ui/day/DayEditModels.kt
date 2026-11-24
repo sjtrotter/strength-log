@@ -78,6 +78,7 @@ data class DayEditSlotState(
     val rows: List<LoggedSet>? = null,
     val nextTime: NextTimeMode = NextTimeMode.ASK,
     val lifts: List<LiftOptionsState> = emptyList(),
+    val follows: String? = null,
 ) {
     val prescribed: Boolean get() = prescription != null
     val keptToPlan: Boolean get() = keepToPlan
@@ -92,6 +93,9 @@ data class LiftOptionsState(
     val rir: Int,
     val incrementPct: Double,
     val stepText: String?,
+    val sourceDays: List<String> = emptyList(),
+    val loadSource: String? = null,
+    val loadRatio: Double? = null,
 )
 
 /** Callbacks the day-edit sheet forwards to [DayViewModel]. */

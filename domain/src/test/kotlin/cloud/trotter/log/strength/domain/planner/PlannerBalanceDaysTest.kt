@@ -99,4 +99,19 @@ class PlannerBalanceDaysTest {
         assertTrue(draft.program.days.none { it.title == "Balance" })
         assertFalse(PlanReason.BalanceDays in draft.reasons || PlanReason.BalanceDaysOffered in draft.reasons)
     }
+    @Test fun `balance insertion keeps the relabeled load source ids`() {
+        val original = liftDraft(older(2), KnownLoads.NONE)
+        val first = original.program.days.first()
+        val linked = original.copy(program = original.program.copy(days = original.program.days.map { day ->
+            if (day.id != first.id) day else day.copy(exercises = day.exercises.mapIndexed { index, slot ->
+                if (index != 0) slot else slot.copy(rule = requireNotNull(slot.rule).copy(
+                    loadSource = cloud.trotter.log.strength.domain.progression.LoadSource("B", 0.9)))
+            })
+        }))
+        val balanced = linked.withBalanceDays(older(2).copy(balanceDays = true), KnownLoads.NONE)
+        assertEquals("C", balanced.program.days.first().exercises.first().rule?.loadSource?.dayId)
+        assertEquals(relabel(linked, mapOf("A" to "A", "B" to "C")).program.days,
+            balanced.program.days.filter { it.title != "Balance" })
+    }
+
 }

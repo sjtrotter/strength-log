@@ -238,6 +238,7 @@ internal fun StrengthReceiptRow(
     gutter: String? = null,
     nextTime: ReceiptLiftLine? = null,
     backoffLines: Set<Int> = emptySet(),
+    followers: List<ReceiptFollower> = emptyList(),
     sideSets: Map<Int, ReceiptSideSet> = emptyMap(),
     gap: ReceiptSideGap? = null,
 ) {
@@ -246,7 +247,7 @@ internal fun StrengthReceiptRow(
         return
     }
     val gapText = gap?.let { stringResource(if (it.left) R.string.receipt_side_gap_left else R.string.receipt_side_gap_right, SideGap.SESSIONS) }
-    val spoken = listOfNotNull(spokenRow(row, unit, nextTime, backoffLines), gapText).joinToString(" ")
+    val spoken = listOfNotNull(spokenRow(row, unit, nextTime, backoffLines, followers), gapText).joinToString(" ")
     ExpandableReceiptRow(rowKey, row.name, spoken, row.shape == ReceiptRow.Shape.STRAIGHT || sideSets.isNotEmpty(),
         dayIndex, row.record?.kind, gutter, values = {
             row.lines.forEachIndexed { lineIndex, line ->
@@ -288,6 +289,10 @@ internal fun StrengthReceiptRow(
             if (gapText != null) ValueLabel(gapText)
             if (row.shape == ReceiptRow.Shape.HEAVIEST_NO_TOP) ValueLabel(stringResource(R.string.receipt_top_set_not_logged))
             if (nextTime != null) ValueLabel(ReceiptLines.label(nextTime, unit, LocalContext.current.resources))
+            followers.forEach {
+                Text(ReceiptLines.followerLabel(it, unit, LocalContext.current.resources),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }, children = {
             row.sets.forEachIndexed { index, set ->
                 val mark = row.record?.takeIf { it.setIndex == index }

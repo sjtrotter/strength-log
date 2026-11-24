@@ -19,7 +19,9 @@ import cloud.trotter.log.strength.domain.progression.SprintDose
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.domain.model.Equipment
+import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.ui.day.CardioEntryDraft
 import cloud.trotter.log.strength.ui.day.CardioEntrySheet
 import cloud.trotter.log.strength.ui.day.ExercisePickerScreen
@@ -94,6 +96,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
@@ -119,8 +123,6 @@ import cloud.trotter.log.strength.domain.model.CardioSetSpec
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
-import cloud.trotter.log.strength.domain.model.LoggedSet
-import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.CardioEffort
 import cloud.trotter.log.strength.domain.progression.NextTimeMode
 import cloud.trotter.log.strength.domain.progression.EffortScale
@@ -137,6 +139,7 @@ import cloud.trotter.log.strength.ui.day.UndoOffer
 import cloud.trotter.log.strength.ui.day.workoutActions
 import cloud.trotter.log.strength.ui.day.receipt.PlannedSets
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptGroup
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptFollower
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptLiftLine
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptLiftProgress
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptMutation
@@ -671,6 +674,55 @@ class ProgressionPreviewShotsTest {
     fun historyCardioTrends() = historyCardioTrends("p84-history-cardio-trends.png", 1f)
     @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
     fun historyCardioTrendsLargeFont() = historyCardioTrends("p85-history-cardio-trends-2x.png", 2f)
+
+    private fun liftOptionsLoadSource(name: String, scale: Float) {
+        val slot = DayEditSlotState(1, 0, "bb_back_squat", "Barbell Back Squat", null, false,
+            weightedTarget = true, lifts = listOf(LiftOptionsState(Slot.MAIN, "Barbell Back Squat",
+                180, 180, false, 2, 0.025, "5 lb", sourceDays = listOf("A"), loadSource = "A", loadRatio = 0.92)))
+        render(scale) { Surface(color = MaterialTheme.colorScheme.surface) {
+            SlotOptionsScreen(slot, {}, {}, {}, {}, {}, {}, false, {}, {}, {}, {})
+        } }
+        rule.onNodeWithText("Day A").performScrollTo().assertIsDisplayed().assertIsSelected()
+        rule.onNodeWithText("Load source").assertIsDisplayed()
+        rule.onNodeWithText("Own results").assertIsDisplayed().assertIsNotSelected()
+        capture(name)
+    }
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun liftOptionsLoadSource() = liftOptionsLoadSource("p97-lift-options-load-source.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun liftOptionsLoadSourceLargeFont() = liftOptionsLoadSource("p98-lift-options-load-source-2x.png", 2f)
+
+    private fun dayEditorFollows(name: String, scale: Float) {
+        val slot = DayEditSlotState(1, 0, "bb_back_squat", "Barbell Back Squat", null, false,
+            rows = List(3) { LoggedSet(170.0, 5, SetKind.WORK) }, follows = "A")
+        render(scale) { DayPlanEditor(DayEditUiState(slots = listOf(slot), planEditing = true),
+            "C", false, MaterialTheme.colorScheme.primary,
+            DayEditActions(onSwap = { _, _ -> }, onAdd = {}, onRemove = {}, onSetSuperset = { _, _ -> },
+                onRemoveSuperset = {}, onResetToTemplate = {}), {}, {}) }
+        rule.onNodeWithText("Follows Day A").assertIsDisplayed()
+        capture(name)
+    }
+    @Test fun dayEditorFollows() = dayEditorFollows("p99-day-editor-follows.png", 1f)
+    @Test fun dayEditorFollowsLargeFont() = dayEditorFollows("p100-day-editor-follows-2x.png", 2f)
+
+    private fun receiptFollowers(name: String, scale: Float) {
+        val row = ReceiptRow("Barbell Back Squat", TrackingType.WEIGHTED, ReceiptRow.Shape.STRAIGHT,
+            List(3) { ReceiptSet(185.0, 5, 0) }, listOf(ValueLine(185.0, listOf(0, 1, 2))),
+            0, PlannedSets(3, 185.0, 5, 0), null)
+        val line = ReceiptLiftLine(190.0, null, null, 5.0, false, "ALL_MADE", 1, true)
+        val progress = ReceiptProgressState(lifts = listOf(ReceiptLiftProgress(ReceiptSlotRef(0, 0, 7, Slot.MAIN),
+            row.name, line, whyLine = line, followers = listOf(ReceiptFollower("C", 175.0, 5.0)))))
+        render(scale) {
+            SessionReceiptScreen(receiptFixture().copy(groups = listOf(ReceiptGroup(null, listOf(row))),
+                cardioRows = emptyList(), activity = null), {}, {}, progress = progress)
+        }
+        rule.onNodeWithText("Day C: 175 lb (+5)", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        capture(name)
+    }
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun receiptFollowers() = receiptFollowers("p101-receipt-followers.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun receiptFollowersLargeFont() = receiptFollowers("p102-receipt-followers-2x.png", 2f)
 
     private fun eachSideEditor(name: String, scale: Float) {
         val state = workoutSetEachSideFixture(split = true)

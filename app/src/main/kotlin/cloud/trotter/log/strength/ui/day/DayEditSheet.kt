@@ -526,7 +526,10 @@ private fun DaySlotRow(
     var expanded by remember(slot.programExerciseId) { mutableStateOf(false) }
     ListItem(
         headlineContent = { Text(slot.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
-        supportingContent = { Text(summary) },
+        supportingContent = { Column {
+            Text(summary)
+            slot.follows?.let { Text(stringResource(R.string.day_edit_follows, it)) }
+        } },
         trailingContent = {
             Box {
                 IconButton(onClick = { expanded = true }) {
@@ -1184,6 +1187,24 @@ private fun LiftRuleOptions(lift: LiftOptionsState, showTitle: Boolean, onEdit: 
     }
     Text(stringResource(R.string.lift_options_reps_left_detail), style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant)
+    if (lift.sourceDays.isNotEmpty()) {
+        Spacer(Modifier.size(16.dp))
+        Text(stringResource(R.string.lift_options_load_source), style = MaterialTheme.typography.titleSmall)
+        Column(Modifier.selectableGroup()) {
+            (listOf<String?>(null) + lift.sourceDays).forEach { day ->
+                val label = day?.let { stringResource(R.string.preview_last_day, it) }
+                    ?: stringResource(R.string.lift_options_load_source_own)
+                ListItem(headlineContent = { Text(label) },
+                    leadingContent = { RadioButton(selected = lift.loadSource == day, onClick = null) },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).selectable(selected = lift.loadSource == day,
+                        role = Role.RadioButton, onClick = { onEdit(RuleEdit.LoadSource(day)) }))
+            }
+        }
+        Text(lift.loadSource?.let { stringResource(R.string.lift_options_load_source_follow_detail,
+            loadSourcePercent(lift.loadRatio ?: 1.0), it) }
+            ?: stringResource(R.string.lift_options_load_source_own_detail),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
     if (lift.stepText != null) ListItem(
         headlineContent = { Text(stringResource(R.string.lift_options_increase)) },
         supportingContent = { Text(stringResource(R.string.lift_options_increase_value,

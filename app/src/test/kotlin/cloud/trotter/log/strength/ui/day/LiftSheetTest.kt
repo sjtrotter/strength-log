@@ -453,4 +453,18 @@ class LiftSheetTest {
         rule.onNodeWithContentDescription("More").performClick()
         rule.onNodeWithText("Skip for this workout").assertIsDisplayed()
     }
+    @Test fun `the support line names the day a lift follows`() {
+        var card by mutableStateOf(workoutLiftSheetFixture().exercises.single().copy(follows = "A"))
+        var half by mutableStateOf(Slot.MAIN)
+        rule.setContent { AppTheme {
+            LiftSheet(card, half, null, workoutActions(), false, null, {}, {}, {})
+        } }
+        rule.onNodeWithText("Follows Day A.", substring = true).assertIsDisplayed()
+        rule.runOnIdle {
+            card = workoutSetSupersetFixture().exercises.single().copy(follows = "A")
+            half = Slot.SS
+        }
+        rule.onNodeWithText("Follows Day A.", substring = true).assertDoesNotExist()
+    }
+
 }

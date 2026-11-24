@@ -15,6 +15,12 @@ data class LoadSource(val dayId: String, val ratio: Double) {
 }
 
 object LoadFollowing {
+    fun validRatio(ratio: Double): Boolean = ratio.isFinite() && ratio > 0.0 && ratio <= 4.0
+
+    fun ratio(rule: SlotRule, sourceRule: SlotRule, loadLb: Double?, sourceLoadLb: Double?): Double? =
+        (if (loadLb != null && sourceLoadLb != null) loadLb / sourceLoadLb
+        else Estimate.loadRatio(rule.target.reps, rule.rir, sourceRule.target.reps, sourceRule.rir))?.takeIf(::validRatio)
+
     fun linkable(slot: ProgramExercise, tracking: TrackingType): Boolean {
         val authored = slot.prescription?.target
         return slot.rule != null && !slot.keepToPlan && tracking == TrackingType.WEIGHTED &&

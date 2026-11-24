@@ -1322,6 +1322,18 @@ class ReceiptScreenTest {
         rule.onNodeWithText("Starting dose: 2 more sessions.").performScrollTo().assertIsDisplayed()
     }
 
+    @Test fun `the source row shows each follower beneath Next time`() {
+        val receipt = receiptFixture().copy(groups = receiptFixture().groups.take(1), cardioRows = emptyList(), activity = null)
+        val line = ReceiptLiftLine(190.0, null, null, 5.0, false, "ALL_MADE", 1, true)
+        val progress = ReceiptProgressState(lifts = listOf(ReceiptLiftProgress(ReceiptSlotRef(0, 0, 7, "main"),
+            "Squat", line, whyLine = line, followers = listOf(ReceiptFollower("C", 175.0, 5.0), ReceiptFollower("E", 165.0, null)))))
+        rule.setContent { AppTheme { SessionReceiptScreen(receipt, {}, {}, progress = progress) } }
+        rule.onNodeWithContentDescription("Next time, 190 pounds, up 5 pounds.", substring = true).assertIsDisplayed() // #647: read the merged row.
+        rule.onNodeWithContentDescription("Day C, 175 pounds, up 5 pounds.", substring = true).assertIsDisplayed() // #647: TalkBack hears the move.
+        rule.onNodeWithText("Day C: 175 lb (+5)", useUnmergedTree = true).assertExists()
+        rule.onNodeWithContentDescription("Day E, 165 pounds.", substring = true).assertIsDisplayed() // #647: TalkBack hears each follower.
+    }
+
     @Test fun `an each side set line reads left then right`() {
         val row = ReceiptRow("Side Plank", TrackingType.TIMED, ReceiptRow.Shape.STRAIGHT,
             listOf(ReceiptSet(0.0, 0, 40)), listOf(ValueLine(null, listOf(0))), 0, null, null)

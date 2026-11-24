@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data.serialization
 
+import cloud.trotter.log.strength.domain.progression.LoadFollowing
 import cloud.trotter.log.strength.domain.progression.LoadSource
 import cloud.trotter.log.strength.domain.progression.EffortScale
 import cloud.trotter.log.strength.domain.progression.NextTimeMode
@@ -45,7 +46,7 @@ import kotlinx.serialization.Serializable
         require(state.resetEpochDays.size <= 2)
         require(state.resetEpochDays.zipWithNext().all { (a, b) -> a <= b })
         loadSource?.let {
-            require(it.dayId.isNotBlank() && it.dayId.length <= 30 && it.ratio.isFinite() && it.ratio > 0.0 && it.ratio <= 4.0)
+            require(it.dayId.isNotBlank() && it.dayId.length <= 30 && LoadFollowing.validRatio(it.ratio))
         }
         return SlotRule(parsedRole, parsedTarget, rir, incrementPct, everyExposures, dropPct, parsedScheme,
             restSeconds, parsedNextTime, loadSource = loadSource?.let { LoadSource(it.dayId, it.ratio) },

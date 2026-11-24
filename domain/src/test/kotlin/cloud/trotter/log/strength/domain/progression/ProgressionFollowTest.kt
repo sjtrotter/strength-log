@@ -118,4 +118,17 @@ class ProgressionFollowTest {
         assertEquals(work(175.0), out.rows)
         assertEquals(Reason.AllMade, out.reason)
     }
+    @Test fun `a changed load outside the ratio bound keeps the prior ratio`() {
+        val input = follower()
+        val rows = work(170.0)
+        val raised = finish(input, rows, actual(rows, weight = 1000.0), ctx(190.0))
+        assertEquals(input.loadSource, raised.rule.loadSource)
+        assertEquals(work(175.0), raised.rows)
+        assertEquals(Reason.Followed, raised.reason)
+        val lowered = finish(input, rows, actual(rows, weight = 0.0), ctx(190.0))
+        assertEquals(input.loadSource, lowered.rule.loadSource)
+        assertEquals(work(0.0), lowered.rows)
+        assertEquals(Reason.Lowered, lowered.reason)
+    }
+
 }

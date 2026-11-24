@@ -21,6 +21,11 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.PlanEntity
+import cloud.trotter.log.strength.data.db.entity.TestResultEntity
+import cloud.trotter.log.strength.data.serialization.TestEventJson
+import cloud.trotter.log.strength.domain.progression.Benchmark
+import cloud.trotter.log.strength.domain.standards.TestEvents
+import cloud.trotter.log.strength.domain.standards.TestStop
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.forRun
 import cloud.trotter.log.strength.data.isSlotSkipped
@@ -1732,9 +1737,10 @@ class DayViewModel @Inject constructor(
             }
             return
         }
-        val caution = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }?.holdPressureCaution == true
+        val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }
+        val runPastTarget = card?.benchmark != null || (pastTarget && card?.holdPressureCaution != true)
         startSetTimer(programExerciseId, setIndex, { holdToStart(programExerciseId, setIndex) }, { it.dayId },
-            onAccepted = { savedState[KEY_HOLD_PAST_TARGET] = pastTarget && !caution }) {
+            onAccepted = { savedState[KEY_HOLD_PAST_TARGET] = runPastTarget }) {
             savedState[KEY_HOLD] = it
         }
     }
@@ -2106,6 +2112,9 @@ class DayViewModel @Inject constructor(
                     }
                 })
                 if (result !is RunWriteResult.InRun) return@locked
+                if (halves.any { it.slot == Slot.MAIN }) {
+                    historyRepository.deleteTestResult(runId, target.programExerciseId, target.index)
+                }
                 skip()
                 settings.setWorkoutRecord(WorkoutRecord(runId, "exercise:${target.programExerciseId}"))
             }
@@ -2148,7 +2157,10 @@ class DayViewModel @Inject constructor(
             }
             val performed = performedExercise(programSlot, track?.exerciseId, catalog.catalogFlow.first())
             val target = performed.prescription?.target as? PrescribedTarget.RepsInTime
-            if (performed.exerciseId != countEvent.exerciseId || target?.seconds != countEvent.durationSeconds) return false
+            val duration = if (track?.opening?.benchmark == true) {
+                performed.prescription?.test?.let { ref -> TestEvents.matches(ref)?.let { TestEvents.window(it, ref.windowSeconds) } }
+            } else target?.seconds
+            if (performed.exerciseId != countEvent.exerciseId || duration != countEvent.durationSeconds) return false
         }
         if (hold != null && (holdEvent.value != hold || day != hold.dayId || !holdMatches(dayState.value, hold))) return false
         if (slots.isEmpty() || slots.any { it != Slot.MAIN && it != Slot.SS }) return false
@@ -2198,6 +2210,30 @@ class DayViewModel @Inject constructor(
         val logged = writtenAfter.getValue(slot)
         if (countEvent != null) clearTimedRep()
         if (hold != null) clearHold()
+        if (Slot.MAIN in writtenBefore) {
+            val before = writtenBefore.getValue(Slot.MAIN)
+            val after = writtenAfter.getValue(Slot.MAIN)
+            if (!checked && before.done) {
+                historyRepository.deleteTestResult(runId, programExerciseId, index)
+            } else if (checked && !before.done && after.done) {
+                card?.prescriptionTest?.let { link ->
+                    historyRepository.logTestResult(TestResultEntity(
+                        completedAt = loggedAt, planId = planId, dayId = day, runId = runId,
+                        programExerciseId = programExerciseId, setIndex = index, exerciseId = card.exerciseId,
+                        eventId = link.ref.eventId, eventVersion = link.ref.version,
+                        windowSeconds = TestEvents.window(link.event, link.ref.windowSeconds),
+                        count = if (link.event.timed) null else after.reps,
+                        seconds = if (link.event.timed) after.seconds else null,
+                        stop = when {
+                            !link.event.timed -> TestStop.TIME_UP
+                            after.seconds >= HoldClock.limitSeconds(hold?.targetSeconds ?: after.seconds, true) -> TestStop.LIMIT
+                            else -> TestStop.STOPPED
+                        }.name,
+                        rulesJson = TestEventJson.encode(link.event),
+                    ))
+                }
+            }
+        }
         val planSlots = plans.slotsFor(planId, day).first()
         val workoutSlots = repo.dayTracksFlow(planId, day).first().let {
             planSlots.forRun(it.droppedPartners, it.skippedLifts)
@@ -3229,6 +3265,15 @@ class DayViewModel @Inject constructor(
         val id = slot.slot.programExerciseId
         val performed = slot.main.performed
         val pe = slot.slot.exercise
+        val benchmarkLink = performed.prescription?.test?.takeIf { slot.main.benchmark }?.let { ref ->
+            TestEvents.matches(ref)?.takeIf { it.exerciseId == performed.exerciseId }?.let { event ->
+                BenchmarkLink(ref.copy(windowSeconds = TestEvents.window(event, ref.windowSeconds)), event)
+            }
+        }
+        val benchmark = benchmarkLink?.let { BenchmarkUi(it.event.name, it.ref.windowSeconds, it.event.ceilingSeconds) }
+        val cardPrescription = if (benchmarkLink != null) performed.prescription?.copy(
+            target = Benchmark.target(benchmarkLink.event, benchmarkLink.ref), eachSide = false,
+        ) else performed.prescription
         val entry = performed.entry
         val name = entry?.name ?: performed.exerciseId
         val goalTarget = slot.main.goal
@@ -3262,13 +3307,13 @@ class DayViewModel @Inject constructor(
             )
         }
         val lastPerformed = history.last.performed[performed.exerciseId]
-        val headerTarget = DayScreenBuilder.headerTarget(pe.copy(prescription = performed.prescription), goalTarget, unit, entry)
+        val headerTarget = DayScreenBuilder.headerTarget(pe.copy(prescription = cardPrescription), goalTarget, unit, entry)
         val partnerHeaderTarget = partnerGoalTarget?.let { DayScreenBuilder.headerTarget(
             pe.copy(prescription = null), it, unit) }
         return ExerciseCardState(
             programExerciseId = id,
             exerciseId = performed.exerciseId,
-            timedRepDurationSeconds = (performed.prescription?.target as? PrescribedTarget.RepsInTime)?.seconds,
+            timedRepDurationSeconds = (cardPrescription?.target as? PrescribedTarget.RepsInTime)?.seconds,
             timedRepAim = slot.main.repAim,
             position = slot.slot.position,
             title = name,
@@ -3281,7 +3326,8 @@ class DayViewModel @Inject constructor(
             marker = LiftMarker.of(pe.rule.takeIf { !pe.keepToPlan && performed.exerciseId == pe.exerciseId }, slot.main.openingInfo, plan?.lightCycleRemaining ?: 0),
             partnerMarker = slot.partner?.let { LiftMarker.of(pe.superset?.rule.takeIf { !pe.keepToPlan && partner?.exerciseId == pe.superset?.exerciseId },
                 it.openingInfo, plan?.lightCycleRemaining ?: 0) },
-            workingHeading = if (performed.prescription?.target is PrescribedTarget.RepsInTime) headerTarget.display
+            workingHeading = if (benchmark != null) benchmark.name
+                else if (cardPrescription?.target is PrescribedTarget.RepsInTime) headerTarget.display
                 else DayScreenBuilder.workingHeading(slot.main.planned ?: main, tracking, unit),
             partnerWorkingHeading = if (partner?.prescription?.target is PrescribedTarget.RepsInTime) partnerHeaderTarget?.display
                 else (slot.partner?.planned ?: partnerSets)?.let { DayScreenBuilder.workingHeading(it, partnerTracking ?: TrackingType.WEIGHTED, unit) },
@@ -3315,6 +3361,8 @@ class DayViewModel @Inject constructor(
             rule = pe.rule,
             liftGoal = liftGoal,
             holdPressureCaution = entry?.pressureCaution == true,
+            benchmark = benchmark,
+            prescriptionTest = benchmarkLink,
         )
     }
 

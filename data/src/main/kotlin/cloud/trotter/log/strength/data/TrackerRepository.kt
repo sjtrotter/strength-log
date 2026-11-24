@@ -2,6 +2,10 @@ package cloud.trotter.log.strength.data
 
 import cloud.trotter.log.strength.data.mapping.withSides
 import androidx.room.withTransaction
+import cloud.trotter.log.strength.data.serialization.TestGoalJson
+import cloud.trotter.log.strength.domain.progression.Benchmark
+import cloud.trotter.log.strength.domain.standards.TestEvents
+import cloud.trotter.log.strength.domain.standards.TestSetType
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.data.serialization.setupAnswers
 import cloud.trotter.log.strength.domain.planner.RunReplan
@@ -160,6 +164,7 @@ class TrackerRepository(
     private val restoreMarkerDao = db.restoreMarkerDao()
     private val cardioSessionDao = db.cardioSessionDao()
     private val cardioRouteDao = db.cardioRouteDao()
+    private val testResultDao = db.testResultDao()
     private val cardioSetResultDao = db.cardioSetResultDao()
     private val planDao = db.planDao()
     private val runDao = db.runDao()
@@ -2080,6 +2085,7 @@ class TrackerRepository(
             if (track.slot != Slot.MAIN && track.slot != Slot.SS) return@map track
             val row = track.programExerciseId?.let { programDao.exercise(it) } ?: return@map track
             if (row.keepToPlan || row.exerciseIdFor(track.slot) != track.exerciseId) return@map track
+            if (track.slot == Slot.MAIN) benchmarkOpening(plan, row, track, today)?.let { return@map it }
             val rule = SlotRuleJson.decode(row.ruleJsonFor(track.slot)) ?: return@map track
             val last = sessionDao.lastTrainedAt(day.planId, track.exerciseId)?.let(::localEpochDay)
             val daysPerWeek = if (last == null) 1 else maxOf(1,
@@ -2116,6 +2122,22 @@ class TrackerRepository(
                     fitted(SetJson.decodeSets(track.setsJson), count).mapIndexed { i, s -> s.copy(plannedIndex = i) })),
                 openingJson = track.openingJson ?: OpeningJson.encode(OpeningDto(OpeningDto.HOLD)))
         }
+    }
+
+    /** Reads only Room; the opening leaves the stored training rows and rule untouched. */
+    private suspend fun benchmarkOpening(plan: PlanEntity, row: ProgramExerciseEntity, track: RunTrackEntity, today: Long): RunTrackEntity? {
+        val linked = PrescriptionJson.decode(row.prescriptionJson)?.test ?: return null
+        val event = TestEvents.matches(linked)?.takeIf { Benchmark.runnable(it) && it.exerciseId == track.exerciseId } ?: return null
+        val ref = linked.copy(windowSeconds = TestEvents.window(event, linked.windowSeconds))
+        if (event.setType == TestSetType.REPS_IN_WINDOW && ref.windowSeconds == null) return null
+        val goal = TestGoalJson.decode(plan.testGoalJson)?.takeIf { it.forRef(ref) != null } ?: return null
+        val newest = testResultDao.newestCompletedAt(ref.eventId, ref.version, ref.windowSeconds)?.let(::localEpochDay)
+        if (!Benchmark.due(newest, today, goal.byEpochDay)) return null
+        val planned = listOf(Benchmark.row(event, ref))
+        return track.copy(plannedJson = SetJson.encodeSets(planned),
+            setsJson = SetJson.encodeSets(SetEditor.keepingIndexStamps(SetJson.decodeSets(track.setsJson),
+                planned.mapIndexed { index, set -> set.copy(plannedIndex = index) })),
+            openingJson = OpeningJson.encode(OpeningDto(benchmark = true)))
     }
 
     /** [rows] trimmed from the end, or padded with copies of its last row, to [count]; empty rows stay empty. */

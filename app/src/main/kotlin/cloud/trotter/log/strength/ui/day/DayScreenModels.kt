@@ -13,6 +13,8 @@ import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.eachSideOf
 import cloud.trotter.log.strength.domain.standards.HoldClock
+import cloud.trotter.log.strength.domain.standards.TestEvent
+import cloud.trotter.log.strength.domain.standards.TestRef
 import cloud.trotter.log.strength.domain.routine.Move
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -473,9 +475,16 @@ data class ExerciseCardState(
     val partnerNextTime: NextTime? = null,
     val rule: SlotRule? = null,
     val liftGoal: LiftGoal = LiftGoal.STRENGTH,
+    val benchmark: BenchmarkUi? = null,
+    val prescriptionTest: BenchmarkLink? = null,
     /** [cloud.trotter.log.strength.domain.library.ExerciseEntry.pressureCaution] of the performed exercise. */
     val holdPressureCaution: Boolean = false,
 )
+
+@Immutable
+data class BenchmarkUi(val name: String, val windowSeconds: Int?, val ceilingSeconds: Int?)
+
+data class BenchmarkLink(val ref: TestRef, val event: TestEvent)
 
 /**
  * One logged round. For a plain exercise [partner] is null. For a superset the

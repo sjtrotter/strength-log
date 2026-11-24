@@ -42,9 +42,11 @@ data class PerformedTrack(
     /** Whether this hold takes an added load: the prescription's, else the catalog's, never the current rows. */
     val showsLoad: Boolean get() = tracking == TrackingType.TIMED && if (performed.prescription == null)
         ((performed.entry?.goal as? GoalSource.Time)?.addedWeightLb ?: 0.0) > 0.0 else loadLb > 0.0
+    val benchmark: Boolean get() = openingInfo?.benchmark == true
+
     /** A reps-in-time set's aim ([Progression.repAim]): the run's planned rows, else the rows Start opens with. */
     val repAim: Int?
-        get() = (performed.prescription?.target as? PrescribedTarget.RepsInTime)?.let { Progression.repAim(it, planned ?: sets) }
+        get() = if (benchmark) null else (performed.prescription?.target as? PrescribedTarget.RepsInTime)?.let { Progression.repAim(it, planned ?: sets) }
 }
 
 data class PerformedSlot(val slot: ProgramSlot, val main: PerformedTrack, val partner: PerformedTrack?)

@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -14,6 +15,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import cloud.trotter.log.strength.domain.standards.TestRef
+import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.log.JournalBuilder
 import cloud.trotter.log.strength.ui.log.TestTrendCardView
 import cloud.trotter.log.strength.ui.log.testResultFixture
@@ -26,6 +28,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h1200dp")
@@ -92,6 +95,64 @@ class PlanTestGoalScreenTest {
         rule.onNodeWithText("Save").assertIsNotEnabled()
     }
 
+    @Test fun `the card renders the plank best and required time from a result`() {
+        val state = testGoalPlanFixture(listOf(testResultFixture(),
+            testResultFixture(TestRef("aft_plank", 1), value = 190, id = 2)))
+        rule.setContent { AppTheme { PlanScreen(state, actions()) } }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Best 3:10 · Required 3:40"))
+        rule.onNodeWithText("Best 3:10 · Required 3:40").assertIsDisplayed()
+    }
+
+    @Test fun `canceling removal keeps the test goal and confirming removal clears it`() {
+        val initial = testGoalPlanFixture().copy(testGoalDraft = draft)
+        val state = mutableStateOf(initial)
+        var removals = 0
+        rule.setContent { AppTheme { PlanScreen(state.value, actions().copy(
+            onRemoveTestGoal = {
+                removals++
+                state.value = state.value.copy(testGoal = null, testGoalDraft = null)
+            },
+        )) } }
+        rule.onNodeWithText("Remove goal").performScrollTo().performClick()
+        rule.onNodeWithText("Remove fitness test goal?").assertIsDisplayed()
+        rule.onNodeWithText("Cancel").performClick()
+        rule.onNodeWithText("Fitness test goal").assertIsDisplayed()
+        rule.runOnIdle {
+            assertEquals(0, removals)
+            assertEquals(initial.testGoal, state.value.testGoal)
+            assertEquals(draft, state.value.testGoalDraft)
+        }
+        rule.onNodeWithText("Remove goal").performScrollTo().performClick()
+        rule.onNodeWithText("Remove").performClick()
+        rule.onNode(isDialog()).assertDoesNotExist()
+        rule.runOnIdle {
+            assertEquals(1, removals)
+            assertEquals(null, state.value.testGoal)
+            assertEquals(null, state.value.testGoalDraft)
+        }
+    }
+
+    @Test(timeout = 30_000)
+    @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `the test goal editor settles without emitting drafts at audit size`() {
+        val fixture = testGoalPlanFixture()
+        val state = mutableStateOf(fixture.copy(testGoalDraft = draft.copy(byEpochDay = fixture.testGoal?.goal?.byEpochDay)))
+        val edits = mutableListOf<TestGoalDraft>()
+        rule.setContent { AppTheme(preference = ThemePreference.DARK) { PlanScreen(state.value, actions().copy(
+            onTestGoalDraft = {
+                edits += it
+                state.value = state.value.copy(testGoalDraft = it)
+            },
+        )) } }
+        rule.runOnIdle {
+            assertEquals(emptyList<TestGoalDraft>(), edits)
+            state.value = state.value.copy(offerCardioIncreases = true)
+        }
+        rule.onNodeWithText("Fitness test goal").assertIsDisplayed()
+        rule.runOnIdle { assertEquals(emptyList<TestGoalDraft>(), edits) }
+    }
+
     @Test fun `a custom trend heading includes its stored window`() {
         val ref = TestRef("custom_pushup_window", 1, 60)
         val card = JournalBuilder.testTrends(listOf(testResultFixture(ref, 24, 1, 10), testResultFixture(ref, 27, 2, 20))).single()
@@ -114,6 +175,10 @@ class PlanTestGoalScreenTest {
         assertEquals(null, state.value.byEpochDay)
         rule.onNodeWithText("Add date").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Remove goal").performScrollTo().performClick()
+        // #646: removing the test goal now requires confirmation.
+        assertEquals(false, removed)
+        rule.onNodeWithText("Remove fitness test goal?").assertIsDisplayed()
+        rule.onNodeWithText("Remove").performClick()
         assertEquals(true, removed)
         rule.onNodeWithText("Cancel").performClick()
         assertEquals(true, dismissed)

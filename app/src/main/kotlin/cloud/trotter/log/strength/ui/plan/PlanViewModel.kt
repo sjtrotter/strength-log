@@ -19,7 +19,6 @@ import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.data.serialization.TestGoalJson
 import cloud.trotter.log.strength.data.mapping.toDomain
-import cloud.trotter.log.strength.domain.standards.TestEvents
 import cloud.trotter.log.strength.data.serialization.PlanGoalJson
 import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.domain.model.PlanGoal
@@ -95,11 +94,11 @@ class PlanViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), PlanUiState(loading = true))
 
     fun openTestGoal() {
-        val goal = uiState.value.testGoal?.goal ?: return
-        savedState[TEST_GOAL_DRAFT] = TestGoalDraft(goal.events.associate {
-            it.ref.eventId to if (TestEvents.find(it.ref.eventId)?.timed == true) ClockText.minutesSeconds(it.required)
-                else it.required.toString()
-        }, goal.byEpochDay)
+        val ui = uiState.value.testGoal ?: return
+        savedState[TEST_GOAL_DRAFT] = TestGoalDraft(ui.rows.associate {
+            it.event.ref.eventId to if (it.timed) ClockText.minutesSeconds(it.event.required)
+                else it.event.required.toString()
+        }, ui.goal.byEpochDay)
     }
 
     fun changeTestGoalDraft(draft: TestGoalDraft) { savedState[TEST_GOAL_DRAFT] = draft }
@@ -110,7 +109,8 @@ class PlanViewModel @Inject constructor(
             mutationLock.withLock {
                 val stored = TestGoalJson.decode(plans.plansFlow.first().firstOrNull { it.id == planId }?.testGoalJson)
                     ?: return@withLock
-                val goal = draft.goal(stored) ?: return@withLock
+                val rows = uiState.value.testGoal?.rows ?: return@withLock
+                val goal = draft.goal(stored, rows) ?: return@withLock
                 plans.setTestGoal(planId, goal)
                 dismissTestGoal()
             }

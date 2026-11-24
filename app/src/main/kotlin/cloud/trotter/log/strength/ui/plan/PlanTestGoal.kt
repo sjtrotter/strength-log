@@ -8,15 +8,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,14 +26,6 @@ import cloud.trotter.log.strength.domain.model.PlanGoalDate
 import cloud.trotter.log.strength.domain.standards.TestEvents
 import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.util.Locale
-
-private val testGoalDateFormat = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US)
-private fun testGoalDate(day: Long): String = LocalDate.ofEpochDay(day).format(testGoalDateFormat)
 
 @Composable
 internal fun PlanTestGoal(ui: PlanTestGoalUi, actions: PlanActions) {
@@ -60,7 +48,7 @@ internal fun PlanTestGoal(ui: PlanTestGoalUi, actions: PlanActions) {
                             else stringResource(R.string.plan_test_required, value(row.event.required))
                         Text(stringResource(R.string.plan_goal_progress, best, required))
                         if (index == ui.rows.lastIndex) ui.goal.byEpochDay?.let {
-                            Text(stringResource(R.string.plan_goal_by, testGoalDate(it)))
+                            Text(stringResource(R.string.plan_goal_by, goalDate(it)))
                         }
                     }
                 },
@@ -69,11 +57,30 @@ internal fun PlanTestGoal(ui: PlanTestGoalUi, actions: PlanActions) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PlanTestGoalEditor(ui: PlanTestGoalUi, draft: TestGoalDraft, actions: PlanActions) {
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
+    var confirmRemoval by rememberSaveable { mutableStateOf(false) }
     val date = draft.byEpochDay?.takeIf(PlanGoalDate::isValid)
+    if (confirmRemoval) {
+        AppAlertDialog(
+            onDismissRequest = { confirmRemoval = false },
+            title = { Text(stringResource(R.string.plan_test_goal_remove_confirm)) },
+            text = {},
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmRemoval = false
+                    actions.onRemoveTestGoal()
+                }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
+                    Text(stringResource(R.string.day_edit_remove_button))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmRemoval = false }) { Text(stringResource(R.string.setup_cancel_button)) }
+            },
+        )
+        return
+    }
     AppAlertDialog(
         onDismissRequest = actions.onDismissTestGoal,
         title = { Text(stringResource(R.string.plan_test_goal_edit)) },
@@ -97,24 +104,24 @@ internal fun PlanTestGoalEditor(ui: PlanTestGoalUi, draft: TestGoalDraft, action
                 }
                 Row {
                     TextButton(onClick = { showDatePicker = true }) {
-                        Text(date?.let(::testGoalDate) ?: stringResource(R.string.plan_goal_add_date))
+                        Text(date?.let(::goalDate) ?: stringResource(R.string.plan_goal_add_date))
                     }
                     if (draft.byEpochDay != null) TextButton(onClick = { actions.onTestGoalDraft(draft.copy(byEpochDay = null)) }) {
                         Text(stringResource(R.string.plan_goal_remove_date))
                     }
                 }
                 if (!PlanGoalDate.isValid(draft.byEpochDay)) Text(
-                    stringResource(R.string.stepper_valid_range, testGoalDate(PlanGoalDate.epochDays.first),
-                        testGoalDate(PlanGoalDate.epochDays.last)), color = MaterialTheme.colorScheme.error,
+                    stringResource(R.string.stepper_valid_range, goalDate(PlanGoalDate.epochDays.first),
+                        goalDate(PlanGoalDate.epochDays.last)), color = MaterialTheme.colorScheme.error,
                 )
-                TextButton(onClick = actions.onRemoveTestGoal,
+                TextButton(onClick = { confirmRemoval = true },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
                     Text(stringResource(R.string.plan_goal_remove))
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = actions.onSaveTestGoal, enabled = draft.goal(ui.goal) != null) {
+            TextButton(onClick = actions.onSaveTestGoal, enabled = draft.goal(ui.goal, ui.rows) != null) {
                 Text(stringResource(R.string.plans_save))
             }
         },
@@ -122,29 +129,9 @@ internal fun PlanTestGoalEditor(ui: PlanTestGoalUi, draft: TestGoalDraft, action
             TextButton(onClick = actions.onDismissTestGoal) { Text(stringResource(R.string.setup_cancel_button)) }
         },
     )
-    if (showDatePicker) {
-        val displayedDay = date ?: LocalDate.now().toEpochDay().coerceIn(PlanGoalDate.epochDays)
-        val picker = rememberDatePickerState(
-            initialSelectedDateMillis = date?.let {
-                LocalDate.ofEpochDay(it).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-            },
-            initialDisplayedMonthMillis = LocalDate.ofEpochDay(displayedDay)
-                .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
-            yearRange = PlanGoalDate.years,
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    picker.selectedDateMillis?.let {
-                        actions.onTestGoalDraft(draft.copy(byEpochDay = Instant.ofEpochMilli(it).atOffset(ZoneOffset.UTC).toLocalDate().toEpochDay()))
-                    }
-                    showDatePicker = false
-                }, enabled = picker.selectedDateMillis != null) { Text(stringResource(R.string.plans_save)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.setup_cancel_button)) }
-            },
-        ) { DatePicker(picker) }
-    }
+    if (showDatePicker) GoalDatePicker(
+        epochDay = draft.byEpochDay,
+        onDate = { actions.onTestGoalDraft(draft.copy(byEpochDay = it)) },
+        onDismiss = { showDatePicker = false },
+    )
 }

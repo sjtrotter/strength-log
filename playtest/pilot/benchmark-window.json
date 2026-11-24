@@ -146,10 +146,54 @@
       "checkpoint": "benchmark-logged"
     },
     {
-      "back": true
+      "tap": {
+        "tag": "workout-finish"
+      }
     },
     {
-      "back": true
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "text": "History",
+        "role": "Tab"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Full Body"
+      }
+    },
+    {
+      "expect": {
+        "text": "Full Body"
+      }
+    },
+    {
+      "tap": {
+        "text": "Full Body"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Push-Up"
+      }
+    },
+    {
+      "expect": {
+        "text": "Push-Up"
+      }
+    },
+    {
+      "checkpoint": "benchmark-receipt"
     },
     {
       "tap": {

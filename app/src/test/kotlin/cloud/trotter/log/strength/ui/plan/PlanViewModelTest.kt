@@ -77,6 +77,18 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class PlanViewModelTest {
 
+    @Test fun `the test draft parses with the event rows timed flag and keeps stored refs`() {
+        val ui = requireNotNull(testGoalPlanFixture().testGoal)
+        val draft = TestGoalDraft(mapOf("aft_hrp" to "45", "aft_plank" to "3:30"), 21000)
+        val stored = ui.goal.copy(events = ui.goal.events.reversed())
+        val parsed = requireNotNull(draft.goal(stored, ui.rows))
+        assertEquals(stored.events.map { it.ref }, parsed.events.map { it.ref })
+        assertEquals(listOf(210, 45), parsed.events.map { it.required })
+        assertEquals(21000L, parsed.byEpochDay)
+        assertNull(draft.goal(stored, ui.rows.map { it.copy(timed = !it.timed) }))
+        assertNull(draft.goal(stored, ui.rows.take(1)))
+    }
+
     @Test fun `saving the test goal writes the plan column and removing it clears it`() = runTest(dispatcher) {
         val viewed = repo.plans.createAuthoredPlan("Viewed", "Test prep")
         val other = repo.plans.createAuthoredPlan("Other", "Day")

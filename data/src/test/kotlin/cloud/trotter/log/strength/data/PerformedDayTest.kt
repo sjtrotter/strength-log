@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.data
 
+import cloud.trotter.log.strength.data.serialization.OpeningDto
 import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.catalog.ExerciseCatalog
 import cloud.trotter.log.strength.data.db.entity.Slot
@@ -32,6 +33,18 @@ class PerformedDayTest {
             listOf(Equipment.BODYWEIGHT), perHand = false, goal = GoalSource.Time(45, 25.0),
             subRank = ExerciseCatalog.CUSTOM_SUBRANK),
     ))
+
+    @Test fun `a benchmark track has no rep aim`() {
+        val track = PerformedTrack(
+            PerformedExercise("pushup", null, Prescription(PrescribedTarget.RepsInTime(120, 20))),
+            null, listOf(LoggedSet(0.0, 20, SetKind.WORK)), null,
+            openingInfo = OpeningDto(benchmark = true),
+        )
+        assertTrue(track.benchmark)
+        assertNull(track.repAim)
+        assertFalse(track.copy(openingInfo = null).benchmark)
+        assertEquals(20, track.copy(openingInfo = null).repAim)
+    }
 
     @Test fun `a performed track keeps its run plan separate from actual rows`() {
         val planned = List(3) { LoggedSet(35.0, 8, SetKind.WORK) }

@@ -21,6 +21,7 @@ import cloud.trotter.log.strength.data.serialization.CardioBlockJson
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.MovementPattern
+import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.ui.day.CardioEntryDraft
 import cloud.trotter.log.strength.ui.day.CardioEntrySheet
@@ -137,6 +138,11 @@ import cloud.trotter.log.strength.ui.day.WorkoutSetHost
 import cloud.trotter.log.strength.ui.day.SetEditSheet
 import cloud.trotter.log.strength.ui.day.UndoOffer
 import cloud.trotter.log.strength.ui.day.workoutActions
+import cloud.trotter.log.strength.data.RunTrack
+import cloud.trotter.log.strength.data.ProgramSlot
+import cloud.trotter.log.strength.data.serialization.OpeningDto
+import cloud.trotter.log.strength.domain.standards.TestRef
+import cloud.trotter.log.strength.ui.day.receipt.ReceiptSetCounts
 import cloud.trotter.log.strength.ui.day.receipt.PlannedSets
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptGroup
 import cloud.trotter.log.strength.ui.day.receipt.ReceiptFollower
@@ -723,6 +729,26 @@ class ProgressionPreviewShotsTest {
     fun receiptFollowers() = receiptFollowers("p101-receipt-followers.png", 1f)
     @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
     fun receiptFollowersLargeFont() = receiptFollowers("p102-receipt-followers-2x.png", 2f)
+
+    private fun benchmarkReceipt(name: String, scale: Float) {
+        val card = benchmarkWindowPreviewState().exercises.single()
+        val planned = card.rows.map { LoggedSet(0.0, it.reps, SetKind.WORK) }
+        val track = RunTrack(1L, 0, 1L, Slot.MAIN, card.exerciseId, false, planned,
+            planned.map { it.copy(reps = 27, done = true) }, opening = OpeningDto(benchmark = true))
+        val slot = ProgramSlot(1L, 0, ProgramExercise(card.exerciseId, targetSets = 3,
+            prescription = Prescription(PrescribedTarget.RepsInTime(120, 20), test = TestRef("aft_hrp", 1, 120))))
+        val groups = ReceiptBuilder.strength(listOf(track), listOf(slot), { card.title }, emptyMap())
+        render(scale) {
+            val receipt = receiptFixture().copy(groups = groups, minutes = 2, cardioRows = emptyList(), activity = null)
+            SessionReceiptScreen(receipt, {}, {}, setCounts = ReceiptSetCounts(receipt.sessionId, 1, 0))
+        }
+        rule.onNodeWithText("27 reps", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        capture(name)
+    }
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun benchmarkReceipt() = benchmarkReceipt("p109-benchmark-receipt.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun benchmarkReceiptLargeFont() = benchmarkReceipt("p110-benchmark-receipt-2x.png", 2f)
 
     private fun eachSideEditor(name: String, scale: Float) {
         val state = workoutSetEachSideFixture(split = true)

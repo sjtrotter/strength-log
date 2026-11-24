@@ -38,7 +38,7 @@ import org.robolectric.annotation.Config
 class HoldTimerSetScreenTest {
     @get:Rule val rule = createComposeRule()
 
-    private fun state(hold: HoldState? = null, weight: Double = 0.0, caution: Boolean = false): DayUiState {
+    private fun state(hold: HoldState? = null, weight: Double = 0.0, caution: Boolean = false, benchmark: BenchmarkUi? = null): DayUiState {
         val base = workoutSetSingleFixture()
         val card = base.exercises.single().copy(
             title = "Plank", exerciseId = "plank", tracking = TrackingType.TIMED,
@@ -46,6 +46,7 @@ class HoldTimerSetScreenTest {
             rows = List(2) { SetRowState(it, "${it + 1}", false, weight, 0, false, seconds = 30) },
             focusIndex = 0,
             holdPressureCaution = caution,
+            benchmark = benchmark,
         )
         return base.copy(exercises = listOf(card), hold = hold, executionBusy = hold != null)
     }
@@ -86,6 +87,18 @@ class HoldTimerSetScreenTest {
 
     @Test fun `a late auto logged hold shows the target snackbar with Undo`() {
         assertLoggedHoldSnackbar(30)
+    }
+
+    @Test fun `a benchmark hold reads Ceiling and offers no Past target`() {
+        val benchmark = BenchmarkUi("AFT plank", null, 220)
+        val current = mutableStateOf(state(benchmark = benchmark))
+        rule.setContent { AppTheme { WorkoutSetHost(current.value.withWorkoutSelection(), workoutActions()) } }
+        rule.onNodeWithText("Past target").assertDoesNotExist()
+        rule.onNodeWithTag("workout-action-filled").assert(hasText("Start")).assertIsEnabled()
+        val held = hold().let { it.copy(event = it.event.copy(targetSeconds = 220, sides = 1)) }
+        rule.runOnIdle { current.value = state(held, benchmark = benchmark) }
+        rule.onNodeWithText("Ceiling 3:40").assertIsDisplayed()
+        rule.onNodeWithText("Target 3:40").assertDoesNotExist()
     }
 
     @Test fun `an idle hold offers Start and keeps its editable target`() {

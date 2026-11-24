@@ -10,9 +10,12 @@ import cloud.trotter.log.strength.data.LastSource
 import cloud.trotter.log.strength.data.RunSetCounts
 import cloud.trotter.log.strength.data.SpacingReason
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.db.entity.TestResultEntity
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.eachSideOf
 import cloud.trotter.log.strength.domain.standards.HoldClock
+import cloud.trotter.log.strength.domain.standards.TestEvent
+import cloud.trotter.log.strength.domain.standards.TestRef
 import cloud.trotter.log.strength.domain.routine.Move
 import cloud.trotter.log.strength.domain.model.Equipment
 import cloud.trotter.log.strength.domain.model.LoggedSet
@@ -235,7 +238,9 @@ internal fun EffortScale.forTracking(tracking: TrackingType): EffortScale =
 /** The hold timer's target for this set in seconds, or 0: only a TIMED main outside a superset has one. */
 internal fun ExerciseCardState.holdTargetSeconds(index: Int): Int =
     if (tracking == TrackingType.TIMED && !isSuperset && timedRepDurationSeconds == null) {
-        rows.getOrNull(index)?.seconds ?: 0
+        rows.getOrNull(index)?.let { row ->
+            benchmark?.let { it.ceilingSeconds ?: HoldClock.PAST_TARGET_LIMIT_SECONDS } ?: row.seconds
+        } ?: 0
     } else 0
 
 /** Saved as one value; DayUiState exposes only an identity resolved against its day. */
@@ -473,9 +478,16 @@ data class ExerciseCardState(
     val partnerNextTime: NextTime? = null,
     val rule: SlotRule? = null,
     val liftGoal: LiftGoal = LiftGoal.STRENGTH,
+    val benchmark: BenchmarkUi? = null,
+    val prescriptionTest: BenchmarkLink? = null,
     /** [cloud.trotter.log.strength.domain.library.ExerciseEntry.pressureCaution] of the performed exercise. */
     val holdPressureCaution: Boolean = false,
 )
+
+@Immutable
+data class BenchmarkUi(val name: String, val windowSeconds: Int?, val ceilingSeconds: Int?)
+
+data class BenchmarkLink(val ref: TestRef, val event: TestEvent)
 
 /**
  * One logged round. For a plain exercise [partner] is null. For a superset the
@@ -523,6 +535,7 @@ data class RemovedSet(
     val main: LoggedSet,
     /** The superset partner's row for the same round, when there was one. */
     val partner: LoggedSet? = null,
+    val testResult: TestResultEntity? = null,
 )
 
 /** The superset partner's values and done tick for one round. */

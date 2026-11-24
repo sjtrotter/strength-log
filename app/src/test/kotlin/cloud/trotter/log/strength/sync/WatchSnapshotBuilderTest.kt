@@ -1,5 +1,6 @@
 package cloud.trotter.log.strength.sync
 
+import cloud.trotter.log.strength.data.serialization.OpeningDto
 import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.domain.model.CardioProgress
 import cloud.trotter.log.strength.data.DayTracks
@@ -264,6 +265,19 @@ class WatchSnapshotBuilderTest {
                 listOf(LoggedSlot(1, Slot.MAIN, List(3) { row }))), WeightUnit.LB, revision = 1)!!
             assertEquals(label, snapshot.day.exercises.single().goalLabel)
         }
+    }
+
+    @Test fun `a benchmark window publishes no aim`() {
+        val exercise = ProgramExercise("pushup", targetSets = 3, prescription = Prescription(PrescribedTarget.RepsInTime(120, 20)))
+        val program = Program(listOf(ProgramDay("A", "Test", "", listOf(exercise))))
+        val day = PerformedDay.of(1L, "A", program, listOf(ProgramSlot(1, 0, exercise)),
+            DayTracks("benchmark", true, listOf(LoggedSlot(1, Slot.MAIN,
+                listOf(LoggedSet(0.0, 0, SetKind.WORK)), opening = OpeningDto(benchmark = true)))),
+            PlanSettings(), catalog, emptyMap())
+        val projected = WatchSnapshotBuilder.build(day, WeightUnit.LB, revision = 1)!!.day.exercises.single()
+        assertNull(projected.repAim)
+        assertEquals("2:00", projected.goalLabel)
+        assertEquals(120, projected.repWindowSeconds)
     }
 
     @Test fun `a rep window publishes the aim its rows carry`() {

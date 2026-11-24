@@ -34,9 +34,20 @@ import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.day.OpenSheet
 import cloud.trotter.log.strength.ui.day.workoutLiftSheetFixture
 import cloud.trotter.log.strength.ui.day.workoutDaySheetFixture
+import cloud.trotter.log.strength.ui.day.BenchmarkUi
+import cloud.trotter.log.strength.ui.day.HeaderTarget
+import cloud.trotter.log.strength.ui.day.HoldEvent
+import cloud.trotter.log.strength.ui.day.HoldState
+import cloud.trotter.log.strength.ui.day.LiftMarker
+import cloud.trotter.log.strength.ui.day.TimedRepEvent
+import cloud.trotter.log.strength.ui.day.TimedRepState
+import cloud.trotter.log.strength.domain.library.TrackingType
+import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.standards.TestEvents
 import cloud.trotter.log.strength.ui.day.DayUiState
 import cloud.trotter.log.strength.ui.day.WorkoutSelection
 import cloud.trotter.log.strength.ui.day.WorkoutSetHost
+import cloud.trotter.log.strength.ui.day.WorkoutFocus
 import cloud.trotter.log.strength.ui.day.WorkoutState
 import cloud.trotter.log.strength.ui.day.workoutRest
 import cloud.trotter.log.strength.ui.day.workoutSetLoggedFixture
@@ -249,6 +260,56 @@ class WorkoutSetScreenPreviewShotsTest {
 
     @Test fun eachSideHeroLargeFont() = eachSideHero("p92-each-side-hero-2x.png", 2f)
 
+    private fun benchmarkStart(name: String, scale: Float) = render(
+        name, benchmarkWindowPreviewState(), fontScale = scale, verify = {
+            rule.onNodeWithText("Benchmark").assertIsDisplayed()
+            rule.onNodeWithTag("workout-action-filled").assertIsDisplayed().assert(hasText("Start"))
+            rule.onNodeWithText("20 reps in 2:00").assertDoesNotExist()
+        },
+    )
+
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun benchmarkStart() = benchmarkStart("p103-benchmark-start.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun benchmarkStartLargeFont() = benchmarkStart("p104-benchmark-start-2x.png", 2f)
+
+    private fun benchmarkHold(name: String, scale: Float) {
+        val base = benchmarkWindowPreviewState()
+        val event = TestEvents.get("aft_plank")
+        val card = base.exercises.single().copy(title = "Plank", exerciseId = event.exerciseId,
+            tracking = TrackingType.TIMED, timedRepDurationSeconds = null,
+            headerTarget = HeaderTarget.Prescribed("3 × 3:40"),
+            benchmark = BenchmarkUi(event.name, null, event.ceilingSeconds),
+            rows = base.exercises.single().rows.map { it.copy(seconds = 220) })
+        render(name, base.copy(exercises = listOf(card), executionBusy = true, hold = HoldState(
+            HoldEvent("A", 1L, "plank", 0, 220, 1, 1_000L, 1_000L, 1_000L, 1), 192,
+        )), fontScale = scale, verify = {
+            rule.onNodeWithText("Ceiling 3:40").assertIsDisplayed()
+            rule.onNodeWithText("Target 3:40").assertDoesNotExist()
+            rule.onNodeWithText("Past target").assertDoesNotExist()
+        })
+    }
+
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun benchmarkHold() = benchmarkHold("p105-benchmark-hold-ceiling.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun benchmarkHoldLargeFont() = benchmarkHold("p106-benchmark-hold-ceiling-2x.png", 2f)
+
+    private fun benchmarkWindow(name: String, scale: Float) {
+        val base = benchmarkWindowPreviewState()
+        render(name, base.copy(executionBusy = true, timedRep = TimedRepState(
+            TimedRepEvent("A", 1L, "hand_release_pushup", 0, 120, 1_000L, 1_000L, 1), 72,
+        )), fontScale = scale, verify = {
+            rule.onNodeWithText("1:12").assertIsDisplayed()
+            rule.onNodeWithText("20 reps in 2:00").assertDoesNotExist()
+        })
+    }
+
+    @Test @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun benchmarkWindow() = benchmarkWindow("p107-benchmark-window-running.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun benchmarkWindowLargeFont() = benchmarkWindow("p108-benchmark-window-running-2x.png", 2f)
+
     private fun eachSideReady(name: String, scale: Float) = render(
         name, workoutSetEachSideFixture(), fontScale = scale, verify = {
             rule.onNodeWithTag("workout-left-and-right").assertExists()
@@ -302,4 +363,18 @@ class WorkoutSetScreenPreviewShotsTest {
             root.captureRoboImage(file)
         }
     }
+}
+
+internal fun benchmarkWindowPreviewState(): DayUiState {
+    val base = workoutSetTimedRepFixture()
+    val event = TestEvents.get("aft_hrp")
+    val card = base.exercises.single().copy(
+        title = "Hand-Release Push-Up", exerciseId = event.exerciseId,
+        headerTarget = HeaderTarget.Prescribed("2:00"), timedRepDurationSeconds = 120, timedRepAim = null,
+        marker = LiftMarker.BENCHMARK, benchmark = BenchmarkUi(event.name, 120, null),
+        workingHeading = event.name, focusIndex = 0,
+        rows = base.exercises.single().rows.take(1).map { it.copy(reps = 0, kind = SetKind.WORK) },
+    )
+    return base.copy(runOpen = true, runId = "benchmark-preview", exercises = listOf(card),
+        workout = base.workout?.copy(focus = WorkoutFocus(1L, Slot.MAIN, 0)))
 }

@@ -695,6 +695,7 @@
     <string name="workout_clock_elapsed">Elapsed</string>
     <string name="workout_hold_held">Held</string>
     <string name="workout_hold_target">Target %1$s</string>
+    <string name="workout_test_ceiling">Ceiling %1$s</string>
     <string name="workout_hold_left">Left side</string>
     <string name="workout_hold_right">Right side</string>
     <string name="workout_hold_end">End hold</string>

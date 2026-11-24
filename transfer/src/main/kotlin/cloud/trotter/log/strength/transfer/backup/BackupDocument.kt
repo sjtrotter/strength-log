@@ -40,8 +40,9 @@ import kotlinx.serialization.Serializable
  * v32 carries Sprint and Both + sprint setup recipes.
  * v33 carries each-side results: a session set's left and right, and sides inside set payloads.
  * v34 carries each slot's load source; legacy strength credits are discarded on read.
+ * v35 carries fitness-test goals and benchmark results with their rules.
  */
-const val CURRENT_SCHEMA_VERSION: Int = 34
+const val CURRENT_SCHEMA_VERSION: Int = 35
 
 /** The domain's own rest-timer defaults, so [SettingsBackup]'s v3 defaults are
  *  read from the one place that owns them rather than restated as literals. */
@@ -75,6 +76,7 @@ data class BackupDocument(
     val sessions: List<SessionBackup> = emptyList(),
     val cardioSessions: List<CardioSessionBackup> = emptyList(),
     val runs: List<RunBackup> = emptyList(),
+    val testResults: List<TestResultBackup> = emptyList(),
 )
 
 @Serializable
@@ -225,6 +227,7 @@ data class PlanBackup(
     val offerStrengthIncreases: Boolean = true,
     val offerCardioIncreases: Boolean = false,
     val goalJson: String? = null,
+    val testGoalJson: String? = null,
     val settingsJson: String? = null,
     val autoApply: Boolean = false,
     val lightCycleRemaining: Int = 0,
@@ -371,4 +374,24 @@ data class RunTrackBackup(
     val dropped: Boolean = false,
     val note: String = "",
     val openingJson: String? = null,
+)
+
+/** A benchmark result with the rules it was scored under; ids survive a restore verbatim. */
+@Serializable
+data class TestResultBackup(
+    val id: Long,
+    val completedAt: Long,
+    val planId: Long? = null,
+    val dayId: String? = null,
+    val runId: String? = null,
+    val programExerciseId: Long? = null,
+    val setIndex: Int? = null,
+    val exerciseId: String,
+    val eventId: String,
+    val eventVersion: Int,
+    val windowSeconds: Int? = null,
+    val count: Int? = null,
+    val seconds: Int? = null,
+    val stop: String,
+    val rulesJson: String,
 )

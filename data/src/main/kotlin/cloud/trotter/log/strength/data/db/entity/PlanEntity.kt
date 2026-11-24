@@ -23,6 +23,8 @@ data class PlanEntity(
     @ColumnInfo(defaultValue = "0") val offerCardioIncreases: Boolean = false,
     /** The plan's optional cardio goal as PlanGoalJson. */
     val goalJson: String? = null,
+    /** The plan's optional fitness-test goal as TestGoalJson (#646). */
+    val testGoalJson: String? = null,
     /** PlanSettingsJson; null means the defaults (see [PlanSettings]). */
     val settingsJson: String? = null,
     /** Next time default: true is Automatic, false is Ask. Existing plans migrate to Ask. */

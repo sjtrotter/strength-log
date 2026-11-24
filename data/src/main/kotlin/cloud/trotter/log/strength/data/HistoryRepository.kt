@@ -9,6 +9,7 @@ import cloud.trotter.log.strength.data.db.dao.SessionDao
 import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
+import cloud.trotter.log.strength.data.db.entity.TestResultEntity
 import cloud.trotter.log.strength.data.db.entity.CardioRouteEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSetResultEntity
@@ -65,6 +66,7 @@ class HistoryRepository(
     private val restoreMarkerDao = db.restoreMarkerDao()
     private val cardioSessionDao = db.cardioSessionDao()
     private val cardioRouteDao = db.cardioRouteDao()
+    private val testResultDao = db.testResultDao()
     private val cardioSetResultDao = db.cardioSetResultDao()
     private val sessionNotesMigrationMutex = Mutex()
 
@@ -91,6 +93,13 @@ class HistoryRepository(
             settings.removeLegacySessionNotes()
         }
     }
+
+    val testResultsFlow: Flow<List<TestResultEntity>> = testResultDao.observeAll()
+
+    suspend fun logTestResult(result: TestResultEntity): Long = testResultDao.insert(result)
+
+    suspend fun deleteTestResult(runId: String, programExerciseId: Long, setIndex: Int) =
+        testResultDao.deleteForSet(runId, programExerciseId, setIndex)
 
     val sessionsFlow: Flow<List<WorkoutSessionEntity>> = sessionDao.observeSessions()
 

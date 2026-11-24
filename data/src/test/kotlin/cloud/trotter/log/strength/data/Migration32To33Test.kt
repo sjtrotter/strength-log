@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.MIGRATION_32_33
+import cloud.trotter.log.strength.data.db.MIGRATION_33_34
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.mapping.sides
 import kotlin.test.assertNull
@@ -33,7 +34,7 @@ class Migration32To33Test {
         helper.close()
         repeat(2) {
             val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-                .addMigrations(MIGRATION_32_33).allowMainThreadQueries().build()
+                .addMigrations(MIGRATION_32_33, MIGRATION_33_34).allowMainThreadQueries().build()
             try {
                 val row = db.sessionDao().setsForSession(9).single()
                 assertNull(row.leftWeightLb)

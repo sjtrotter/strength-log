@@ -45,6 +45,7 @@ class BackupRepository(
     private val restoreMarkerDao = db.restoreMarkerDao()
     private val cardioSessionDao = db.cardioSessionDao()
     private val cardioRouteDao = db.cardioRouteDao()
+    private val testResultDao = db.testResultDao()
     private val cardioSetResultDao = db.cardioSetResultDao()
     private val planDao = db.planDao()
     private val runDao = db.runDao()
@@ -100,6 +101,7 @@ class BackupRepository(
                 sessionSets = sessionDao.allSessionSets(),
                 cardioSessions = cardioSessionDao.all(),
                 cardioRoutes = cardioRouteDao.all(),
+                testResults = testResultDao.all(),
                 cardioSetResults = cardioSetResultDao.all(),
                 runs = runDao.allRuns(),
                 runTracks = runDao.allTracks(),
@@ -183,6 +185,7 @@ class BackupRepository(
             sessionDao.deleteAllSessionSets()
             sessionDao.deleteAllSessions()
             cardioRouteDao.deleteAll()
+            testResultDao.deleteAll()
             cardioSetResultDao.deleteAll()
             cardioSessionDao.deleteAll()
             customExerciseDao.deleteAll()
@@ -222,6 +225,7 @@ class BackupRepository(
             sessionDao.insertSets(snapshot.sessionSets)
             cardioSessionDao.insertAll(snapshot.cardioSessions)
             cardioRouteDao.insertAll(snapshot.cardioRoutes)
+            testResultDao.insertAll(snapshot.testResults)
             cardioSetResultDao.insertAll(snapshot.cardioSetResults)
             runDao.insertRuns(snapshot.runs)
             runDao.insertTracks(snapshot.runTracks)

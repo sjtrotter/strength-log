@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.data.preferredPlan
 import cloud.trotter.log.strength.data.db.entity.WorkoutRunEntity
 import cloud.trotter.log.strength.data.db.entity.RunTrackEntity
 import cloud.trotter.log.strength.data.db.entity.CustomExerciseEntity
+import cloud.trotter.log.strength.data.db.entity.TestResultEntity
 import cloud.trotter.log.strength.data.db.entity.CardioRouteEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSessionEntity
 import cloud.trotter.log.strength.data.db.entity.CardioSetResultEntity
@@ -103,6 +104,7 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 offerCardioIncreases = plan.offerCardioIncreases,
                 recipeJson = plan.recipeJson,
                 goalJson = plan.goalJson,
+                testGoalJson = plan.testGoalJson,
                 settingsJson = plan.settingsJson,
                 autoApply = plan.autoApply,
                 lightCycleRemaining = plan.lightCycleRemaining,
@@ -152,6 +154,12 @@ fun FullSnapshot.toDocument(): BackupDocument {
                 },
                 draft = run.draft,
             )
+        },
+        testResults = testResults.map {
+            TestResultBackup(id = it.id, completedAt = it.completedAt, planId = it.planId, dayId = it.dayId,
+                runId = it.runId, programExerciseId = it.programExerciseId, setIndex = it.setIndex,
+                exerciseId = it.exerciseId, eventId = it.eventId, eventVersion = it.eventVersion,
+                windowSeconds = it.windowSeconds, count = it.count, seconds = it.seconds, stop = it.stop, rulesJson = it.rulesJson)
         },
         program = emptyList(),
         liveLogs = logs.map {
@@ -362,6 +370,7 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
             offerCardioIncreases = schemaVersion >= 20 && plan.offerCardioIncreases,
             recipeJson = if (schemaVersion >= 9) plan.recipeJson else null,
             goalJson = if (schemaVersion >= 25) plan.goalJson else null,
+            testGoalJson = if (schemaVersion >= 35) plan.testGoalJson else null,
             settingsJson = if (schemaVersion >= 27) plan.settingsJson else null,
             autoApply = if (schemaVersion >= 27) plan.autoApply else false,
             lightCycleRemaining = if (schemaVersion >= 27) plan.lightCycleRemaining else 0,
@@ -441,6 +450,12 @@ fun BackupDocument.toSnapshot(): FullSnapshot {
                 increaseApplied = if (schemaVersion >= 27) it.increaseApplied else false,
             )
         },
+        testResults = if (schemaVersion >= 35) testResults.map {
+            TestResultEntity(id = it.id, completedAt = it.completedAt, planId = it.planId, dayId = it.dayId,
+                runId = it.runId, programExerciseId = it.programExerciseId, setIndex = it.setIndex,
+                exerciseId = it.exerciseId, eventId = it.eventId, eventVersion = it.eventVersion,
+                windowSeconds = it.windowSeconds, count = it.count, seconds = it.seconds, stop = it.stop, rulesJson = it.rulesJson)
+        } else emptyList(),
         cardioRoutes = cardioSessions.mapNotNull { s -> s.route?.let { CardioRouteEntity(s.id, it) } },
         cardioSetResults = if (schemaVersion >= 12) cardioSessions.flatMap { session ->
             session.sets.mapIndexed { position, set ->

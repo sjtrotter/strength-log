@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import cloud.trotter.log.strength.data.db.MIGRATION_31_32
 import cloud.trotter.log.strength.data.db.MIGRATION_32_33
+import cloud.trotter.log.strength.data.db.MIGRATION_33_34
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import kotlin.test.assertNull
 import kotlin.test.assertEquals
@@ -30,7 +31,7 @@ class Migration31To32Test {
         helper.close()
         repeat(2) {
             val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-                .addMigrations(MIGRATION_31_32, MIGRATION_32_33).allowMainThreadQueries().build()
+                .addMigrations(MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34).allowMainThreadQueries().build()
             try {
                 val entry = db.cardioSessionDao().all().single()
                 assertNull(entry.progressionUndoJson)

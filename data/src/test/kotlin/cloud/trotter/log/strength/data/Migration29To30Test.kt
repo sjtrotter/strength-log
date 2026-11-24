@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.data.db.MIGRATION_29_30
 import cloud.trotter.log.strength.data.db.MIGRATION_30_31
 import cloud.trotter.log.strength.data.db.MIGRATION_31_32
 import cloud.trotter.log.strength.data.db.MIGRATION_32_33
+import cloud.trotter.log.strength.data.db.MIGRATION_33_34
 import cloud.trotter.log.strength.data.db.StrengthDatabase
 import cloud.trotter.log.strength.data.mapping.toDomain
 import cloud.trotter.log.strength.data.mapping.toEntity
@@ -44,7 +45,7 @@ class Migration29To30Test {
         helper.close()
         repeat(2) { reopen ->
             val db = Room.databaseBuilder(context, StrengthDatabase::class.java, name)
-                .addMigrations(MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33).allowMainThreadQueries().build()
+                .addMigrations(MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34).allowMainThreadQueries().build()
             try {
                 val sql = db.openHelper.writableDatabase
                 assertEquals(sequence, V24Fixture.rows(sql, "sqlite_sequence"))
@@ -54,6 +55,8 @@ class Migration29To30Test {
                         // #644: session_set gains six trailing null side columns.
                         assertEquals(when (table) {
                             "session_set" -> rows.map { it + List<String?>(6) { null } }
+                            // #646: plan gains testGoalJson.
+                            "plan" -> rows.map { it + listOf<String?>(null) }
                             "cardio_set_result", "cardio_session" -> rows.map { it + listOf<String?>(null) }
                             else -> rows
                         },

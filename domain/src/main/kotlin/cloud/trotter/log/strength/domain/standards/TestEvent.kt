@@ -96,7 +96,9 @@ object TestEvents {
     fun find(id: String): TestEvent? = byId[id]
     fun get(id: String): TestEvent = requireNotNull(byId[id]) { "Unknown test event: $id" }
 
-    fun window(event: TestEvent, typed: Int?): Int? = event.windowSeconds ?: typed?.takeIf { event.custom }
+    fun window(event: TestEvent, typed: Int?): Int? = window(event.windowSeconds, event.custom, typed)
+
+    fun window(windowSeconds: Int?, custom: Boolean, typed: Int?): Int? = windowSeconds ?: typed?.takeIf { custom }
 
     fun matches(ref: TestRef): TestEvent? = find(ref.eventId)?.takeIf { it.version == ref.version }
 }

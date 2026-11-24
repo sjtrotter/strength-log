@@ -1,5 +1,9 @@
 package cloud.trotter.log.strength.data.mapping
 
+import cloud.trotter.log.strength.data.db.entity.TestResultEntity
+import cloud.trotter.log.strength.domain.records.TestResult
+import cloud.trotter.log.strength.domain.standards.TestRef
+import cloud.trotter.log.strength.domain.standards.TestStop
 import cloud.trotter.log.strength.data.db.entity.SessionSetEntity
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
@@ -133,3 +137,7 @@ fun SessionSetEntity.carryingSidesFrom(before: SessionSetEntity): SessionSetEnti
     withSides(before.values().sidesAfter(values()))
 
 private fun SessionSetEntity.values(): LoggedSet = LoggedSet(weightLb, reps, SetKind.WORK, done, seconds, sides = sides())
+
+fun TestResultEntity.toDomain(): TestResult? = runCatching {
+    TestResult(TestRef(eventId, eventVersion, windowSeconds), completedAt, count, seconds, TestStop.valueOf(stop))
+}.getOrNull()

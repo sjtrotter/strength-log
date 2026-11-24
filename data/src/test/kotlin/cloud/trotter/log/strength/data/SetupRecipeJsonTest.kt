@@ -45,6 +45,9 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.Test
+import cloud.trotter.log.strength.domain.model.TestEventGoal
+import cloud.trotter.log.strength.domain.planner.TestAnswer
+import cloud.trotter.log.strength.domain.standards.TestRef
 
 class SetupRecipeJsonTest {
     private val answers = SetupAnswers(goal = LiftGoal.MUSCLE, days = 4, minutes = 75,
@@ -285,6 +288,30 @@ class SetupRecipeJsonTest {
         assertFalse("runPhase" in Json.parseToJsonElement(updated).jsonObject)
         assertEquals(Json.parseToJsonElement(json).jsonObject - "runPhase", Json.parseToJsonElement(updated).jsonObject)
         SetupRecipeJson.validate(updated)
+    }
+
+    @Test fun `tests and their date round trip in the recipe`() {
+        val input = answers.copy(tests = listOf(
+            TestAnswer(TestEventGoal(
+                TestRef("aft_hrp", 1, 120), 40), 24),
+            TestAnswer(TestEventGoal(
+                TestRef("custom_situp_window", 1, 60), 45))),
+            testDateEpochDay = 21000)
+        val json = SetupRecipeJson.encode(input)
+        assertEquals(2, SetupRecipeJson.VERSION)
+        assertEquals(input, SetupRecipeJson.decode(json, settings, WeightUnit.KG))
+        assertEquals(Planner.plan(input), Planner.plan(assertNotNull(SetupRecipeJson.decode(json, settings, WeightUnit.KG))))
+    }
+
+    @Test fun `a sprint recipe with tests is invalid`() {
+        val fields = """ ,"tests":[{"eventId":"aft_hrp","version":1,"windowSeconds":120,"required":40}] }"""
+        for (branch in listOf(PlanBranch.SPRINT, PlanBranch.BOTH, PlanBranch.RUN)) {
+            val input = SetupAnswers(branch = branch,
+                both = if (branch == PlanBranch.BOTH) BothAnswers(sprint = true) else BothAnswers())
+            val json = SetupRecipeJson.encode(input).dropLast(1) + fields
+            assertFailsWith<IllegalArgumentException> { SetupRecipeJson.validate(json) }
+            assertNull(SetupRecipeJson.decode(json, PlanSettings(), WeightUnit.LB))
+        }
     }
 
 }

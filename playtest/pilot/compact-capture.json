@@ -13,6 +13,11 @@
       }
     },
     {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
       "checkpoint": "days-per-week"
     },
     {

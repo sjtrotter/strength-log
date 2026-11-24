@@ -27,6 +27,18 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.intOrNull
+import cloud.trotter.log.strength.domain.model.PlanGoalDate
+import cloud.trotter.log.strength.domain.model.TestEventGoal
+import cloud.trotter.log.strength.domain.model.TestGoal
+import cloud.trotter.log.strength.domain.planner.TestAnswer
+import cloud.trotter.log.strength.domain.standards.TestRef
+
+@Serializable internal data class TestRecipeDto(
+    val eventId: String, val version: Int, val windowSeconds: Int? = null,
+    val required: Int, val lastResult: Int? = null,
+) {
+    fun answer(): TestAnswer = TestAnswer(TestEventGoal(TestRef(eventId, version, windowSeconds), required), lastResult)
+}
 
 @Serializable internal data class SetupRecipeDto(
     val v: Int, val branch: String, val goal: String, val days: Int, val minutes: Int, val experience: String,
@@ -34,6 +46,7 @@ import kotlinx.serialization.json.intOrNull
     val recent: Map<String, RecentNumberDto> = emptyMap(), val excluded: List<String> = emptyList(),
     val balanceDays: Boolean = false, val run: RunRecipeDto? = null, val both: BothRecipeDto? = null,
     val runPhase: String? = null, val sprint: SprintRecipeDto? = null,
+    val tests: List<TestRecipeDto> = emptyList(), val testDateEpochDay: Long? = null,
 )
 @Serializable internal data class RecentNumberDto(val weightLb: Double, val reps: Int, val effort: String)
 
@@ -97,6 +110,9 @@ object SetupRecipeJson {
                 SprintRecipeDto(it.event.name, it.sprintedRecently, it.hamstringStrain, it.fortyOrOlder)
             } else null,
             runPhase = phase?.name,
+            tests = answers.tests.map { TestRecipeDto(it.goal.ref.eventId, it.goal.ref.version,
+                it.goal.ref.windowSeconds, it.goal.required, it.lastResult) },
+            testDateEpochDay = answers.testDateEpochDay,
         ))
     }
 
@@ -150,6 +166,7 @@ object SetupRecipeJson {
                 }, excluded = dto.excluded.toSet(), branch = PlanBranch.valueOf(dto.branch), balanceDays = dto.balanceDays,
                 run = dto.run?.answers() ?: RunAnswers(), both = dto.both?.answers() ?: BothAnswers(),
                 sprint = dto.sprint?.answers() ?: SprintAnswers(),
+                tests = dto.tests.map(TestRecipeDto::answer), testDateEpochDay = dto.testDateEpochDay,
             )
         }.getOrNull()
     }
@@ -160,6 +177,9 @@ object SetupRecipeJson {
         val branch = PlanBranch.valueOf(dto.branch)
         val sprintPlan = branch == PlanBranch.SPRINT || branch == PlanBranch.BOTH && dto.both?.sprint == true
         require(dto.v == VERSION)
+        require(dto.tests.isEmpty() || branch == PlanBranch.LIFT || branch == PlanBranch.BOTH && dto.both?.sprint != true)
+        require(PlanGoalDate.isValid(dto.testDateEpochDay))
+        if (dto.tests.isNotEmpty()) TestGoal(dto.tests.map { it.answer().goal }, dto.testDateEpochDay)
         require((dto.sprint != null) == sprintPlan)
         dto.sprint?.answers()
         require((dto.run != null) == (!sprintPlan && (branch == PlanBranch.RUN || branch == PlanBranch.BOTH)))

@@ -104,6 +104,7 @@ fun SetupFlowScreen(state: SetupFlowUiState, actions: SetupFlowActions) {
                                 SetupStep.EVENT -> EventStep(screen, actions)
                                 SetupStep.WHERE -> WhereStep(screen, actions)
                                 SetupStep.TOGETHER -> TogetherStep(screen, actions)
+                                SetupStep.TEST -> TestStep(screen, actions)
                                 SetupStep.SUB_GOAL -> SubGoalStep(screen, actions)
                                 SetupStep.WEEK -> WeekStep(screen, actions)
                                 SetupStep.EQUIPMENT -> EquipmentStep(screen, actions)
@@ -132,6 +133,7 @@ private fun stepTitle(step: SetupStep): Int = when (step) {
     SetupStep.EVENT -> R.string.setup_flow_event_title
     SetupStep.WHERE -> R.string.setup_flow_where_title
     SetupStep.TOGETHER -> R.string.setup_flow_together_title
+    SetupStep.TEST -> R.string.setup_flow_tests_title
     SetupStep.SUB_GOAL -> R.string.setup_flow_sub_goal_title
     SetupStep.WEEK -> R.string.setup_flow_week_title
     SetupStep.EQUIPMENT -> R.string.setup_flow_equipment_title
@@ -151,6 +153,7 @@ private fun whyCopy(state: SetupFlowUiState): Int = when (state.step) {
     } else R.string.setup_flow_why_event
     SetupStep.WHERE -> R.string.setup_flow_why_where
     SetupStep.TOGETHER -> R.string.setup_flow_why_together
+    SetupStep.TEST -> R.string.setup_flow_why_tests
     SetupStep.SUB_GOAL -> R.string.setup_flow_why_sub_goal
     SetupStep.WEEK -> R.string.setup_flow_why_week
     SetupStep.EQUIPMENT -> R.string.setup_flow_why_equipment

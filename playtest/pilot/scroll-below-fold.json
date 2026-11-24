@@ -19,6 +19,11 @@
     },
     {
       "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
         "text": "Choose exactly"
       }
     },

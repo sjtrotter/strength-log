@@ -200,5 +200,6 @@ private fun whyLine(why: PlanWhy): String = when (why) {
         if (why.fitnessTest) R.plurals.setup_flow_why_ladder_date_test else R.plurals.setup_flow_why_ladder_date_race,
         EVENT_WEEKS_AFTER_LADDER, EVENT_WEEKS_AFTER_LADDER)
     is PlanWhy.NoRun -> stringResource(R.string.setup_flow_no_run, why.minutes)
+    is PlanWhy.TestPrep -> pluralStringResource(R.plurals.setup_flow_why_test_prep, why.events, why.events)
     PlanWhy.Minutes -> stringResource(R.string.setup_flow_why_minutes)
 }

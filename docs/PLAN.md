@@ -285,6 +285,9 @@ strength day; the shipped cardio vectors stay pinned.
   Results are stored with the event, edition, window, stopping reason and the rules they were scored under, compare
   only within one identity, and never set training targets; Finish treats a benchmark as a view (MEASURED). No
   point tables until verified from official documents. Pinned as §11.2 cases 48 and 49.
+  Setup asks for the events on Lift and Both plans (not Sprint or Run); each lifting day, three at most, gets
+  three sets of the test movement at about half the last or required number, with the required number as the
+  ceiling of a prep hold (or its catalog ceiling when higher). Pinned as §11.2 case 52.
 - **Before production:** plans, run identity, authored prescriptions and
   timed rep events, on phone and watch; a plan switcher on Today; and cardio
   as typed sets (warm-up, work, recovery, cool-down; time ends a set by

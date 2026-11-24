@@ -416,7 +416,8 @@ class PlannerSprintTest {
                     is PlanReason.OverBudget -> it.dayId == day.id
                     is PlanReason.RunCapped -> it.dayId == day.id
                     // ladder-date: ladder length is plan-level; day expectations stay unchanged.
-                    PlanReason.DateTooClose, is PlanReason.LadderWeeks, is PlanReason.GoalCheck, PlanReason.BalanceDays, PlanReason.BalanceDaysOffered -> false
+                    PlanReason.DateTooClose, is PlanReason.LadderWeeks, is PlanReason.GoalCheck, PlanReason.BalanceDays, PlanReason.BalanceDaysOffered,
+                    is PlanReason.TestPrep -> false
                 } }, draft.reasons)
             }
             assertNull(Planner.day(answers, "Z"))

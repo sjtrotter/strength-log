@@ -4,6 +4,9 @@ import cloud.trotter.log.strength.data.OldWizardPlans
 import cloud.trotter.log.strength.data.insertGeneratedPlan
 import cloud.trotter.log.strength.data.insertRuledOldWizardPlan
 import cloud.trotter.log.strength.data.runLaunchFixups
+import cloud.trotter.log.strength.domain.model.TestEventGoal
+import cloud.trotter.log.strength.domain.planner.TestAnswer
+import cloud.trotter.log.strength.domain.standards.TestRef
 import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.domain.theme.KeepScreenOn
 import cloud.trotter.log.strength.data.keepToPlanFixture
@@ -4342,6 +4345,30 @@ class DayViewModelWiringTest {
         assertNull(h.get<PendingStartTick>("day_pending_start_tick"))
         assertNull(h.get<TimedRepEvent>("day_pending_start_timer"))
         collect.cancel()
+    }
+
+    @Test fun `editing a generated linked prep dose in the day editor keeps its test`() = runVmTest {
+        val ref = TestRef("aft_hrp", 1, 120)
+        val answers = SetupAnswers(tests = listOf(TestAnswer(TestEventGoal(ref, 40))))
+        val plan = repo.plans.createPlannedPlan("Prep", answers)
+        repo.plans.publishPlannedPlan(plan)
+        val vm = newViewModel()
+        val collectUi = launch { vm.uiState.collect {} }
+        val collectEdit = launch { vm.dayEditState.collect {} }
+        advanceUntilIdle()
+        val id = repo.plans.slotsFor(plan, "A").first()
+            .single { it.exercise.prescription?.test == ref }.programExerciseId
+        vm.editor.openPrescription(id)
+        advanceUntilIdle()
+        val draft = requireNotNull(vm.dayEditState.value.prescriptionDraft)
+        vm.editor.changePrescriptionDraft(draft.copy(repAim = 25))
+        advanceUntilIdle()
+        vm.editor.savePrescription()
+        advanceUntilIdle()
+        val edited = repo.plans.slotsFor(plan, "A").first().single { it.programExerciseId == id }.exercise
+        assertEquals(Prescription(PrescribedTarget.RepsInTime(120, 25), test = ref), edited.prescription)
+        collectEdit.cancel()
+        collectUi.cancel()
     }
 
 }

@@ -20,6 +20,7 @@ import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.text.UiText
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.wizard.PlanPreviewUi
+import cloud.trotter.log.strength.ui.wizard.TestDraft
 import cloud.trotter.log.strength.ui.wizard.SetupDraft
 import cloud.trotter.log.strength.ui.wizard.SetupFlowActions
 import cloud.trotter.log.strength.ui.wizard.SetupFlowFixtures
@@ -287,6 +288,40 @@ class SetupFlowPreviewShotsTest {
     fun testTargetInvalid() = invalidTestTarget("p46-setup-test-target-invalid.png", 1f)
     @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
     fun testTargetInvalidLargeFont() = invalidTestTarget("p47-setup-test-target-invalid-2x.png", 2f)
+
+    private val testDraft = SetupDraft(tests = listOf(TestDraft("custom_pushup_window", 40, 24, 60)))
+
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun testCatalog() = shot("s75-setup-tests-catalog.png", state(SetupStep.TEST))
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun testCatalogLargeFont() = shot("s76-setup-tests-catalog-2x.png", state(SetupStep.TEST), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun testFields() = shot("s77-setup-tests-fields.png", state(SetupStep.TEST, testDraft))
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun testFieldsLargeFont() = shot("s78-setup-tests-fields-2x.png", state(SetupStep.TEST, testDraft), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun testDate() = testDateShot("s79-setup-tests-date.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun testDateLargeFont() = testDateShot("s80-setup-tests-date-2x.png", 2f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun testSummary() = testSummaryShot("s81-setup-tests-summary.png", 1f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun testSummaryLargeFont() = testSummaryShot("s82-setup-tests-summary-2x.png", 2f)
+
+    private fun testDateShot(name: String, scale: Float) {
+        render(scale) { SetupFlowScreen(state(SetupStep.TEST, testDraft.copy(testDate = 20800)), SetupFlowActions()) }
+        rule.onNodeWithText("Date").performScrollTo().assertExists()
+        rule.onNodeWithText("Remove date").assertExists()
+        capture(name)
+    }
+
+    private fun testSummaryShot(name: String, scale: Float) {
+        render(scale) { SetupFlowScreen(state(SetupStep.PLAN, testDraft), SetupFlowActions()) }
+        rule.onNodeWithText("Why this plan").performClick()
+        rule.onNodeWithText("Test prep: 1 event, three sets at about half your last or required number on each lifting day; a benchmark when due.")
+            .performScrollTo().assertExists()
+        capture(name, true)
+    }
 
     private fun render(fontScale: Float = 1f, light: Boolean = false, content: @Composable () -> Unit) {
         RuntimeEnvironment.setFontScale(fontScale)

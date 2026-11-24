@@ -1981,7 +1981,12 @@ class DayViewModel @Inject constructor(
         val link = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }?.prescriptionTest ?: return
         historyRepository.updateTestResult(result.runId, programExerciseId, index,
             count = if (link.event.timed) null else row.reps,
-            seconds = if (link.event.timed) row.seconds else null)
+            seconds = if (link.event.timed) row.seconds else null,
+            stop = when {
+                !link.event.timed -> TestStop.TIME_UP
+                row.seconds >= HoldClock.limitSeconds(row.seconds, true) -> TestStop.LIMIT
+                else -> TestStop.STOPPED
+            }.name)
     }
 
     fun toggleDone(programExerciseId: Long, index: Int, checked: Boolean, slot: String) {
@@ -2385,12 +2390,8 @@ class DayViewModel @Inject constructor(
             reportOtherDay(result, planId, day)
             if (result !is RunWriteResult.InRun) return@mutate
             val removed = removedMain ?: return@mutate
-            if (removed.done && uiState.value.exercises.firstOrNull {
-                    it.programExerciseId == programExerciseId
-                }?.prescriptionTest != null) {
-                historyRepository.deleteTestResult(runId, programExerciseId, index)
-            }
-            pushUndo(RemovedSet(programExerciseId, index, day, runId, removed, removedPartner))
+            val testResult = historyRepository.removeTestResultAndShift(runId, programExerciseId, index)
+            pushUndo(RemovedSet(programExerciseId, index, day, runId, removed, removedPartner, testResult))
         }
     }
 
@@ -2409,7 +2410,7 @@ class DayViewModel @Inject constructor(
             if (repo.dayTracksFlow(planId, day).first().runId != removed.runId) return@mutate
             val paired = removed.partner != null && trackFor(day, removed.programExerciseId, Slot.SS).isNotEmpty()
             cancelSetTimersForSetListChange(day, removed.programExerciseId)
-            repo.applyToRun(runId, planId, day, listOfNotNull(
+            val result = repo.applyToRun(runId, planId, day, listOfNotNull(
                 TrackEdit(removed.programExerciseId, Slot.MAIN) { rows ->
                     SetEditor.keepingIndexStamps(rows, SetEditor.insertSet(rows, removed.index, removed.main))
                 },
@@ -2417,6 +2418,9 @@ class DayViewModel @Inject constructor(
                     SetEditor.keepingIndexStamps(rows, SetEditor.insertSet(rows, removed.index, requireNotNull(removed.partner)))
                 } else null,
             ))
+            if (result is RunWriteResult.InRun) {
+                historyRepository.restoreTestResultAndShift(runId, removed.programExerciseId, removed.index, removed.testResult)
+            }
         }
     }
 

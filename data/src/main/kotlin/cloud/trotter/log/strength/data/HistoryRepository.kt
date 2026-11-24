@@ -101,8 +101,23 @@ class HistoryRepository(
     suspend fun deleteTestResult(runId: String, programExerciseId: Long, setIndex: Int) =
         testResultDao.deleteForSet(runId, programExerciseId, setIndex)
 
-    suspend fun updateTestResult(runId: String, programExerciseId: Long, setIndex: Int, count: Int?, seconds: Int?) =
-        testResultDao.updateForSet(runId, programExerciseId, setIndex, count, seconds)
+    suspend fun removeTestResultAndShift(runId: String, programExerciseId: Long, setIndex: Int): TestResultEntity? =
+        db.withTransaction {
+            val removed = testResultDao.forSet(runId, programExerciseId, setIndex)
+            testResultDao.deleteForSet(runId, programExerciseId, setIndex)
+            testResultDao.shiftSetIndices(runId, programExerciseId, setIndex + 1, -1)
+            removed
+        }
+
+    suspend fun restoreTestResultAndShift(runId: String, programExerciseId: Long, setIndex: Int, result: TestResultEntity?) {
+        db.withTransaction {
+            testResultDao.shiftSetIndices(runId, programExerciseId, setIndex, 1)
+            if (result != null) testResultDao.insert(result)
+        }
+    }
+
+    suspend fun updateTestResult(runId: String, programExerciseId: Long, setIndex: Int, count: Int?, seconds: Int?, stop: String) =
+        testResultDao.updateForSet(runId, programExerciseId, setIndex, count, seconds, stop)
 
     val sessionsFlow: Flow<List<WorkoutSessionEntity>> = sessionDao.observeSessions()
 

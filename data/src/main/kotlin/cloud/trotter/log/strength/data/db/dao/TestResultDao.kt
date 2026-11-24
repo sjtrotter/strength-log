@@ -28,8 +28,14 @@ interface TestResultDao {
     @Query("DELETE FROM test_result WHERE runId = :runId AND programExerciseId = :programExerciseId AND setIndex = :setIndex")
     suspend fun deleteForSet(runId: String, programExerciseId: Long, setIndex: Int)
 
-    @Query("UPDATE test_result SET count = :count, seconds = :seconds WHERE runId = :runId AND programExerciseId = :programExerciseId AND setIndex = :setIndex")
-    suspend fun updateForSet(runId: String, programExerciseId: Long, setIndex: Int, count: Int?, seconds: Int?)
+    @Query("SELECT * FROM test_result WHERE runId = :runId AND programExerciseId = :programExerciseId AND setIndex = :setIndex")
+    suspend fun forSet(runId: String, programExerciseId: Long, setIndex: Int): TestResultEntity?
+
+    @Query("UPDATE test_result SET setIndex = setIndex + :delta WHERE runId = :runId AND programExerciseId = :programExerciseId AND setIndex >= :fromIndex")
+    suspend fun shiftSetIndices(runId: String, programExerciseId: Long, fromIndex: Int, delta: Int)
+
+    @Query("UPDATE test_result SET count = :count, seconds = :seconds, stop = :stop WHERE runId = :runId AND programExerciseId = :programExerciseId AND setIndex = :setIndex")
+    suspend fun updateForSet(runId: String, programExerciseId: Long, setIndex: Int, count: Int?, seconds: Int?, stop: String)
 
     @Query("SELECT MAX(completedAt) FROM test_result WHERE eventId = :eventId AND eventVersion = :version AND ((:window IS NULL AND windowSeconds IS NULL) OR windowSeconds = :window)")
     suspend fun newestCompletedAt(eventId: String, version: Int, window: Int?): Long?

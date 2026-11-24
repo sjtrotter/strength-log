@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.data.LastSource
 import cloud.trotter.log.strength.data.RunSetCounts
 import cloud.trotter.log.strength.data.SpacingReason
 import cloud.trotter.log.strength.data.db.entity.Slot
+import cloud.trotter.log.strength.data.db.entity.TestResultEntity
 import cloud.trotter.log.strength.domain.library.TrackingType
 import cloud.trotter.log.strength.domain.library.eachSideOf
 import cloud.trotter.log.strength.domain.standards.HoldClock
@@ -534,6 +535,7 @@ data class RemovedSet(
     val main: LoggedSet,
     /** The superset partner's row for the same round, when there was one. */
     val partner: LoggedSet? = null,
+    val testResult: TestResultEntity? = null,
 )
 
 /** The superset partner's values and done tick for one round. */

@@ -157,9 +157,9 @@ class DayViewModelBenchmarkTest {
     private suspend fun row() = repo.dayTracksFlow(requireNotNull(repo.plans.selectedPlanIdFlow.first()), "A")
         .first().tracks.single { it.slot == Slot.MAIN }.sets[0]
 
-    private suspend fun TestScope.logWindow(vm: DayViewModel, seconds: Int = 120) {
+    private suspend fun TestScope.logWindow(vm: DayViewModel, seconds: Int = 120, index: Int = 0) {
         val card = vm.uiState.value.exercises.single()
-        vm.startTimedRep(card.programExerciseId, 0)
+        vm.startTimedRep(card.programExerciseId, index)
         runCurrent()
         tick(seconds * 1_000L)
         vm.changeTimedRepDraft("27")
@@ -323,6 +323,100 @@ class DayViewModelBenchmarkTest {
         assertEquals(1, vm.uiState.value.exercises.single().rows.size)
         assertFalse(row().done)
         assertTrue(repo.history.testResultsFlow.first().isEmpty())
+    }
+
+    @Test fun `Undo of a removed done benchmark restores exactly its original result`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        logWindow(vm)
+        val original = repo.history.testResultsFlow.first().single()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.addSet(id, false)
+        runCurrent()
+        vm.removeSet(id, 0, false)
+        runCurrent()
+        assertFalse(row().done)
+        assertTrue(repo.history.testResultsFlow.first().isEmpty())
+        assertEquals(original, vm.removedSets.value.single().testResult)
+        vm.undoRemoveSet()
+        runCurrent()
+        assertTrue(row().done)
+        assertEquals(27, row().reps)
+        assertEquals(2, vm.uiState.value.exercises.single().rows.size)
+        assertEquals(listOf(original), repo.history.testResultsFlow.first())
+    }
+
+    @Test fun `removing a benchmark shifts its surviving result for edits and Undo restores both indices`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        logWindow(vm)
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.addSet(id, false)
+        runCurrent()
+        logWindow(vm, index = 1)
+        val original = repo.history.testResultsFlow.first()
+        assertEquals(listOf(0, 1), original.map { it.setIndex })
+        vm.removeSet(id, 0, false)
+        runCurrent()
+        assertEquals(listOf(original[1].copy(setIndex = 0)), repo.history.testResultsFlow.first())
+        vm.changeReps(id, Slot.MAIN, 0, 37)
+        runCurrent()
+        assertEquals(37, row().reps)
+        assertEquals(listOf(original[1].copy(setIndex = 0, count = 37)), repo.history.testResultsFlow.first())
+        vm.undoRemoveSet()
+        runCurrent()
+        assertTrue(vm.uiState.value.exercises.single().rows.all { it.done })
+        assertEquals(listOf(27, 37), vm.uiState.value.exercises.single().rows.map { it.reps })
+        assertEquals(listOf(original[0], original[1].copy(count = 37)), repo.history.testResultsFlow.first())
+    }
+
+    @Test fun `Undo of an undone benchmark row restores the surviving result index`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        logWindow(vm)
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.addSet(id, false)
+        runCurrent()
+        logWindow(vm, index = 1)
+        vm.toggleDone(id, 0, false, Slot.MAIN)
+        runCurrent()
+        val original = repo.history.testResultsFlow.first().single()
+        vm.removeSet(id, 0, false)
+        runCurrent()
+        assertNull(vm.removedSets.value.single().testResult)
+        assertEquals(listOf(original.copy(setIndex = 0)), repo.history.testResultsFlow.first())
+        vm.undoRemoveSet()
+        runCurrent()
+        assertFalse(row().done)
+        assertEquals(listOf(original), repo.history.testResultsFlow.first())
+    }
+
+    @Test fun `editing a LIMIT hold below ten minutes changes its result to STOPPED`() = test {
+        prepare(plank)
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.startHold()
+        runCurrent()
+        tick(600_000)
+        val original = repo.history.testResultsFlow.first().single()
+        assertEquals(600, original.seconds)
+        assertEquals("LIMIT", original.stop)
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.changeSeconds(id, Slot.MAIN, 0, 590)
+        runCurrent()
+        assertTrue(row().done)
+        assertEquals(590, row().seconds)
+        assertEquals(listOf(original.copy(seconds = 590, stop = "STOPPED")), repo.history.testResultsFlow.first())
+        vm.changeSeconds(id, Slot.MAIN, 0, 600)
+        runCurrent()
+        assertEquals(listOf(original), repo.history.testResultsFlow.first())
     }
 
     @Test fun `a hold benchmark buzzes once at the ceiling and ends itself at ten minutes`() = test {

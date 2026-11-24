@@ -27,6 +27,7 @@ import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.progression.LiftGoal
+import cloud.trotter.log.strength.domain.standards.TestEvents
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.backup.BackupError
 import cloud.trotter.log.strength.transfer.backup.BackupService
@@ -239,6 +240,20 @@ class SetupFlowViewModel @Inject constructor(
     fun setRecentEffort(id: String, effort: Effort) = update {
         it.copy(recent = it.recent + (id to (it.recent[id] ?: RecentDraft()).copy(effort = effort)))
     }
+    fun setTestEvent(id: String, on: Boolean) = update {
+        val rest = it.tests.filterNot { test -> test.eventId == id }
+        it.copy(tests = if (on && TestEvents.find(id) != null) rest + TestDraft(id) else rest)
+    }
+    fun setTestRequired(id: String, value: Int?) = update {
+        it.copy(tests = it.tests.map { test -> if (test.eventId == id) test.copy(required = value) else test })
+    }
+    fun setTestLast(id: String, value: Int?) = update {
+        it.copy(tests = it.tests.map { test -> if (test.eventId == id) test.copy(lastResult = value) else test })
+    }
+    fun setTestWindow(id: String, value: Int?) = update {
+        it.copy(tests = it.tests.map { test -> if (test.eventId == id) test.copy(windowSeconds = value) else test })
+    }
+    fun setTestDate(value: Long?) = update { it.copy(testDate = value) }
     fun setBalanceDays(value: Boolean) = update { it.copy(balanceDays = value) }
     fun dropLift(id: String) = update {
         val mains = SetupFlowStateBuilder.currentMains(it)

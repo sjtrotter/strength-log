@@ -315,6 +315,7 @@ class TrackerRepository(
             val count = sets ?: row.targetSets
             require(count in 1..20)
             val stored = PrescriptionJson.decode(row.prescriptionJson)
+            // The day editor rebuilds the dose without a link; same-kind edits keep the stored identity.
             val kept = if (prescription.test == null && stored?.test != null &&
                 stored.target::class == prescription.target::class) prescription.copy(test = stored.test) else prescription
             val json = PrescriptionJson.encode(kept)
@@ -2493,6 +2494,12 @@ class TrackerRepository(
             }
             val layoff = opening?.let { runCatching { it.layoffKind() }.getOrNull() } ?: LayoffKind.None
             val entry = catalog.find(track.exerciseId)
+            val prepRequired = if (track.slot == Slot.MAIN) {
+                PrescriptionJson.decode(slot.prescriptionJson)?.test?.let { ref ->
+                    TestGoalJson.decode(plan?.testGoalJson)?.forRef(ref)?.required
+                }
+            } else null
+            val holdCeiling = prepRequired?.let { maxOf(entry?.holdCeilingSeconds ?: 0, it) } ?: entry?.holdCeilingSeconds
             val automatic = rule.automatic(planAutomatic)
             val sourceLoad = if (track.slot == Slot.MAIN) {
                 val tracking = catalog.loadSourceTracking(slot.exerciseId)
@@ -2504,7 +2511,7 @@ class TrackerRepository(
             // A malformed row must never block Finish; an opened track keeps its stored load.
             val prepared = try {
                 val outcome = Progression.afterSession(rule, working, Progression.Exposure(planned, actual, today, layoff = layoff),
-                    Progression.Context(unit, entry?.equipment.orEmpty().toSet(), steps, today, light = opening?.light == true, holdCeilingSeconds = entry?.holdCeilingSeconds, sourceLoadLb = sourceLoad), window)
+                    Progression.Context(unit, entry?.equipment.orEmpty().toSet(), steps, today, light = opening?.light == true, holdCeilingSeconds = holdCeiling, sourceLoadLb = sourceLoad), window)
                 val applied = automatic || outcome.reason == Reason.Followed
                 val writtenRule = if (applied) outcome.rule else outcome.rule.copy(target = rule.target,
                     state = outcome.rule.state.copy(calibrating = rule.state.calibrating))

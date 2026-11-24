@@ -42,6 +42,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import cloud.trotter.log.strength.domain.model.TestEventGoal
+import cloud.trotter.log.strength.domain.planner.TestAnswer
+import cloud.trotter.log.strength.domain.standards.TestRef
 
 class SetupFlowStateBuilderTest {
     private val builder = SetupFlowStateBuilder
@@ -51,7 +54,8 @@ class SetupFlowStateBuilderTest {
     @Test fun `the default draft maps to the default setup answers`() { assertEquals(SetupAnswers(), builder.answers(SetupDraft())) }
 
     @Test fun `step lists follow sub-goal and experience`() {
-        val common = listOf(SetupStep.GOAL, SetupStep.SUB_GOAL, SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT)
+        // #646: the Test step follows Sub goal.
+        val common = listOf(SetupStep.GOAL, SetupStep.SUB_GOAL, SetupStep.TEST, SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT)
         assertEquals(common + SetupStep.PLAN, builder.steps(SetupDraft()))
         assertEquals(common + listOf(SetupStep.LIFTS, SetupStep.PLAN), builder.steps(SetupDraft(goal = LiftGoal.STRENGTH)))
         assertEquals(common + listOf(SetupStep.LIFTS, SetupStep.RECENT, SetupStep.PLAN), builder.steps(SetupFlowFixtures.reference))
@@ -173,7 +177,8 @@ class SetupFlowStateBuilderTest {
             assertEquals(run + listOf(SetupStep.EVENT, SetupStep.WHERE, SetupStep.PLAN),
                 builder.steps(SetupDraft(branch = PlanBranch.RUN, runGoal = goal)))
         }
-        val both = listOf(SetupStep.GOAL, SetupStep.ORDER, SetupStep.SUB_GOAL, SetupStep.RUN_GOAL,
+        // #646: the Test step follows Sub goal.
+        val both = listOf(SetupStep.GOAL, SetupStep.ORDER, SetupStep.SUB_GOAL, SetupStep.TEST, SetupStep.RUN_GOAL,
             SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT)
         assertEquals(both + listOf(SetupStep.WHERE, SetupStep.TOGETHER, SetupStep.PLAN),
             builder.steps(SetupDraft(branch = PlanBranch.BOTH)))
@@ -268,7 +273,8 @@ class SetupFlowStateBuilderTest {
         assertEquals(listOf("A", "B", "C", "D"), plan.program.days.map { it.id })
         plan.program.days.take(3).forEach { assertEquals(CardioRule(1), it.cardioRule) }
         assertEquals(ProgramDayKind.REST, plan.program.days.last().kind)
-        assertEquals(listOf(SetupStep.GOAL, SetupStep.ORDER, SetupStep.SUB_GOAL, SetupStep.RUN_GOAL,
+        // #646: the Test step follows Sub goal.
+        assertEquals(listOf(SetupStep.GOAL, SetupStep.ORDER, SetupStep.SUB_GOAL, SetupStep.TEST, SetupStep.RUN_GOAL,
             SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT, SetupStep.WHERE, SetupStep.TOGETHER, SetupStep.PLAN),
             builder.steps(SetupDraft(branch = PlanBranch.BOTH)))
     }
@@ -511,6 +517,55 @@ class SetupFlowStateBuilderTest {
             val why = (builder.planPreview(draft, answers) as PlanPreviewUi.Ready).why
             assertEquals(draft.phase == RunPhase.LADDER, why.any { it is PlanWhy.Ladder })
         }
+    }
+
+    @Test fun `the Test step follows Sub goal on Lift and Both and is absent on Run and Sprint`() {
+        for (draft in listOf(SetupFlowFixtures.reference, SetupFlowFixtures.both)) {
+            val steps = builder.steps(draft)
+            assertEquals(SetupStep.TEST, steps[steps.indexOf(SetupStep.SUB_GOAL) + 1])
+        }
+        for (draft in listOf(SetupFlowFixtures.run, SetupFlowFixtures.sprint, SetupFlowFixtures.bothSprint)) {
+            assertFalse(SetupStep.TEST in builder.steps(draft))
+        }
+    }
+
+    @Test fun `a chosen event blocks Next until its required number is valid`() {
+        val draft = SetupFlowFixtures.reference.copy(step = SetupStep.TEST, tests = listOf(TestDraft("aft_hrp")))
+        assertFalse(builder.canAdvance(draft))
+        assertTrue(builder.canAdvance(draft.copy(tests = listOf(TestDraft("aft_hrp", 40)))))
+        for (test in listOf(TestDraft("aft_hrp", 0), TestDraft("aft_hrp", 3601),
+            TestDraft("aft_hrp", 40, 0), TestDraft("aft_hrp", 40, 3601), TestDraft("unknown", 40),
+            TestDraft("custom_pushup_window", 40), TestDraft("custom_pushup_window", 40, windowSeconds = 9),
+            TestDraft("custom_pushup_window", 40, windowSeconds = 3601))) {
+            assertFalse(builder.canAdvance(draft.copy(tests = listOf(test))))
+        }
+        assertTrue(builder.canAdvance(draft.copy(tests = listOf(TestDraft("custom_pushup_window", 40, windowSeconds = 60)))))
+        assertTrue(builder.canAdvance(draft.copy(tests = emptyList())))
+    }
+
+    @Test fun `answers carry the tests and draftFrom restores them`() {
+        val hrp = TestRef("aft_hrp", 1, 120)
+        val draft = SetupDraft(tests = listOf(TestDraft("aft_hrp", 40, 24)), testDate = 21000)
+        assertEquals(listOf(TestAnswer(TestEventGoal(hrp, 40), 24)), builder.answers(draft).tests)
+        assertEquals(21000L, builder.answers(draft).testDateEpochDay)
+        for (test in listOf(TestDraft("aft_hrp", 40, 24), TestDraft("custom_pushup_window", 40, 24, 60),
+            TestDraft("aft_plank", 220, 95))) {
+            val input = draft.copy(tests = listOf(test))
+            val restored = builder.draftFrom(builder.answers(input))
+            assertEquals(input.tests, restored.tests)
+            assertEquals(input.testDate, restored.testDate)
+        }
+        for (branch in listOf(SetupFlowFixtures.run, SetupFlowFixtures.sprint, SetupFlowFixtures.bothSprint)) {
+            val answers = builder.answers(branch.copy(tests = draft.tests, testDate = 21000))
+            assertTrue(answers.tests.isEmpty())
+            assertNull(answers.testDateEpochDay)
+        }
+        assertNull(builder.answers(draft.copy(testDate = Long.MAX_VALUE)).testDateEpochDay)
+    }
+
+    @Test fun `the Why sheet lists the prep block`() {
+        val answers = builder.answers(SetupDraft(tests = listOf(TestDraft("aft_hrp", 40))))
+        assertTrue(PlanWhy.TestPrep(1) in preview(answers).why)
     }
 
 }

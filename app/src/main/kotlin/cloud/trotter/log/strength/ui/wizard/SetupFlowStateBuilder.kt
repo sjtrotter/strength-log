@@ -35,6 +35,11 @@ import cloud.trotter.log.strength.domain.progression.LoadSteps
 import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.text.UiText
+import cloud.trotter.log.strength.domain.model.TestEventGoal
+import cloud.trotter.log.strength.domain.planner.TestAnswer
+import cloud.trotter.log.strength.domain.standards.TestEvents
+import cloud.trotter.log.strength.domain.standards.TestRef
+import cloud.trotter.log.strength.domain.standards.TestSetType
 import kotlin.math.ceil
 import java.time.DayOfWeek
 import cloud.trotter.log.strength.domain.planner.SprintAnswers
@@ -51,6 +56,7 @@ object SetupFlowStateBuilder {
         add(SetupStep.GOAL)
         if (draft.branch == PlanBranch.BOTH && !draft.sprintCardio) add(SetupStep.ORDER)
         if (draft.branch == PlanBranch.LIFT || draft.branch == PlanBranch.BOTH) add(SetupStep.SUB_GOAL)
+        if (offersTests(draft)) add(SetupStep.TEST)
         if (draft.branch != PlanBranch.LIFT) add(SetupStep.RUN_GOAL)
         addAll(listOf(SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT))
         if (draft.branch != PlanBranch.RUN) {
@@ -67,12 +73,25 @@ object SetupFlowStateBuilder {
         add(SetupStep.PLAN)
     }
 
+    fun offersTests(draft: SetupDraft): Boolean =
+        draft.branch == PlanBranch.LIFT || draft.branch == PlanBranch.BOTH && !draft.sprintCardio
+
+    private fun testAnswer(draft: TestDraft): TestAnswer? {
+        val event = TestEvents.find(draft.eventId) ?: return null
+        val window = TestEvents.window(event, draft.windowSeconds)
+        if (event.setType == TestSetType.REPS_IN_WINDOW && (window == null || window !in 10..3600)) return null
+        val required = draft.required?.takeIf { it in 1..3600 } ?: return null
+        if (draft.lastResult != null && draft.lastResult !in 1..3600) return null
+        return TestAnswer(TestEventGoal(TestRef(event.id, event.version, window), required), draft.lastResult)
+    }
+
     fun offersTogether(draft: SetupDraft): Boolean =
         draft.branch == PlanBranch.BOTH && !draft.sprintCardio && (draft.days >= 3 || draft.days == 2 && draft.cardioFirst)
 
     fun currentStep(draft: SetupDraft): SetupStep = steps(draft).last { it.ordinal <= draft.step.ordinal }
 
     fun canAdvance(draft: SetupDraft): Boolean = when (currentStep(draft)) {
+        SetupStep.TEST -> draft.tests.all { testAnswer(it) != null }
         SetupStep.LIFTS -> Planner.sprintLowerMainMissing(answers(draft)) == null
         SetupStep.EVENT -> draft.runGoal == RunGoal.FITNESS_TEST && draft.test.metres == null ||
             draft.goalSeconds == null || draft.goalSeconds in goalTimeFloor(draft)..86_400
@@ -109,6 +128,8 @@ object SetupFlowStateBuilder {
             } else null
         }.toMap(), balanceDays = draft.balanceDays,
         branch = draft.branch,
+        tests = if (offersTests(draft)) draft.tests.mapNotNull(::testAnswer) else emptyList(),
+        testDateEpochDay = draft.testDate?.takeIf { offersTests(draft) && draft.tests.isNotEmpty() && PlanGoalDate.isValid(it) },
         run = if (draft.branch == PlanBranch.LIFT || draft.isSprint) RunAnswers() else runAnswers(draft),
         sprint = if (draft.isSprint) SprintAnswers(draft.sprintEvent, draft.sprintedRecently, draft.hamstringStrain,
             draft.fortyOrOlder) else SprintAnswers(),
@@ -174,7 +195,10 @@ object SetupFlowStateBuilder {
             strengthBlocks = answers.run.strengthBlocks, cardioFirst = answers.both.cardioFirst, together = answers.both.together,
             sprintEvent = answers.sprint.event, sprintCardio = answers.both.sprint,
             sprintedRecently = answers.sprint.sprintedRecently, hamstringStrain = answers.sprint.hamstringStrain,
-            fortyOrOlder = answers.sprint.fortyOrOlder)
+            fortyOrOlder = answers.sprint.fortyOrOlder,
+            tests = answers.tests.map { answer -> TestDraft(answer.goal.ref.eventId, answer.goal.required,
+                answer.lastResult, answer.goal.ref.windowSeconds.takeIf { TestEvents.find(answer.goal.ref.eventId)?.custom == true }) },
+            testDate = answers.testDateEpochDay)
     }
 
     internal fun sprintWeekdays(days: Int): List<DayOfWeek?> = when (days) {
@@ -248,6 +272,7 @@ object SetupFlowStateBuilder {
                 if (answers.days == 2 && days.count { it.kind != ProgramDayKind.REST } == 2 && answers.minutes == 30) add(PlanWhy.ShortTwoDaySprint)
                 add(PlanWhy.SplitDay)
             }
+            draft.reasons.filterIsInstance<PlanReason.TestPrep>().forEach { add(PlanWhy.TestPrep(it.events)) }
             add(PlanWhy.Minutes)
         }
         val mains = answers.mains ?: Planner.defaultMains(answers.equipment)

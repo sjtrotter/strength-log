@@ -5,6 +5,9 @@ import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.LoadSteps
 import cloud.trotter.log.strength.domain.units.WeightUnit
+import cloud.trotter.log.strength.domain.model.PlanGoalDate
+import cloud.trotter.log.strength.domain.model.TestEventGoal
+import cloud.trotter.log.strength.domain.model.TestGoal
 
 enum class LiftExperience { NEW, UNDER_A_YEAR, A_YEAR_OR_MORE }
 
@@ -43,11 +46,18 @@ data class SetupAnswers(
     val both: BothAnswers = BothAnswers(),
     val sprint: SprintAnswers = SprintAnswers(),
     val balanceDays: Boolean = false,
+    val tests: List<TestAnswer> = emptyList(),
+    val testDateEpochDay: Long? = null,
 ) {
     init {
         require(days in 1..6)
         require(minutes in MINUTES)
+        require(tests.isEmpty() || branch == PlanBranch.LIFT || branch == PlanBranch.BOTH && !both.sprint)
+        require(PlanGoalDate.isValid(testDateEpochDay))
+        require(tests.map { it.goal.ref }.distinct().size == tests.size)
     }
+
+    val testGoal: TestGoal? get() = tests.takeIf { it.isNotEmpty() }?.let { TestGoal(it.map(TestAnswer::goal), testDateEpochDay) }
 
     companion object {
         val MINUTES = listOf(30, 45, 60, 75, 90)
@@ -92,4 +102,9 @@ data class BothAnswers(
 ) {
     init { require(!sprint || (!cardioFirst && together == null)) }
     enum class Together { SAME_VISIT, SEPARATE_DAYS }
+}
+
+/** The optional last result anchors prep; benchmarks never set training targets. */
+data class TestAnswer(val goal: TestEventGoal, val lastResult: Int? = null) {
+    init { lastResult?.let { require(it in 1..3600) } }
 }

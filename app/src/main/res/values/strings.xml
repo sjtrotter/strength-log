@@ -1347,6 +1347,18 @@
     <string name="setup_flow_test_pacer">PACER</string>
     <string name="setup_flow_test_hamr">HAMR</string>
     <string name="setup_flow_test_target_metres">Target distance (m)</string>
+    <string name="setup_flow_tests_title">Fitness test</string>
+    <string name="setup_flow_tests_label">Events</string>
+    <string name="setup_flow_test_window">Window</string>
+    <string name="setup_flow_test_required_reps">Required reps</string>
+    <string name="setup_flow_test_required_hold">Required hold</string>
+    <string name="setup_flow_test_last_reps">Last reps</string>
+    <string name="setup_flow_test_last_hold">Last hold</string>
+    <string name="setup_flow_why_tests">Pick the events your test scores. The plan practices each movement on your lifting days and runs a benchmark every three weeks, none in the last week before the date. Point tables are not built in; type the number your test requires.</string>
+    <plurals name="setup_flow_why_test_prep">
+        <item quantity="one">Test prep: %1$d event, three sets at about half your last or required number on each lifting day; a benchmark when due.</item>
+        <item quantity="other">Test prep: %1$d events, three sets each at about half your last or required number on each lifting day; a benchmark when due.</item>
+    </plurals>
     <string name="setup_flow_event_goal_label">Goal</string>
     <string name="setup_flow_event_finish">Just finish</string>
     <string name="setup_flow_event_time">A time</string>

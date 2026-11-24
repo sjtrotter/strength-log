@@ -20,7 +20,7 @@ import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.ui.text.UiText
 
 /** Screens in canonical order; [SetupFlowStateBuilder.steps] picks a draft's subset. Stored by name. */
-enum class SetupStep { GOAL, ORDER, SUB_GOAL, RUN_GOAL, WEEK, EQUIPMENT, ABOUT, LIFTS, RECENT, EVENT, WHERE, TOGETHER, PLAN }
+enum class SetupStep { GOAL, ORDER, SUB_GOAL, TEST, RUN_GOAL, WEEK, EQUIPMENT, ABOUT, LIFTS, RECENT, EVENT, WHERE, TOGETHER, PLAN }
 enum class StepRow { BAR, DUMBBELL, STACK }
 data class StepRowState(val row: StepRow, val optionsLb: List<Double>, val selected: Int)
 
@@ -50,6 +50,7 @@ sealed interface PlanWhy {
     data class Ladder(val weeks: Int) : PlanWhy
     data class LadderDateTooClose(val fitnessTest: Boolean) : PlanWhy
     data class NoRun(val minutes: Int) : PlanWhy
+    data class TestPrep(val events: Int) : PlanWhy
     data object Minutes : PlanWhy
 }
 
@@ -101,6 +102,11 @@ data class SetupFlowUiState(
 
 /** Callbacks forwarded to [SetupFlowViewModel]. */
 data class SetupFlowActions(
+    val onTestEvent: (String, Boolean) -> Unit = { _, _ -> },
+    val onTestRequired: (String, Int?) -> Unit = { _, _ -> },
+    val onTestLast: (String, Int?) -> Unit = { _, _ -> },
+    val onTestWindow: (String, Int?) -> Unit = { _, _ -> },
+    val onTestDate: (Long?) -> Unit = {},
     val onSprintEvent: (SprintEvent) -> Unit = {}, val onSprintedRecently: (Boolean) -> Unit = {},
     val onHamstringStrain: (Boolean) -> Unit = {}, val onFortyOrOlder: (Boolean) -> Unit = {},
     val onBranch: (PlanBranch) -> Unit = {}, val onCardioFirst: (Boolean) -> Unit = {},

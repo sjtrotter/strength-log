@@ -324,6 +324,7 @@ class PlanRepository(
                     name = name.trim(), origin = PlanOrigin.GENERATED.name, recipeJson = recipe,
                     settingsJson = PlanSettingsJson.encode(planSettings), autoApply = true,
                     deloadEveryCycles = draft.deloadEveryCycles, goalJson = draft.goal?.let(PlanGoalJson::encode),
+                    testGoalJson = draft.testGoal?.let(TestGoalJson::encode),
                     suggestedDayId = nextDay, offerCardioIncreases = draft.program.days.any { it.cardioBlock != null },
                 )
                 val planId = if (entity.id != 0L) {

@@ -685,4 +685,14 @@ class SetupFlowScreenTest {
         rule.onNodeWithText("Longest run without walk breaks in the past 30 days").assertDoesNotExist()
     }
 
+    @Test fun `the Test step shows the catalog events and the fields of a chosen one`() {
+        show(state(SetupStep.TEST, SetupDraft(tests = listOf(TestDraft("custom_pushup_window")))))
+        listOf("AFT hand-release push-up", "AFT plank", "Timed push-ups", "Timed sit-ups").forEach {
+            rule.onAllNodesWithText(it).onFirst().assertExists()
+        }
+        listOf("Window", "Required reps", "Last reps").forEach { rule.onNodeWithText(it).performScrollTo().assertExists() }
+        rule.onNodeWithText("Required hold").assertDoesNotExist()
+    }
+
+
 }

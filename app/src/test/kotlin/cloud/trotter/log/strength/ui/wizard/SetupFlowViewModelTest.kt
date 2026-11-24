@@ -97,6 +97,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import cloud.trotter.log.strength.data.serialization.PrescriptionJson
+import cloud.trotter.log.strength.data.serialization.TestGoalJson
+import cloud.trotter.log.strength.domain.model.TestEventGoal
+import cloud.trotter.log.strength.domain.model.TestGoal
+import cloud.trotter.log.strength.domain.standards.TestRef
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -203,7 +208,8 @@ class SetupFlowViewModelTest {
         WeightUnit.entries.forEach { unit ->
             val vm = newViewModel(defaultUnit = unit); advanceUntilIdle()
             assertEquals(SetupStep.GOAL, vm.uiState.value.step)
-            assertEquals(6, vm.uiState.value.stepCount)
+            // #646: the Test step.
+            assertEquals(7, vm.uiState.value.stepCount)
             assertTrue(vm.uiState.value.firstRun && vm.uiState.value.restore.offered)
             assertEquals(SetupAnswers(unit = unit), answers(vm))
         }
@@ -287,7 +293,8 @@ class SetupFlowViewModelTest {
     @Test fun `the draft survives process death`() = runVmTest {
         val h = SavedStateHandle(); val vm = newViewModel(h); advanceUntilIdle()
         vm.setSubGoal(LiftGoal.STRENGTH); vm.setDays(4); vm.setMinutes(75); vm.setExperience(LiftExperience.A_YEAR_OR_MORE)
-        repeat(6) { vm.onNext() }; vm.setRecentWeight("bb_back_squat", 275.0); vm.setRecentReps("bb_back_squat", 5); advanceUntilIdle()
+        // #646: the Test step adds one Next before Recent numbers.
+        repeat(7) { vm.onNext() }; vm.setRecentWeight("bb_back_squat", 275.0); vm.setRecentReps("bb_back_squat", 5); advanceUntilIdle()
         val revived = newViewModel(copyHandle(h)); advanceUntilIdle()
         assertEquals(SetupStep.RECENT, revived.uiState.value.step); assertEquals(answers(vm), answers(revived))
         h.keys().forEach { val value = h.get<Any>(it); assertTrue(value is String || value is Boolean || value is Long) }
@@ -303,7 +310,8 @@ class SetupFlowViewModelTest {
             previewRead = true
             assertEquals(PlanPreviewUi.Loading, vm.uiState.value.plan); assertFalse(vm.uiState.value.canStart)
         }
-        repeat(5) { vm.onNext() }; advanceUntilIdle()
+        // #646: the Test step adds one Next before Your plan.
+        repeat(6) { vm.onNext() }; advanceUntilIdle()
         assertTrue(previewRead)
         assertEquals(repo.plans.previewPlan(answers(vm)).program.days.map { it.id }, ready(vm).rows.map { it.dayId })
     }
@@ -830,6 +838,32 @@ class SetupFlowViewModelTest {
             SetupFlowFixtures.bothSprint.copy(sprintEvent = SprintEvent.M400, days = 6))))
         assertEquals("40 yd sprint, 1 day", vm.planName(SetupFlowStateBuilder.answers(
             SetupFlowFixtures.sprint.copy(sprintEvent = SprintEvent.YD40, days = 1))))
+    }
+
+    @Test fun `a Lift plan with a test goal is created with its goal and prep slots`() = runVmTest {
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+        advanceUntilIdle()
+        vm.onNext(); vm.onNext(); advanceUntilIdle()
+        assertEquals(SetupStep.TEST, vm.uiState.value.step)
+        vm.setTestEvent("aft_hrp", true)
+        vm.onNext(); advanceUntilIdle()
+        assertEquals(SetupStep.TEST, vm.uiState.value.step)
+        vm.setTestRequired("aft_hrp", 40)
+        vm.setTestLast("aft_hrp", 24)
+        vm.setTestDate(21000)
+        advanceUntilIdle()
+        val revived = newViewModel(copyHandle(handle))
+        advanceUntilIdle()
+        assertEquals(listOf(TestDraft("aft_hrp", 40, 24)), revived.uiState.value.draft.tests)
+        plan(revived)
+        revived.onNext(); advanceUntilIdle()
+        val created = db.planDao().allPlans().single()
+        val hrp = TestRef("aft_hrp", 1, 120)
+        assertEquals(TestGoal(listOf(TestEventGoal(hrp, 40)), 21000), TestGoalJson.decode(created.testGoalJson))
+        val slot = db.programDao().exercisesForDay(created.id, "A")
+            .single { PrescriptionJson.decode(it.prescriptionJson)?.test == hrp }
+        assertEquals("hand_release_pushup", slot.exerciseId)
     }
 
 }

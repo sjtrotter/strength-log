@@ -68,4 +68,12 @@ class SetupDraftJsonTest {
         assertNull(SetupDraftJson.decode("""{"v":1,"sprintEvent":"M50"}"""))
     }
 
+    @Test fun `tests survive the draft and duplicates are refused`() {
+        val draft = SetupDraft(step = SetupStep.TEST, tests = listOf(TestDraft("aft_hrp", 40, 24),
+            TestDraft("custom_situp_window", 45, 31, 60)), testDate = 21000)
+        assertEquals(draft, SetupDraftJson.decode(SetupDraftJson.encode(draft)))
+        assertNull(SetupDraftJson.decode(SetupDraftJson.encode(draft.copy(tests = listOf(TestDraft("aft_hrp"), TestDraft("aft_hrp"))))))
+    }
+
+
 }

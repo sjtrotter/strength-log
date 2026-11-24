@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.progression.KnownLoads
 import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.progression.SlotSeeding
+import cloud.trotter.log.strength.domain.model.TestGoal
 
 data class SlotKey(val dayId: String, val index: Int)
 
@@ -42,6 +43,7 @@ sealed interface PlanReason {
     /** A 65+ lifter with fewer than three lifting days could add balance-only days to reach three a week; the setup
      *  screen offers them (audit 2026-11-13 decision 12, WHO 2020). Plan-level. */
     data object BalanceDaysOffered : PlanReason
+    data class TestPrep(val events: Int) : PlanReason
 }
 
 data class PlanDraft(
@@ -54,6 +56,7 @@ data class PlanDraft(
     val phase: RunPhase? = null,
     /** Day id to session, for every day with a cardio block. */
     val sessions: Map<String, RunSession> = emptyMap(),
+    val testGoal: TestGoal? = null,
 )
 
 data class DayDraft(val day: ProgramDay, val working: Map<Int, List<LoggedSet>>, val reasons: List<PlanReason>)
@@ -82,10 +85,10 @@ object Planner {
             (atLeast == RunPhase.BASE && answers.run.goal.phases.isEmpty() && answers.run.phases == listOf(RunPhase.LADDER)))
         require(todayEpochDay != null || answers.branch == PlanBranch.LIFT || answers.run.dateEpochDay == null)
         return when (answers.branch) {
-            PlanBranch.LIFT -> liftDraft(answers, known).withBalanceDays(answers, known)
+            PlanBranch.LIFT -> liftDraft(answers, known).withBalanceDays(answers, known).withTestPrep(answers, known)
             PlanBranch.RUN -> runDraft(answers, known, todayEpochDay, answers.slotGoal, atLeast)
             PlanBranch.BOTH -> if (answers.both.sprint) sprintDraft(answers, known, answers.slotGoal)
-                else bothDraft(answers, known, todayEpochDay, atLeast)
+                else bothDraft(answers, known, todayEpochDay, atLeast).withTestPrep(answers, known)
             PlanBranch.SPRINT -> sprintDraft(answers, known, answers.slotGoal)
         }
     }
@@ -109,7 +112,7 @@ object Planner {
                     is PlanReason.ShortSession -> reason.dayId == dayId
                     is PlanReason.OverBudget -> reason.dayId == dayId
                     is PlanReason.RunCapped -> reason.dayId == dayId
-                    PlanReason.DateTooClose, is PlanReason.LadderWeeks, is PlanReason.GoalCheck, PlanReason.BalanceDays, PlanReason.BalanceDaysOffered -> false
+                    PlanReason.DateTooClose, is PlanReason.LadderWeeks, is PlanReason.GoalCheck, PlanReason.BalanceDays, PlanReason.BalanceDaysOffered, is PlanReason.TestPrep -> false
                 }
             })
     }

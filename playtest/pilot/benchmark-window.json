@@ -1,0 +1,198 @@
+{
+  "seat": "benchmark-window",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "start": {
+    "date": "2026-11-09",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Timed push-ups"
+      }
+    },
+    {
+      "type": {
+        "text": "Window",
+        "value": "1:00",
+        "ime": "done"
+      }
+    },
+    {
+      "type": {
+        "text": "Required reps",
+        "value": "40",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start"
+      }
+    },
+    {
+      "expect": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start day A"
+      }
+    },
+    {
+      "tap": {
+        "text": "Skip",
+        "role": "Button"
+      },
+      "optional": true,
+      "timeoutMs": 1000
+    },
+    {
+      "tap": {
+        "desc": "Day A lifts, 0 of 15 sets"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Push-Up"
+      }
+    },
+    {
+      "tap": {
+        "text": "Push-Up"
+      }
+    },
+    {
+      "expect": {
+        "text": "Benchmark"
+      }
+    },
+    {
+      "expect": {
+        "text": "1:00"
+      }
+    },
+    {
+      "tap": {
+        "text": "Start",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "advance": "60s"
+    },
+    {
+      "tap": {
+        "text": "Enter reps",
+        "tag": "workout-action-filled"
+      }
+    },
+    {
+      "type": {
+        "text": "Reps",
+        "value": "27"
+      }
+    },
+    {
+      "tap": {
+        "text": "Log 27 reps",
+        "role": "Button"
+      }
+    },
+    {
+      "expect": {
+        "text": "✓ Set 1 · 27"
+      }
+    },
+    {
+      "checkpoint": "benchmark-logged"
+    },
+    {
+      "tap": {
+        "tag": "workout-finish"
+      }
+    },
+    {
+      "tap": {
+        "text": "Finish",
+        "inDialog": true
+      }
+    },
+    {
+      "tap": {
+        "text": "Done"
+      }
+    },
+    {
+      "tap": {
+        "text": "History",
+        "role": "Tab"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Full Body"
+      }
+    },
+    {
+      "expect": {
+        "text": "Full Body"
+      }
+    },
+    {
+      "tap": {
+        "text": "Full Body"
+      }
+    },
+    {
+      "scrollTo": {
+        "text": "Push-Up"
+      }
+    },
+    {
+      "expect": {
+        "text": "Push-Up"
+      }
+    },
+    {
+      "checkpoint": "benchmark-receipt"
+    }
+  ]
+}

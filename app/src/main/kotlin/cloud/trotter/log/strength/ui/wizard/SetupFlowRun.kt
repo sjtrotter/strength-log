@@ -93,7 +93,7 @@ internal fun SetupSegments(labels: List<String>, selected: Int, onSelect: (Int) 
 }
 
 @Composable
-private fun SetupTime(value: Int?, label: String, minSeconds: Int = 1, invalid: Int? = null, onChange: (Int?) -> Unit) {
+internal fun SetupTime(value: Int?, label: String, minSeconds: Int = 1, invalid: Int? = null, onChange: (Int?) -> Unit) {
     val change: (Double?) -> Unit = { onChange(it?.toInt()) }
     key(minSeconds) {
         // Draft edits persist already; disposing a focused field must not write using its old floor.
@@ -191,7 +191,7 @@ internal fun EventStep(state: SetupFlowUiState, actions: SetupFlowActions) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SetupEventDate(date: Long?, onChange: (Long?) -> Unit) {
+internal fun SetupEventDate(date: Long?, onChange: (Long?) -> Unit) {
     var open by rememberSaveable { mutableStateOf(false) }
     SetupLabel(stringResource(R.string.setup_flow_event_date_label))
     Row {

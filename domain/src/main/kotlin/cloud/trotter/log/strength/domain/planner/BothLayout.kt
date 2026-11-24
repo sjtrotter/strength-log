@@ -149,7 +149,7 @@ internal fun relabel(draft: PlanDraft, ids: Map<String, String>): PlanDraft = dr
             is PlanReason.ShortSession -> reason.copy(dayId = ids.getValue(reason.dayId))
             is PlanReason.OverBudget -> reason.copy(dayId = ids.getValue(reason.dayId))
             is PlanReason.RunCapped -> reason.copy(dayId = ids.getValue(reason.dayId))
-            PlanReason.DateTooClose, is PlanReason.LadderWeeks, is PlanReason.GoalCheck, PlanReason.BalanceDays, PlanReason.BalanceDaysOffered -> reason
+            PlanReason.DateTooClose, is PlanReason.LadderWeeks, is PlanReason.GoalCheck, PlanReason.BalanceDays, PlanReason.BalanceDaysOffered, is PlanReason.TestPrep -> reason
         }
     },
 )

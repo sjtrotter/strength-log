@@ -101,6 +101,9 @@ class HistoryRepository(
     suspend fun deleteTestResult(runId: String, programExerciseId: Long, setIndex: Int) =
         testResultDao.deleteForSet(runId, programExerciseId, setIndex)
 
+    suspend fun updateTestResult(runId: String, programExerciseId: Long, setIndex: Int, count: Int?, seconds: Int?) =
+        testResultDao.updateForSet(runId, programExerciseId, setIndex, count, seconds)
+
     val sessionsFlow: Flow<List<WorkoutSessionEntity>> = sessionDao.observeSessions()
 
     /**

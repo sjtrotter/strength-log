@@ -237,7 +237,9 @@ internal fun EffortScale.forTracking(tracking: TrackingType): EffortScale =
 /** The hold timer's target for this set in seconds, or 0: only a TIMED main outside a superset has one. */
 internal fun ExerciseCardState.holdTargetSeconds(index: Int): Int =
     if (tracking == TrackingType.TIMED && !isSuperset && timedRepDurationSeconds == null) {
-        rows.getOrNull(index)?.seconds ?: 0
+        rows.getOrNull(index)?.let { row ->
+            benchmark?.let { it.ceilingSeconds ?: HoldClock.PAST_TARGET_LIMIT_SECONDS } ?: row.seconds
+        } ?: 0
     } else 0
 
 /** Saved as one value; DayUiState exposes only an identity resolved against its day. */

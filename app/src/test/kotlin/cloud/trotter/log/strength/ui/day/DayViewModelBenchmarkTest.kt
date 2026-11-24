@@ -11,6 +11,7 @@ import cloud.trotter.log.strength.data.serialization.SetJson
 import cloud.trotter.log.strength.data.serialization.TestEventJson
 import cloud.trotter.log.strength.domain.model.LoggedSet
 import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.model.Side
 import cloud.trotter.log.strength.domain.model.TestEventGoal
 import cloud.trotter.log.strength.domain.model.TestGoal
 import cloud.trotter.log.strength.domain.standards.TestEvents
@@ -216,6 +217,112 @@ class DayViewModelBenchmarkTest {
         assertNull(held.windowSeconds)
         assertEquals("STOPPED", held.stop)
         assertEquals(TestEvents.get("aft_plank"), TestEventJson.decode(held.rulesJson))
+    }
+
+    @Test fun `editing a done window benchmark updates its result without adding a row`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        logWindow(vm)
+        val before = repo.history.testResultsFlow.first().single()
+        assertEquals(27, before.count)
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.changeReps(id, Slot.MAIN, 0, 37)
+        runCurrent()
+        assertTrue(row().done)
+        assertEquals(37, row().reps)
+        assertEquals(listOf(before.copy(count = 37)), repo.history.testResultsFlow.first())
+    }
+
+    @Test fun `editing a done hold benchmark updates its seconds without adding a row`() = test {
+        prepare(plank)
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.startHold()
+        runCurrent()
+        tick(192_000)
+        vm.stopHold()
+        runCurrent()
+        val before = repo.history.testResultsFlow.first().single()
+        assertEquals(192, before.seconds)
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.changeSeconds(id, Slot.MAIN, 0, 202)
+        runCurrent()
+        assertTrue(row().done)
+        assertEquals(202, row().seconds)
+        assertEquals(listOf(before.copy(seconds = 202)), repo.history.testResultsFlow.first())
+    }
+
+    @Test fun `editing a done benchmark side keeps its result at the weaker value`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        logWindow(vm)
+        val before = repo.history.testResultsFlow.first().single()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.setEachSide(id, 0, true)
+        runCurrent()
+        vm.changeSide(id, 0, Side.RIGHT, null, 17, null)
+        runCurrent()
+        assertTrue(row().done)
+        assertEquals(17, row().reps)
+        assertEquals(listOf(before.copy(count = 17)), repo.history.testResultsFlow.first())
+    }
+
+    @Test fun `an unticked hold benchmark retries at the event ceiling`() = test {
+        prepare(plank)
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.startHold()
+        runCurrent()
+        tick(192_000)
+        vm.stopHold()
+        runCurrent()
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.toggleDone(id, 0, false, Slot.MAIN)
+        runCurrent()
+        assertFalse(row().done)
+        assertEquals(192, row().seconds)
+        assertTrue(repo.history.testResultsFlow.first().isEmpty())
+        vm.startHold()
+        runCurrent()
+        val ceiling = requireNotNull(TestEvents.get(plank.eventId).ceilingSeconds)
+        assertEquals(ceiling, vm.uiState.value.hold?.event?.targetSeconds)
+        tick(192_000)
+        assertEquals(0, alarm.buzzes)
+        assertTrue(requireNotNull(vm.uiState.value.hold).event.running)
+        tick((ceiling - 192) * 1_000L)
+        assertEquals(1, alarm.buzzes)
+        assertTrue(requireNotNull(vm.uiState.value.hold).event.running)
+        vm.stopHold()
+        runCurrent()
+        assertEquals(ceiling, repo.history.testResultsFlow.first().single().seconds)
+    }
+
+    @Test fun `removing a done benchmark row deletes its result before a row shifts into its index`() = test {
+        prepare()
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        logWindow(vm)
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        assertEquals(1, repo.history.testResultsFlow.first().size)
+        vm.removeSet(id, 0, false)
+        runCurrent()
+        assertEquals(1, vm.uiState.value.exercises.single().rows.size)
+        assertEquals(1, repo.history.testResultsFlow.first().size)
+        vm.addSet(id, false)
+        runCurrent()
+        assertEquals(2, vm.uiState.value.exercises.single().rows.size)
+        vm.removeSet(id, 0, false)
+        runCurrent()
+        assertEquals(1, vm.uiState.value.exercises.single().rows.size)
+        assertFalse(row().done)
+        assertTrue(repo.history.testResultsFlow.first().isEmpty())
     }
 
     @Test fun `a hold benchmark buzzes once at the ceiling and ends itself at ten minutes`() = test {

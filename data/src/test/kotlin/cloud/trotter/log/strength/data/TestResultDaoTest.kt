@@ -67,6 +67,23 @@ class TestResultDaoTest {
         assertEquals(emptyList<TestResultEntity>(), dao.all())
     }
 
+    @Test fun `updateForSet changes only the matching result values`() = runTest {
+        val dao = db.testResultDao()
+        val original = result(10)
+        val saved = original.copy(id = dao.insert(original))
+        val others = listOf(result(20).copy(setIndex = 1), result(30).copy(programExerciseId = 8),
+            result(40).copy(runId = "other"), result(50).copy(runId = null))
+        val kept = others.map { it.copy(id = dao.insert(it)) }
+        dao.updateForSet("run", 7, 0, count = 37, seconds = null)
+        assertEquals(listOf(saved.copy(count = 37)) + kept, dao.all())
+        dao.updateForSet("missing", 7, 0, count = 47, seconds = null)
+        assertEquals(listOf(saved.copy(count = 37)) + kept, dao.all())
+        val hold = result(60, "aft_plank", null).copy(setIndex = 2)
+        val savedHold = hold.copy(id = dao.insert(hold))
+        dao.updateForSet("run", 7, 2, count = null, seconds = 202)
+        assertEquals(listOf(saved.copy(count = 37)) + kept + savedHold.copy(seconds = 202), dao.all())
+    }
+
     @Test fun `a result maps its identity and refuses unreadable values`() {
         val row = result(10)
         val mapped = assertNotNull(row.toDomain())

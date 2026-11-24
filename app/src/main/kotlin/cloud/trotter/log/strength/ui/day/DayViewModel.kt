@@ -1892,12 +1892,15 @@ class DayViewModel @Inject constructor(
         day: String, runId: String, planId: Long, programExerciseId: Long, slot: String, index: Int, newReps: Int,
     ) {
         val tapped = trackFor(day, programExerciseId, slot).getOrNull(index)
+        var edited: LoggedSet? = null
         val result = repo.applyToRun(runId, planId, day, listOf(
             TrackEdit(programExerciseId, slot, createsMissing = true) { rows ->
                 if (index !in rows.indices) null else SetEditor.edit(rows, index, SetEdit(reps = newReps))
+                    .also { edited = it[index] }
             },
         ))
         reportOtherDay(result, planId, day)
+        updateBenchmarkResult(result, programExerciseId, slot, index, edited)
         if (tapped?.kind == SetKind.TOP && tapped.reps != newReps) settings.markTopSetHelperSeen()
     }
 
@@ -1907,12 +1910,15 @@ class DayViewModel @Inject constructor(
         val runId = state.runId ?: return
         val planId = state.planId ?: return
         mutate {
+            var edited: LoggedSet? = null
             val result = repo.applyToRun(runId, planId, day, listOf(
                 TrackEdit(programExerciseId, slot, createsMissing = true) { rows ->
                     if (index !in rows.indices) null else SetEditor.edit(rows, index, SetEdit(seconds = newSeconds))
+                        .also { edited = it[index] }
                 },
             ))
             reportOtherDay(result, planId, day)
+            updateBenchmarkResult(result, programExerciseId, slot, index, edited)
         }
     }
 
@@ -1949,6 +1955,7 @@ class DayViewModel @Inject constructor(
                 it.programExerciseId == programExerciseId && it.slot == Slot.MAIN
             }
             val performed = performedExercise(programSlot, track?.exerciseId, catalog.catalogFlow.first(), Slot.MAIN)
+            var edited: LoggedSet? = null
             val result = repo.applyToRun(runId, planId, day, listOf(
                 TrackEdit(programExerciseId, Slot.MAIN, createsMissing = true) { rows ->
                     val sides = rows.getOrNull(index)?.sides
@@ -1958,11 +1965,23 @@ class DayViewModel @Inject constructor(
                             reps = reps ?: old.reps, seconds = seconds ?: old.seconds)
                         val newSides = if (side == Side.LEFT) sides.copy(left = changed) else sides.copy(right = changed)
                         SetEditor.edit(rows, index, SetEdit(sides = newSides), unit, performed.entry?.equipment.orEmpty())
+                            .also { edited = it[index] }
                     }
                 },
             ))
             reportOtherDay(result, planId, day)
+            updateBenchmarkResult(result, programExerciseId, Slot.MAIN, index, edited)
         }
+    }
+
+    private suspend fun updateBenchmarkResult(
+        result: RunWriteResult, programExerciseId: Long, slot: String, index: Int, row: LoggedSet?,
+    ) {
+        if (result !is RunWriteResult.InRun || slot != Slot.MAIN || row?.done != true) return
+        val link = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }?.prescriptionTest ?: return
+        historyRepository.updateTestResult(result.runId, programExerciseId, index,
+            count = if (link.event.timed) null else row.reps,
+            seconds = if (link.event.timed) row.seconds else null)
     }
 
     fun toggleDone(programExerciseId: Long, index: Int, checked: Boolean, slot: String) {
@@ -2213,7 +2232,7 @@ class DayViewModel @Inject constructor(
         if (Slot.MAIN in writtenBefore) {
             val before = writtenBefore.getValue(Slot.MAIN)
             val after = writtenAfter.getValue(Slot.MAIN)
-            if (!checked && before.done) {
+            if (!checked && before.done && card?.prescriptionTest != null) {
                 historyRepository.deleteTestResult(runId, programExerciseId, index)
             } else if (checked && !before.done && after.done) {
                 card?.prescriptionTest?.let { link ->
@@ -2365,7 +2384,13 @@ class DayViewModel @Inject constructor(
             ))
             reportOtherDay(result, planId, day)
             if (result !is RunWriteResult.InRun) return@mutate
-            pushUndo(RemovedSet(programExerciseId, index, day, runId, removedMain ?: return@mutate, removedPartner))
+            val removed = removedMain ?: return@mutate
+            if (removed.done && uiState.value.exercises.firstOrNull {
+                    it.programExerciseId == programExerciseId
+                }?.prescriptionTest != null) {
+                historyRepository.deleteTestResult(runId, programExerciseId, index)
+            }
+            pushUndo(RemovedSet(programExerciseId, index, day, runId, removed, removedPartner))
         }
     }
 

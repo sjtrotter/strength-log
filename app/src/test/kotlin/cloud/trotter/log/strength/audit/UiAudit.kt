@@ -147,19 +147,26 @@ abstract class UiAuditTest {
     @get:Rule val rule = createComposeRule()
     private lateinit var originalLocale: Locale
     private lateinit var originalTimeZone: TimeZone
+    private var originalWindowSize: String? = null
 
     @Before fun fixLocaleAndTimeZone() {
         originalLocale = Locale.getDefault()
         originalTimeZone = TimeZone.getDefault()
+        originalWindowSize = System.getProperty(REQUESTED_WINDOW_SIZE)
         Locale.setDefault(Locale.US)
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+        // Robolectric otherwise frames a dialog full screen, and a dialog holding a text field relays out forever.
+        System.setProperty(REQUESTED_WINDOW_SIZE, "true")
     }
 
     @After fun restoreLocaleAndTimeZone() {
         Locale.setDefault(originalLocale)
         TimeZone.setDefault(originalTimeZone)
+        originalWindowSize?.let { System.setProperty(REQUESTED_WINDOW_SIZE, it) } ?: System.clearProperty(REQUESTED_WINDOW_SIZE)
     }
 }
+
+private const val REQUESTED_WINDOW_SIZE = "robolectric.windowManager.useRequestedSize"
 
 @Composable
 internal fun AuditDestination(destination: TopLevelDestination, content: @Composable () -> Unit) {

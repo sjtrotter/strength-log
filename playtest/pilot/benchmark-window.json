@@ -138,7 +138,8 @@
     },
     {
       "expect": {
-        "text": "✓ Set 1 · 27"
+        "text": "27 reps",
+        "role": "Button"
       }
     },
     {

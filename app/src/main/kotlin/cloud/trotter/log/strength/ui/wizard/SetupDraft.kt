@@ -116,7 +116,7 @@ object SetupDraftJson {
             json.decodeFromString<SetupDraft>(text).takeIf { draft ->
                 draft.tests.map { it.eventId }.distinct().size == draft.tests.size &&
                     draft.testLifts.all { lift ->
-                        ExerciseLibrary.find(lift.exerciseId)?.mainCapable == true && lift.reps in 0..10
+                        ExerciseLibrary.find(lift.exerciseId)?.mainCapable == true && lift.reps >= 0
                     } && draft.testLifts.map { it.exerciseId }.distinct().size == draft.testLifts.size &&
                     draft.strengthBlocks in 0..2 && draft.v == SetupDraft.VERSION && draft.days in 1..6 &&
                     draft.minutes in SetupFlowStateBuilder.minutesOptions &&

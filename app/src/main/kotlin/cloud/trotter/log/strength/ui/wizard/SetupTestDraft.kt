@@ -35,6 +35,9 @@ internal fun SetupDraft.pick(pick: TestPick): SetupDraft = when (pick) {
                 windowSeconds = if (format == TestFormat.REPS_IN_WINDOW) 60 else null))
         }
     }
+}.let { changed ->
+    if (SetupFlowStateBuilder.branch(this) == PlanBranch.RUN && SetupFlowStateBuilder.branch(changed) == PlanBranch.BOTH)
+        changed.copy(goal = LiftGoal.STRENGTH) else changed
 }
 
 internal fun SetupDraft.removeTestPick(id: String): SetupDraft {

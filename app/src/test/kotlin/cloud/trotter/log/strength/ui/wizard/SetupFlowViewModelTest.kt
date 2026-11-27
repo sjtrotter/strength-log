@@ -936,6 +936,37 @@ class SetupFlowViewModelTest {
         assertEquals(before, repo.plans.programFor(saved.id).first())
     }
 
+    @Test fun `Review answers adding Push-Up to a legacy Run test uses Strength through save`() = runVmTest {
+        val original = SetupAnswers(branch = PlanBranch.RUN,
+            run = RunAnswers(goal = RunGoal.FITNESS_TEST, goalSeconds = 960))
+        val id = repo.plans.createPlannedPlan("Run test", original)
+        repo.plans.publishPlannedPlan(id); settings.setWizardComplete(true)
+        val vm = newViewModel(); advanceUntilIdle()
+        assertEquals(original, answers(vm))
+        plan(vm); vm.reviewAnswers(); advanceUntilIdle()
+        assertEquals(SetupStep.TEST, vm.uiState.value.step)
+        val before = vm.uiState.value.draft
+        val pick = TestPick.Library(ExerciseLibrary.get("pushup"))
+        vm.pickTest(pick); vm.setTestRequired("custom_pushup_window", 30); advanceUntilIdle()
+        assertEquals(PlanBranch.BOTH, answers(vm).branch)
+        assertEquals(LiftGoal.STRENGTH, answers(vm).goal)
+        assertEquals(before.cardioFirst, vm.uiState.value.draft.cardioFirst)
+        val fresh = SetupDraft().chooseFitnessTest().pick(TestPick.Run(FitnessTest.TWO_MILE)).pick(pick)
+            .copy(cardioFirst = before.cardioFirst, goalSeconds = 960,
+                tests = listOf(TestDraft("custom_pushup_window", 30, windowSeconds = 60)))
+        val expected = SetupFlowStateBuilder.answers(fresh)
+        assertEquals(expected, answers(vm))
+        val expectedProgram = Planner.plan(expected).program
+        assertTrue(expectedProgram.days.any { it.exercises.isNotEmpty() })
+        assertEquals(expectedProgram.days.map { it.exercises }, Planner.plan(answers(vm)).program.days.map { it.exercises })
+        plan(vm); vm.onNext(); advanceUntilIdle()
+        assertTrue(vm.uiState.value.isComplete)
+        val saved = db.planDao().allPlans().last()
+        assertEquals(expected, saved.setupAnswers(WeightUnit.LB))
+        assertEquals(expectedProgram, repo.plans.programFor(saved.id).first())
+        assertEquals(original, assertNotNull(db.planDao().plan(id)).setupAnswers(WeightUnit.LB))
+    }
+
     @Test fun `Review answers and save restore a lift only pick N and the live Required weight`() = runVmTest {
         val lift = LiftTest("incline_db", 5)
         val original = SetupAnswers(goal = LiftGoal.STRENGTH, lifts = listOf(lift),

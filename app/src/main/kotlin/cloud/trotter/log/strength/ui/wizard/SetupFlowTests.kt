@@ -105,8 +105,8 @@ internal fun TestStep(state: SetupFlowUiState, actions: SetupFlowActions) {
     draft.testLifts.forEach { lift -> key(lift.exerciseId) {
         TestPickHeading(ExerciseLibrary.get(lift.exerciseId).name) { actions.onTestRemove(lift.exerciseId) }
         NumberField(value = lift.reps.toDouble(), onValueChange = { actions.onLiftReps(lift.exerciseId, it.toInt()) },
-            onDraftChange = { actions.onLiftReps(lift.exerciseId, it?.toInt() ?: 0) },
-            label = stringResource(R.string.setup_flow_test_heaviest, lift.reps), minValue = 1.0, maxValue = 10.0)
+            onDraftEdit = { text, _ -> actions.onLiftReps(lift.exerciseId, text.toIntOrNull() ?: 0) },
+            label = stringResource(R.string.setup_flow_test_heaviest), minValue = 1.0, maxValue = 10.0)
         val unit = draft.unit
         if (ExerciseLibrary.get(lift.exerciseId).perHand) Text(stringResource(R.string.setup_flow_per_hand),
             style = MaterialTheme.typography.bodySmall)

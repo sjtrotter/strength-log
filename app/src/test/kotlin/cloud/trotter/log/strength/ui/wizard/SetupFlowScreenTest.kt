@@ -770,9 +770,9 @@ class SetupFlowScreenTest {
         val draft = SetupDraft().chooseFitnessTest().copy(testLifts = listOf(LiftTestDraft("trap_dl", 3, 340.0)))
         show(state(SetupStep.TEST, draft))
         rule.onNodeWithText("Date").assertDoesNotExist()
-        rule.onNodeWithText("Heaviest for 3 reps").assertExists()
+        rule.onNodeWithText("Reps for the heaviest set").assertExists()
         rule.runOnIdle { shown = state(SetupStep.TEST, draft.copy(testLifts = listOf(LiftTestDraft("bb_bench", 5, 225.0)))) }
-        rule.onNodeWithText("Heaviest for 5 reps").assertExists()
+        rule.onNodeWithText("Reps for the heaviest set").assertExists()
         rule.runOnIdle { shown = state(SetupStep.TEST, draft.copy(tests = listOf(TestDraft("custom_pushup_window", 30, windowSeconds = 60)))) }
         rule.onNodeWithText("Date").assertExists()
         rule.onNodeWithText("None yet").assertExists()
@@ -786,6 +786,50 @@ class SetupFlowScreenTest {
         rule.onNodeWithText("Date").assertExists()
     }
 
+    @Test fun `heaviest set reps keep typed drafts and an empty field shows the range error`() {
+        val draft = SetupDraft().chooseFitnessTest().copy(step = SetupStep.TEST,
+            testLifts = listOf(LiftTestDraft("trap_dl", 3, 340.0)))
+        val handle = SavedStateHandle(mapOf("setup_initialized" to true,
+            "setup_draft" to SetupDraftJson.encode(draft)))
+        val (vm, _) = fields(handle)
+        rule.setContent { AppTheme {
+            val s by vm.uiState.collectAsState()
+            SetupFlowScreen(s, SetupFlowActions(onLiftReps = vm::setLiftReps))
+        } }
+        rule.waitUntil(5000) { rule.runOnIdle { vm.uiState.value.initialized } }
+        val label = "Reps for the heaviest set"
+        rule.onNodeWithText(label).performScrollTo().requestFocus().performTextReplacement("")
+        assertEquals("", rule.onNodeWithText(label).fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
+        rule.onNodeWithText("Enter a number between 1 and 10").assertExists()
+        rule.onNodeWithText(label).performTextReplacement("12")
+        assertEquals("12", rule.onNodeWithText(label).fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
+        rule.runOnIdle {
+            assertEquals(12, vm.uiState.value.draft.testLifts.single().reps)
+            assertEquals(12, requireNotNull(SetupDraftJson.decode(handle["setup_draft"])).testLifts.single().reps)
+            assertTrue(SetupFlowStateBuilder.answers(vm.uiState.value.draft).lifts.isEmpty())
+        }
+        rule.onNodeWithText("Enter a number between 1 and 10").assertExists()
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+        rule.onNodeWithText(label).performTextReplacement("")
+        rule.onNodeWithText(label).performImeAction()
+        assertEquals("", rule.onNodeWithText(label).fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
+        rule.onNodeWithText("Enter a number between 1 and 10").assertExists()
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+        rule.runOnIdle {
+            assertEquals(0, requireNotNull(SetupDraftJson.decode(handle["setup_draft"])).testLifts.single().reps)
+        }
+        for (reps in listOf(1, 10)) {
+            rule.onNodeWithText(label).performTextReplacement(reps.toString())
+            rule.onNodeWithText(label).performImeAction()
+            assertEquals(reps.toString(), rule.onNodeWithText(label).fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
+            rule.onNodeWithText("Enter a number between 1 and 10").assertDoesNotExist()
+            rule.onNodeWithText("Next").assertIsEnabled()
+            rule.runOnIdle {
+                assertEquals(reps, SetupFlowStateBuilder.answers(vm.uiState.value.draft).lifts.single().reps)
+            }
+        }
+    }
+
     @Test fun `the picker keeps runs disabled on a mixed race and test plan`() {
         var picked: TestPick? = null
         show(state(SetupStep.TEST, SetupFlowFixtures.both.copy(runGoal = RunGoal.FIRST_5K,
@@ -794,7 +838,7 @@ class SetupFlowScreenTest {
         rule.onNodeWithText("Cardio").performClick()
         rule.onNodeWithText("2-mile run").performClick()
         assertNull(picked)
-        rule.onAllNodesWithText("Runs are added from the Fitness test goal").onFirst().assertExists()
+        rule.onAllNodesWithText("Start from Fitness test to add a run").onFirst().assertExists()
     }
 
     @Test fun `run dose copy uses day for one interval day and days for two`() {

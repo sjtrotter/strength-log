@@ -123,6 +123,17 @@ class SetupDraftJsonTest {
         assertEquals(PlanBranch.LIFT, SetupFlowStateBuilder.answers(restored).branch)
     }
 
+    @Test fun `out of range test reps survive as a draft without becoming a lift answer`() {
+        val draft = SetupDraft().chooseFitnessTest().copy(step = SetupStep.TEST,
+            testLifts = listOf(LiftTestDraft("trap_dl", 12, 340.0)))
+        val restored = requireNotNull(SetupDraftJson.decode(SetupDraftJson.encode(draft)))
+        assertEquals(draft, restored)
+        assertEquals(false, SetupFlowStateBuilder.canAdvance(restored))
+        assertTrue(SetupFlowStateBuilder.answers(restored).lifts.isEmpty())
+        assertNull(SetupDraftJson.decode(SetupDraftJson.encode(draft.copy(testLifts = listOf(LiftTestDraft("trap_dl", -1))))))
+        assertNull(SetupDraftJson.decode(SetupDraftJson.encode(draft.copy(testLifts = listOf(LiftTestDraft("unknown", 12))))))
+    }
+
     @Test fun `a legacy hand release pick retains its edition and window`() {
         val restored = requireNotNull(SetupDraftJson.decode("""{"v":1,"branch":"LIFT","step":"TEST",
             "tests":[{"eventId":"aft_hrp","required":40,"lastResult":31}]}"""))

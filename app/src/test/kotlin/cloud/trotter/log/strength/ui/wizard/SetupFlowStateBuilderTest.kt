@@ -671,6 +671,45 @@ class SetupFlowStateBuilderTest {
         assertEquals(Planner.plan(answers).program, Planner.plan(mapped).program)
     }
 
+    @Test fun `a library pick changing a legacy Run test to Both uses Strength`() {
+        val original = SetupAnswers(branch = PlanBranch.RUN,
+            run = RunAnswers(goal = RunGoal.FITNESS_TEST, goalSeconds = 960))
+        val restored = builder.draftFrom(original)
+        assertEquals(PlanBranch.RUN, builder.branch(restored))
+        assertEquals(LiftGoal.GENERAL, builder.answers(restored).goal)
+        for (id in listOf("pushup", "plank", "trap_dl")) {
+            val picked = restored.pick(TestPick.Library(ExerciseLibrary.get(id)))
+            assertEquals(PlanBranch.BOTH, builder.branch(picked))
+            assertEquals(LiftGoal.STRENGTH, builder.answers(picked).goal)
+            assertEquals(restored.cardioFirst, picked.cardioFirst)
+            assertEquals(picked, picked.pick(TestPick.Library(ExerciseLibrary.get(id))))
+        }
+        val pick = TestPick.Library(ExerciseLibrary.get("pushup"))
+        val tests = listOf(TestDraft("custom_pushup_window", 30, windowSeconds = 60))
+        val converted = restored.copy(cardioFirst = true).pick(pick).copy(tests = tests)
+        val fresh = SetupDraft().chooseFitnessTest().pick(TestPick.Run(FitnessTest.TWO_MILE)).pick(pick)
+            .copy(goalSeconds = 960, tests = tests)
+        val expected = Planner.plan(builder.answers(fresh))
+        val actual = Planner.plan(builder.answers(converted))
+        assertTrue(expected.program.days.any { it.exercises.isNotEmpty() })
+        assertEquals(expected.program, actual.program)
+        assertEquals(expected.working, actual.working)
+    }
+
+    @Test fun `reps and hold picks keep Muscle on legacy Lift and Both tests`() {
+        val lift = SetupAnswers(goal = LiftGoal.MUSCLE,
+            tests = listOf(TestAnswer(TestEventGoal(TestRef("aft_hrp", 1, 120), 40))))
+        for (original in listOf(lift, lift.copy(branch = PlanBranch.BOTH,
+            run = RunAnswers(goal = RunGoal.FITNESS_TEST, goalSeconds = 960)))) {
+            val restored = builder.draftFrom(original)
+            for (id in listOf("pushup", "plank")) {
+                val picked = restored.pick(TestPick.Library(ExerciseLibrary.get(id)))
+                assertEquals(original.branch, builder.branch(picked))
+                assertEquals(LiftGoal.MUSCLE, builder.answers(picked).goal)
+            }
+        }
+    }
+
     @Test fun `a mixed race and test plan keeps its run when a test lift is added and restored`() {
         val original = SetupAnswers(branch = PlanBranch.BOTH, days = 4,
             run = RunAnswers(goal = RunGoal.FIVE_TO_TEN_K, goalSeconds = 3300),

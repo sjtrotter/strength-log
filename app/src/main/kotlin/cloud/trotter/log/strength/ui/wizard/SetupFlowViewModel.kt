@@ -207,7 +207,7 @@ class SetupFlowViewModel @Inject constructor(
     fun setTestFormat(id: String, format: TestFormat) = update { it.testFormat(id, format) }
     fun setTestEdition(id: String, edition: String?) = update { it.testEdition(id, edition) }
     fun setLiftReps(id: String, value: Int) = update { draft -> draft.copy(testLifts = draft.testLifts.map {
-        if (it.exerciseId == id) it.copy(reps = value.coerceIn(0, 10)) else it
+        if (it.exerciseId == id) it.copy(reps = value.coerceAtLeast(0)) else it
     }) }
     fun setLiftGoal(id: String, value: Double?) = update { draft -> draft.copy(testLifts = draft.testLifts.map {
         if (it.exerciseId == id) it.copy(goalLb = value) else it

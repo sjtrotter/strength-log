@@ -28,7 +28,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -163,9 +163,9 @@ private fun testFormatLabel(format: TestFormat): Int = when (format) {
 internal fun TestPickSheet(draft: SetupDraft, onDismiss: () -> Unit, onPick: (TestPick) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
     var filter by rememberSaveable { mutableStateOf(TestPickFilter.ALL) }
-    val context = LocalContext.current
+    val resources = LocalResources.current
     val focus = LocalFocusManager.current
-    val rows = TestPickSearch.filter(query, filter) { context.getString(testLabel(it)) }
+    val rows = TestPickSearch.filter(query, filter) { resources.getString(testLabel(it)) }
     AppModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         title = { Text(stringResource(R.string.setup_flow_test_add), style = MaterialTheme.typography.titleLarge) }, body = {
             OutlinedTextField(value = query, onValueChange = { query = it }, singleLine = true,
@@ -182,7 +182,7 @@ internal fun TestPickSheet(draft: SetupDraft, onDismiss: () -> Unit, onPick: (Te
             }
             rows.forEach { pick ->
                 val reason = TestPickSearch.disabledReason(pick, draft)
-                val name = when (pick) { is TestPick.Library -> pick.entry.name; is TestPick.Run -> context.getString(testLabel(pick.test)) }
+                val name = when (pick) { is TestPick.Library -> pick.entry.name; is TestPick.Run -> resources.getString(testLabel(pick.test)) }
                 val score = when (pick) {
                     is TestPick.Run -> R.string.setup_flow_test_score_run
                     is TestPick.Library -> when (TestFormat.eligible(pick.entry).first()) {

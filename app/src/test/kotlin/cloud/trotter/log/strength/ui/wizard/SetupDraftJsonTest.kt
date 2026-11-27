@@ -26,13 +26,22 @@ class SetupDraftJsonTest {
             equipment = EquipmentPreset.DUMBBELLS.equipment, chooseExactly = true, unit = WeightUnit.KG,
             barStep = 2, dumbbellStep = 1, stackStep = 1, experience = LiftExperience.A_YEAR_OR_MORE,
             olderAdult = true, mains = listOf("db_bench"), recent = mapOf("db_bench" to RecentDraft(50.0, 8, Effort.HARD)), balanceDays = true)
-        assertEquals(draft.copy(fitnessTest = false), SetupDraftJson.decode(SetupDraftJson.encode(draft)))
+        assertEquals(draft, SetupDraftJson.decode(SetupDraftJson.encode(draft)))
     }
     @Test fun `unknown keys are ignored and missing keys default`() {
-        assertEquals(SetupDraft(days = 4, fitnessTest = false), SetupDraftJson.decode("""{"v":1,"days":4,"future":true}"""))
+        assertEquals(SetupDraft(days = 4), SetupDraftJson.decode("""{"v":1,"days":4,"future":true}"""))
     }
     @Test fun `even the default draft writes its version`() {
         assertTrue(SetupDraftJson.encode(SetupDraft()).contains("\"v\":1"))
+    }
+    @Test fun `an unchosen draft keeps its unset fitness test flag through restoration`() {
+        for (unit in WeightUnit.entries) {
+            val draft = SetupDraft(unit = unit)
+            val restored = requireNotNull(SetupDraftJson.decode(SetupDraftJson.encode(draft)))
+            assertNull(restored.fitnessTest)
+            assertEquals(draft, restored)
+            assertEquals(draft, SetupDraftJson.decode(SetupDraftJson.encode(restored)))
+        }
     }
     @Test fun `unreadable drafts decode to null`() {
         listOf(null, "", "not json", """{"v":2}""", """{"v":1,"days":7}""", """{"v":1,"minutes":50}""",
@@ -45,10 +54,10 @@ class SetupDraftJsonTest {
             recentSeconds = 6600, longestByDistance = true, longestSeconds = 3600, longestMetres = 30000,
             activity = CardioActivity.TRAIL_RUN, marathonBestSeconds = 14400, runningInjury = true,
             strengthBlocks = 1, cardioFirst = true, together = BothAnswers.Together.SEPARATE_DAYS)
-        assertEquals(draft.copy(fitnessTest = false), SetupDraftJson.decode(SetupDraftJson.encode(draft)))
+        assertEquals(draft, SetupDraftJson.decode(SetupDraftJson.encode(draft)))
     }
     @Test fun `an old draft takes every run default`() {
-        assertEquals(SetupDraft(fitnessTest = false), SetupDraftJson.decode("""{"v":1,"step":"GOAL","goal":"GENERAL","days":3}"""))
+        assertEquals(SetupDraft(), SetupDraftJson.decode("""{"v":1,"step":"GOAL","goal":"GENERAL","days":3}"""))
     }
     @Test fun `three strength blocks is unreadable`() {
         assertNull(SetupDraftJson.decode("""{"v":1,"strengthBlocks":3}"""))
@@ -57,23 +66,23 @@ class SetupDraftJsonTest {
         val draft = SetupFlowFixtures.run.copy(step = SetupStep.EVENT, runGoal = RunGoal.MARATHON,
             goalSeconds = INVALID_GOAL_TIME)
         val restored = requireNotNull(SetupDraftJson.decode(SetupDraftJson.encode(draft)))
-        assertEquals(draft.copy(fitnessTest = false), restored)
+        assertEquals(draft, restored)
         assertEquals(false, SetupFlowStateBuilder.canAdvance(restored))
         assertNull(SetupFlowStateBuilder.answers(restored).run.goalSeconds)
     }
     @Test fun `sprint draft fields survive version one restoration`() {
         val draft = SetupFlowFixtures.bothSprint.copy(sprintEvent = SprintEvent.YD40, sprintedRecently = true,
             hamstringStrain = true, fortyOrOlder = true)
-        assertEquals(draft.copy(fitnessTest = false), SetupDraftJson.decode(SetupDraftJson.encode(draft)))
+        assertEquals(draft, SetupDraftJson.decode(SetupDraftJson.encode(draft)))
         assertEquals(1, draft.v)
-        assertEquals(SetupDraft(fitnessTest = false), SetupDraftJson.decode("""{"v":1}"""))
+        assertEquals(SetupDraft(), SetupDraftJson.decode("""{"v":1}"""))
         assertNull(SetupDraftJson.decode("""{"v":1,"sprintEvent":"M50"}"""))
     }
 
     @Test fun `tests survive the draft and duplicates are refused`() {
         val draft = SetupDraft(step = SetupStep.TEST, tests = listOf(TestDraft("aft_hrp", 40, 24),
-            TestDraft("custom_situp_window", 45, 31, 60)), testDate = 21000)
-        assertEquals(draft.copy(fitnessTest = false), SetupDraftJson.decode(SetupDraftJson.encode(draft)))
+            TestDraft("custom_situp_window", 45, 31, 60)), testDate = 21000, fitnessTest = false)
+        assertEquals(draft, SetupDraftJson.decode(SetupDraftJson.encode(draft)))
         assertNull(SetupDraftJson.decode(SetupDraftJson.encode(draft.copy(tests = listOf(TestDraft("aft_hrp"), TestDraft("aft_hrp"))))))
     }
 

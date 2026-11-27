@@ -39,7 +39,7 @@ internal fun PlanTestGoal(ui: PlanTestGoalUi?, actions: PlanActions,
             fun value(number: Int): String = if (row.timed) ClockText.duration(number) else number.toString()
             ListItem(
                 modifier = Modifier.clickable(onClick = actions.onOpenTestGoal),
-                overlineContent = if (index == 0) { { Text(stringResource(R.string.plan_test_goal)) } } else null,
+                overlineContent = { if (index == 0) Text(stringResource(R.string.plan_test_goal)) },
                 headlineContent = {
                     val window = row.event.ref.windowSeconds
                     Text(if (window != null && TestEvents.find(row.event.ref.eventId)?.custom == true)
@@ -62,7 +62,7 @@ internal fun PlanTestGoal(ui: PlanTestGoalUi?, actions: PlanActions,
         }
         lifts.forEachIndexed { index, row ->
             ListItem(modifier = Modifier.clickable { actions.onOpenGoal(row.exerciseId) },
-                overlineContent = if (ui == null && index == 0) { { Text(stringResource(R.string.plan_test_goal)) } } else null,
+                overlineContent = { if (ui == null && index == 0) Text(stringResource(R.string.plan_test_goal)) },
                 headlineContent = { Text(stringResource(R.string.plan_test_lift, row.name, row.reps)) },
                 supportingContent = {
                     Column {
@@ -84,7 +84,7 @@ internal fun PlanTestGoal(ui: PlanTestGoalUi?, actions: PlanActions,
 internal fun PlanTestGoalEditor(ui: PlanTestGoalUi, draft: TestGoalDraft, actions: PlanActions) {
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
     var confirmRemoval by rememberSaveable { mutableStateOf(false) }
-    val date = draft.byEpochDay?.takeIf(PlanGoalDate::isValid)
+    val date = draft.byEpochDay?.takeIf { PlanGoalDate.isValid(it) }
     if (confirmRemoval) {
         AppAlertDialog(
             onDismissRequest = { confirmRemoval = false },
@@ -117,18 +117,18 @@ internal fun PlanTestGoalEditor(ui: PlanTestGoalUi, draft: TestGoalDraft, action
                         onValueChange = { actions.onTestGoalDraft(draft.copy(required = draft.required + (id to it))) },
                         label = { Text(row.name) },
                         isError = invalid,
-                        supportingText = if (invalid) { {
+                        supportingText = { if (invalid) {
                             Text(if (row.timed) stringResource(R.string.form_time_range, "0:01",
-                                ClockText.minutesSeconds(TestEvents.find(id)?.let(TestEvents::requiredLimit) ?: 3600))
+                                ClockText.minutesSeconds(TestEvents.find(id)?.let { TestEvents.requiredLimit(it) } ?: 3600))
                                 else stringResource(R.string.form_number_range, "1", "3600"))
-                        } } else null,
+                        } },
                         keyboardOptions = KeyboardOptions(keyboardType = if (row.timed) KeyboardType.Ascii else KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(), singleLine = true,
                     )
                 }
                 Row {
                     TextButton(onClick = { showDatePicker = true }) {
-                        Text(date?.let(::goalDate) ?: stringResource(R.string.plan_goal_add_date))
+                        Text(date?.let { goalDate(it) } ?: stringResource(R.string.plan_goal_add_date))
                     }
                     if (draft.byEpochDay != null) TextButton(onClick = { actions.onTestGoalDraft(draft.copy(byEpochDay = null)) }) {
                         Text(stringResource(R.string.plan_goal_remove_date))

@@ -54,13 +54,12 @@ internal fun TestStep(state: SetupFlowUiState, actions: SetupFlowActions) {
         TestPickHeading(stringResource(testLabel(draft.test))) { actions.onTestRemove(draft.test.name) }
         TestRunFields(draft, actions)
     }
-    draft.tests.forEach { test ->
-        val event = TestEvents.find(test.eventId) ?: return@forEach
+    draft.tests.mapNotNull { test -> TestEvents.find(test.eventId)?.let { test to it } }.forEach { (test, event) ->
         val entry = ExerciseLibrary.get(event.exerciseId)
-        key(entry.id) {
+        val formats = TestFormat.eligible(entry)
+        val format = formats.singleOrNull { it.setType == event.setType }
+        if (format != null) key(entry.id) {
             TestPickHeading(entry.name) { actions.onTestRemove(event.id) }
-            val formats = TestFormat.eligible(entry)
-            val format = formats.singleOrNull { it.setType == event.setType } ?: return@key
             if (formats.size > 1) SetupSegments(formats.map { stringResource(testFormatLabel(it)) }, formats.indexOf(format)) {
                 actions.onTestFormat(entry.id, formats[it])
             }
@@ -110,10 +109,10 @@ internal fun TestStep(state: SetupFlowUiState, actions: SetupFlowActions) {
         val unit = draft.unit
         if (ExerciseLibrary.get(lift.exerciseId).perHand) Text(stringResource(R.string.setup_flow_per_hand),
             style = MaterialTheme.typography.bodySmall)
-        val change: (Double?) -> Unit = { actions.onLiftGoal(lift.exerciseId, it?.let(unit::toLb)) }
-        NumberField(value = lift.goalLb?.let(unit::fromLb), onValueChange = change, onDraftChange = change,
+        val change: (Double?) -> Unit = { value -> actions.onLiftGoal(lift.exerciseId, value?.let { unit.toLb(it) }) }
+        NumberField(value = lift.goalLb?.let { unit.fromLb(it) }, onValueChange = change, onDraftChange = change,
             label = stringResource(R.string.setup_flow_test_weight, unit.name.lowercase()), minValue = unit.fromLb(0.01),
-            maxValue = unit.fromLb(PlanRecipeJson.MAX_GOAL_LB), format = WeightStepper::format,
+            maxValue = unit.fromLb(PlanRecipeJson.MAX_GOAL_LB), format = { WeightStepper.format(it) },
             decimalInput = true, weightInput = true)
         Text(stringResource(R.string.setup_flow_test_lift_rules), style = MaterialTheme.typography.bodySmall)
     } }
@@ -167,11 +166,10 @@ internal fun TestPickSheet(draft: SetupDraft, onDismiss: () -> Unit, onPick: (Te
     val context = LocalContext.current
     val focus = LocalFocusManager.current
     val rows = TestPickSearch.filter(query, filter) { context.getString(testLabel(it)) }
-    val searchLabel: @Composable () -> Unit = { Text(stringResource(R.string.setup_flow_test_search)) }
     AppModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         title = { Text(stringResource(R.string.setup_flow_test_add), style = MaterialTheme.typography.titleLarge) }, body = {
-            OutlinedTextField(value = query, onValueChange = { value: String -> query = value }, singleLine = true,
-                label = searchLabel, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = query, onValueChange = { query = it }, singleLine = true,
+                label = { Text(stringResource(R.string.setup_flow_test_search)) }, modifier = Modifier.fillMaxWidth())
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TestPickFilter.entries.forEach { item ->
                     SetupChip(item == filter, { focus.clearFocus(); filter = item }) { Text(stringResource(when (item) {
@@ -194,7 +192,7 @@ internal fun TestPickSheet(draft: SetupDraft, onDismiss: () -> Unit, onPick: (Te
                     }
                 }
                 ListItem(headlineContent = { Text(name) }, supportingContent = { Text(stringResource(reason ?: score)) },
-                    trailingContent = if (reason == R.string.setup_flow_test_picked) { { Icon(Icons.Filled.Check, null) } } else null,
+                    trailingContent = { if (reason == R.string.setup_flow_test_picked) Icon(Icons.Filled.Check, null) },
                     modifier = Modifier.clickable(enabled = reason == null) { focus.clearFocus(); onPick(pick) })
             }
             Text(stringResource(R.string.setup_flow_test_unsupported), style = MaterialTheme.typography.bodySmall)

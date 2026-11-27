@@ -93,7 +93,7 @@ data class RecentDraft(val weightLb: Double? = null, val reps: Int? = null, val 
 object SetupDraftJson {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
-    fun encode(draft: SetupDraft): String = json.encodeToString(draft.copy(fitnessTest = draft.fitnessTest == true))
+    fun encode(draft: SetupDraft): String = json.encodeToString(draft)
 
     private fun normalize(draft: SetupDraft): SetupDraft {
         val tests = draft.tests.filter { TestEvents.find(it.eventId) != null }
@@ -104,7 +104,7 @@ object SetupDraftJson {
         val together = if (draft.branch == PlanBranch.BOTH && !draft.isSprint && (run || tests.isNotEmpty())) {
             draft.together ?: SetupFlowStateBuilder.answers(draft.copy(fitnessTest = false)).together()
         } else draft.together
-        return draft.copy(fitnessTest = entry, testRun = run, tests = tests, together = together,
+        return draft.copy(fitnessTest = if (entry) true else null, testRun = run, tests = tests, together = together,
             testDate = if (entry) draft.eventDate ?: draft.testDate else draft.testDate,
             step = if (entry && draft.step in listOf(SetupStep.RUN_GOAL, SetupStep.EVENT)) SetupStep.TEST else draft.step)
     }

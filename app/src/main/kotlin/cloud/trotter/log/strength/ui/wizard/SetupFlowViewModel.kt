@@ -166,8 +166,8 @@ class SetupFlowViewModel @Inject constructor(
 
     private suspend fun prefill(): SetupDraft {
         val unit = settings.unitFlow.first()
-        val plan = repo.selectedPlanFlow.first() ?: return SetupDraft(unit = unit, fitnessTest = false)
-        val answers = plan.setupAnswers(unit) ?: return SetupDraft(unit = unit, fitnessTest = false)
+        val plan = repo.selectedPlanFlow.first() ?: return SetupDraft(unit = unit)
+        val answers = plan.setupAnswers(unit) ?: return SetupDraft(unit = unit)
         val run = if (answers.run.goal == RunGoal.FITNESS_TEST) when (val goal = PlanGoalJson.decode(plan.goalJson)) {
             is PlanGoal.Timed -> answers.run.copy(goalSeconds = goal.underSeconds, dateEpochDay = goal.byEpochDay)
             is PlanGoal.Shuttle -> answers.run.copy(testScore = goal.targetShuttles, dateEpochDay = goal.byEpochDay)

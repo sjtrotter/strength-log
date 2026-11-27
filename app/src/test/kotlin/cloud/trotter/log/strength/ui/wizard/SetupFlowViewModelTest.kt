@@ -299,7 +299,7 @@ class SetupFlowViewModelTest {
     }
     @Test fun `calls before initialization are ignored`() = runVmTest {
         val vm = newViewModel(); vm.setDays(5); vm.onNext(); advanceUntilIdle()
-        assertEquals(SetupDraft(fitnessTest = false), vm.uiState.value.draft)
+        assertEquals(SetupDraft(), vm.uiState.value.draft)
     }
     @Test fun `the draft survives process death`() = runVmTest {
         val h = SavedStateHandle(); val vm = newViewModel(h); advanceUntilIdle()
@@ -311,7 +311,7 @@ class SetupFlowViewModelTest {
     }
     @Test fun `an unreadable draft starts over`() = runVmTest {
         val vm = newViewModel(SavedStateHandle(mapOf("setup_initialized" to true, "setup_draft" to """{"v":9}"""))); advanceUntilIdle()
-        assertEquals(SetupDraft(fitnessTest = false), vm.uiState.value.draft)
+        assertEquals(SetupDraft(), vm.uiState.value.draft)
     }
     @Test fun `entering Your plan previews the current answers`() = runVmTest {
         val vm = newViewModel(); advanceUntilIdle()
@@ -945,15 +945,17 @@ class SetupFlowViewModelTest {
         assertEquals(original, answers(vm))
         plan(vm); vm.reviewAnswers(); advanceUntilIdle()
         assertEquals(SetupStep.TEST, vm.uiState.value.step)
-        val before = vm.uiState.value.draft
+        assertFalse(vm.uiState.value.draft.cardioFirst)
         val pick = TestPick.Library(ExerciseLibrary.get("pushup"))
         vm.pickTest(pick); vm.setTestRequired("custom_pushup_window", 30); advanceUntilIdle()
         assertEquals(PlanBranch.BOTH, answers(vm).branch)
         assertEquals(LiftGoal.STRENGTH, answers(vm).goal)
-        assertEquals(before.cardioFirst, vm.uiState.value.draft.cardioFirst)
+        assertTrue(vm.uiState.value.draft.cardioFirst)
+        assertFalse(SetupStep.LIFTS in SetupFlowStateBuilder.steps(vm.uiState.value.draft))
         val fresh = SetupDraft().chooseFitnessTest().pick(TestPick.Run(FitnessTest.TWO_MILE)).pick(pick)
-            .copy(cardioFirst = before.cardioFirst, goalSeconds = 960,
+            .copy(goalSeconds = 960,
                 tests = listOf(TestDraft("custom_pushup_window", 30, windowSeconds = 60)))
+        assertFalse(SetupStep.LIFTS in SetupFlowStateBuilder.steps(fresh))
         val expected = SetupFlowStateBuilder.answers(fresh)
         assertEquals(expected, answers(vm))
         val expectedProgram = Planner.plan(expected).program

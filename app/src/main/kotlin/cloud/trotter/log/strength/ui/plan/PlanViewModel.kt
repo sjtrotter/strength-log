@@ -66,7 +66,7 @@ class PlanViewModel @Inject constructor(
     private val sprintGoalDraft = savedState.getStateFlow<SprintGoalDraft?>(SPRINT_GOAL_DRAFT, null)
     private val testGoalDraft = savedState.getStateFlow<TestGoalDraft?>(TEST_GOAL_DRAFT, null)
     private val testHistory = historyRepository.testResultsFlow.map { results -> results.mapNotNull { it.toDomain() } }
-    private val testContext = combine(today, testHistory) { day, results -> day to results }
+    private val testContext = combine(today, testHistory, historyRepository.liftSetsFlow) { day, results, lifts -> Triple(day, results, lifts) }
     private val shuttleEntry = savedState.getStateFlow<String?>(SHUTTLE_ENTRY, null)
     private val cardioDialogs = combine(cardioGoalDraft, shuttleEntry, sprintGoalDraft) { draft, entry, sprint -> Triple(draft, entry, sprint) }
     private val cardioHistory = combine(historyRepository.cardioSessionsFlow, historyRepository.cardioSetResultsFlow) { sessions, sets ->
@@ -78,8 +78,8 @@ class PlanViewModel @Inject constructor(
     private val programState = plans.plansFlow.map { plans -> plans.firstOrNull { it.id == planId } }
         .flatMapLatest { plan -> combine(
             plans.programFor(planId), catalog.catalogFlow, settings.unitFlow, cardioHistory, testContext,
-        ) { program, catalog, unit, cardio, (day, results) ->
-            PlanScreenBuilder.buildUiState(plan, program, catalog, unit, cardio, day.toEpochDay(), results)
+        ) { program, catalog, unit, cardio, (day, results, lifts) ->
+            PlanScreenBuilder.buildUiState(plan, program, catalog, unit, cardio, day.toEpochDay(), results, lifts)
         } }
     val uiState: StateFlow<PlanUiState> = combine(programState, dialogState, goal, goalDraft, cardioDialogs) { program, draft, goalId, goalLb, cardio ->
         program.copy(
@@ -112,6 +112,7 @@ class PlanViewModel @Inject constructor(
                 val rows = uiState.value.testGoal?.rows ?: return@withLock
                 val goal = draft.goal(stored, rows) ?: return@withLock
                 plans.setTestGoal(planId, goal)
+                plans.setGoalDate(planId, goal.byEpochDay)
                 dismissTestGoal()
             }
         }
@@ -204,6 +205,7 @@ class PlanViewModel @Inject constructor(
                 mutationLock.withLock {
                     if (PlanGoalJson.decode(plans.plansFlow.first().firstOrNull { it.id == planId }?.goalJson) is PlanGoal.Sprint) return@withLock
                     plans.setGoal(planId, next)
+                    if (uiState.value.testRun != null) plans.setGoalDate(planId, next.byEpochDay)
                     dismissGoal()
                 }
             }

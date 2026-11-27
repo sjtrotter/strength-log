@@ -1,7 +1,12 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.ui.test.TestTraining
+import cloud.trotter.log.strength.domain.records.LiftTestProgress
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+import cloud.trotter.log.strength.domain.records.LiftSetRow
 import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.data.serialization.setupAnswers
+import cloud.trotter.log.strength.domain.planner.RunGoal
 import cloud.trotter.log.strength.domain.planner.PlanBranch
 import cloud.trotter.log.strength.domain.planner.RunPhase
 import cloud.trotter.log.strength.domain.planner.RunEvent
@@ -48,6 +53,7 @@ object PlanScreenBuilder {
         cardio: List<Pair<CardioActivity?, List<CardioSetResult>>> = emptyList(),
         todayEpochDay: Long,
         testResults: List<TestResult> = emptyList(),
+        liftSets: List<LiftSetRow> = emptyList(),
     ): PlanUiState {
         val days = days(program, plan?.suggestedDayId, unit, catalog)
         val generated = plan?.origin == PlanOrigin.GENERATED.name && days.any { it.liftCount > 0 }
@@ -56,13 +62,26 @@ object PlanScreenBuilder {
         val run = answers?.takeIf { it.branch == PlanBranch.RUN || (it.branch == PlanBranch.BOTH && !it.both.sprint) }
         val goal = PlanGoalJson.decode(plan?.goalJson)
         val runPhase = run?.let { plan?.recipeJson?.let(SetupRecipeJson::phase) }
+        val testLifts = answers?.lifts.orEmpty().map { lift ->
+            val entry = ExerciseLibrary.get(lift.exerciseId)
+            val best = LiftTestProgress.best(lift.reps,
+                liftSets.filter { it.exerciseId == lift.exerciseId }.map { it.set })
+            val required = planSettings.goalsLb[lift.exerciseId]
+            PlanTestLiftUi(lift.exerciseId, entry.name, lift.reps, required, best,
+                required != null && best != null && best >= required,
+                TestTraining.lift(program, requireNotNull(answers), lift.exerciseId))
+        }
         return PlanUiState(
+            testLifts = testLifts,
+            testRun = run?.takeIf { it.run.goal == RunGoal.FITNESS_TEST }
+                ?.let { it.run.test to program },
             testGoal = TestGoalJson.decode(plan?.testGoalJson)?.let { testGoal ->
                 PlanTestGoalUi(testGoal, testGoal.events.map { event ->
                     val catalogEvent = TestEvents.find(event.ref.eventId)
                     val best = TestProgress.best(event.ref, testResults)
                     PlanTestEventUi(event, catalogEvent?.name ?: event.ref.eventId, catalogEvent?.timed == true,
-                        best, TestProgress.met(event.required, best))
+                        best, TestProgress.met(event.required, best),
+                        answers?.let { TestTraining.event(program, it, event.ref.eventId) })
                 })
             },
             runPhase = runPhase,
@@ -92,7 +111,12 @@ object PlanScreenBuilder {
             offerStrengthIncreases = plan?.offerStrengthIncreases ?: true,
             offerCardioIncreases = plan?.offerCardioIncreases ?: false,
             days = days,
-            goals = if (generated) liftGoals(program, catalog, planSettings.goalsLb, unit, planSettings.legacyMains) else emptyList(),
+            goals = ((if (generated) liftGoals(program, catalog, planSettings.goalsLb, unit, planSettings.legacyMains) else emptyList()) +
+                testLifts.map { lift ->
+                    val entry = ExerciseLibrary.get(lift.exerciseId)
+                    PlanLiftGoal(lift.exerciseId, lift.name, entry.perHand, lift.goalLb,
+                        lift.goalLb?.let { GoalFormatter.label(GoalTarget(it, entry.perHand), unit) })
+                }).distinctBy { it.exerciseId },
         )
     }
 

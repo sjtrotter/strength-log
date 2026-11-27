@@ -38,16 +38,6 @@
       }
     },
     {
-      "expect": {
-        "text": "Fitness test"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
       "tap": {
         "text": "Next"
       }

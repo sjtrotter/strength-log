@@ -45,6 +45,12 @@ import kotlin.test.assertTrue
 import cloud.trotter.log.strength.domain.model.TestEventGoal
 import cloud.trotter.log.strength.domain.planner.TestAnswer
 import cloud.trotter.log.strength.domain.standards.TestRef
+import cloud.trotter.log.strength.domain.standards.TestEvents
+import cloud.trotter.log.strength.domain.standards.TestFormat
+import cloud.trotter.log.strength.domain.standards.TestPick
+import cloud.trotter.log.strength.domain.planner.LiftTest
+import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
+import cloud.trotter.log.strength.data.serialization.PlanSettings
 
 class SetupFlowStateBuilderTest {
     private val builder = SetupFlowStateBuilder
@@ -54,8 +60,7 @@ class SetupFlowStateBuilderTest {
     @Test fun `the default draft maps to the default setup answers`() { assertEquals(SetupAnswers(), builder.answers(SetupDraft())) }
 
     @Test fun `step lists follow sub-goal and experience`() {
-        // #646: the Test step follows Sub goal.
-        val common = listOf(SetupStep.GOAL, SetupStep.SUB_GOAL, SetupStep.TEST, SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT)
+        val common = listOf(SetupStep.GOAL, SetupStep.SUB_GOAL, SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT)
         assertEquals(common + SetupStep.PLAN, builder.steps(SetupDraft()))
         assertEquals(common + listOf(SetupStep.LIFTS, SetupStep.PLAN), builder.steps(SetupDraft(goal = LiftGoal.STRENGTH)))
         assertEquals(common + listOf(SetupStep.LIFTS, SetupStep.RECENT, SetupStep.PLAN), builder.steps(SetupFlowFixtures.reference))
@@ -178,7 +183,7 @@ class SetupFlowStateBuilderTest {
                 builder.steps(SetupDraft(branch = PlanBranch.RUN, runGoal = goal)))
         }
         // #646: Both resolves the run goal before offering Test, so sprint skips it.
-        val both = listOf(SetupStep.GOAL, SetupStep.ORDER, SetupStep.SUB_GOAL, SetupStep.RUN_GOAL, SetupStep.TEST,
+        val both = listOf(SetupStep.GOAL, SetupStep.ORDER, SetupStep.SUB_GOAL, SetupStep.RUN_GOAL,
             SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT)
         assertEquals(both + listOf(SetupStep.WHERE, SetupStep.TOGETHER, SetupStep.PLAN),
             builder.steps(SetupDraft(branch = PlanBranch.BOTH)))
@@ -274,7 +279,7 @@ class SetupFlowStateBuilderTest {
         plan.program.days.take(3).forEach { assertEquals(CardioRule(1), it.cardioRule) }
         assertEquals(ProgramDayKind.REST, plan.program.days.last().kind)
         // #646: Both resolves the run goal before offering Test, so sprint skips it.
-        assertEquals(listOf(SetupStep.GOAL, SetupStep.ORDER, SetupStep.SUB_GOAL, SetupStep.RUN_GOAL, SetupStep.TEST,
+        assertEquals(listOf(SetupStep.GOAL, SetupStep.ORDER, SetupStep.SUB_GOAL, SetupStep.RUN_GOAL,
             SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT, SetupStep.WHERE, SetupStep.TOGETHER, SetupStep.PLAN),
             builder.steps(SetupDraft(branch = PlanBranch.BOTH)))
     }
@@ -519,16 +524,14 @@ class SetupFlowStateBuilderTest {
         }
     }
 
-    @Test fun `the Test step follows Sub goal on Lift and Run goal on Both and is absent on Run and Sprint`() {
-        for ((draft, previous) in listOf(SetupFlowFixtures.reference to SetupStep.SUB_GOAL,
-            SetupFlowFixtures.both to SetupStep.RUN_GOAL)) {
-            val steps = builder.steps(draft)
-            // #646: Both chooses its cardio subtype before Test; Lift still follows Sub goal.
-            assertEquals(SetupStep.TEST, steps[steps.indexOf(previous) + 1])
-        }
-        for (draft in listOf(SetupFlowFixtures.run, SetupFlowFixtures.sprint, SetupFlowFixtures.bothSprint)) {
-            assertFalse(SetupStep.TEST in builder.steps(draft))
-        }
+    @Test fun `only the first screen entry and existing events offer Your test`() {
+        assertEquals(listOf(SetupStep.GOAL, SetupStep.TEST, SetupStep.WEEK, SetupStep.EQUIPMENT,
+            SetupStep.ABOUT, SetupStep.PLAN), builder.steps(SetupDraft().chooseFitnessTest()))
+        for (draft in listOf(SetupFlowFixtures.reference, SetupFlowFixtures.both, SetupFlowFixtures.run,
+            SetupFlowFixtures.sprint, SetupFlowFixtures.bothSprint)) assertFalse(SetupStep.TEST in builder.steps(draft))
+        val mixed = SetupFlowFixtures.both.copy(runGoal = RunGoal.FIRST_5K, tests = listOf(TestDraft("aft_hrp", 40)))
+        assertTrue(SetupStep.TEST in builder.steps(mixed))
+        assertEquals(PlanBranch.BOTH, builder.answers(mixed).branch)
     }
 
     @Test fun `a chosen event blocks Next until its required number is valid`() {
@@ -536,13 +539,14 @@ class SetupFlowStateBuilderTest {
         assertFalse(builder.canAdvance(draft))
         assertTrue(builder.canAdvance(draft.copy(tests = listOf(TestDraft("aft_hrp", 40)))))
         for (test in listOf(TestDraft("aft_hrp", 0), TestDraft("aft_hrp", 3601),
-            TestDraft("aft_hrp", 40, 0), TestDraft("aft_hrp", 40, 3601), TestDraft("unknown", 40),
+            TestDraft("aft_hrp", 40, 3601), TestDraft("unknown", 40),
             TestDraft("custom_pushup_window", 40), TestDraft("custom_pushup_window", 40, windowSeconds = 9),
             TestDraft("custom_pushup_window", 40, windowSeconds = 3601))) {
             assertFalse(builder.canAdvance(draft.copy(tests = listOf(test))))
         }
         assertTrue(builder.canAdvance(draft.copy(tests = listOf(TestDraft("custom_pushup_window", 40, windowSeconds = 60)))))
-        assertTrue(builder.canAdvance(draft.copy(tests = emptyList())))
+        assertTrue(builder.canAdvance(draft.copy(tests = listOf(TestDraft("aft_hrp", 40, 0)))))
+        assertFalse(builder.canAdvance(SetupDraft().chooseFitnessTest().copy(step = SetupStep.TEST)))
     }
 
     @Test fun `answers carry the tests and draftFrom restores them`() {
@@ -568,6 +572,120 @@ class SetupFlowStateBuilderTest {
     @Test fun `the Why sheet lists the prep block`() {
         val answers = builder.answers(SetupDraft(tests = listOf(TestDraft("aft_hrp", 40))))
         assertTrue(PlanWhy.TestPrep(1) in preview(answers).why)
+    }
+
+    @Test fun `case 59 switching to max unbroken clears the window`() {
+        val draft = SetupDraft().chooseFitnessTest().pick(TestPick.Library(ExerciseLibrary.get("pullup")))
+            .copy(step = SetupStep.TEST, tests = listOf(TestDraft("pullup:REPS_IN_WINDOW", 20, 8, 60)))
+            .testFormat("pullup", TestFormat.REPS_CONTINUOUS)
+        assertNull(draft.tests.single().windowSeconds)
+        val answers = builder.answers(draft)
+        assertEquals(TestRef("pullup:REPS_CONTINUOUS", 1), answers.tests.single().goal.ref)
+        assertTrue(builder.canAdvance(draft))
+        val missing = answers.copy(equipment = EquipmentPreset.DUMBBELLS.equipment)
+        val training = preview(missing).testTraining.single()
+        assertEquals(R.string.test_training_equipment, training.reason)
+        assertEquals(listOf(Equipment.PULLUP_BAR), training.equipment)
+        assertTrue(training.slots.isEmpty())
+        val army = SetupDraft(tests = listOf(TestDraft("aft_hrp", 40, 31)))
+        assertEquals(army, army.testFormat("hand_release_pushup", TestFormat.REPS_IN_WINDOW))
+    }
+
+    @Test fun `case 60 a required or last hold above the cap does not advance`() {
+        val draft = SetupDraft().chooseFitnessTest().copy(step = SetupStep.TEST, olderAdult = true,
+            tests = listOf(TestDraft("wall_sit:MAX_HOLD", 90, 110)))
+        assertTrue(builder.canAdvance(draft))
+        assertFalse(builder.canAdvance(draft.copy(tests = listOf(TestDraft("wall_sit:MAX_HOLD", 130, 110)))))
+        assertFalse(builder.canAdvance(draft.copy(tests = listOf(TestDraft("wall_sit:MAX_HOLD", 90, 130)))))
+        assertTrue(builder.answers(draft.copy(tests = listOf(TestDraft("wall_sit:MAX_HOLD", 130, 110)))).tests.isEmpty())
+        assertEquals(120, TestEvents.requiredLimit(TestEvents.get("wall_sit:MAX_HOLD")))
+    }
+
+    @Test fun `case 61 a run plus bench test derives Same visit at four days and Separate days at five, and keeps an explicit choice`() {
+        val draft = SetupDraft().chooseFitnessTest().pick(TestPick.Library(ExerciseLibrary.get("bb_bench")))
+            .pick(TestPick.Run(FitnessTest.TWO_MILE)).copy(runExperience = RunExperience.SOME, longestSeconds = 1500,
+                goalSeconds = 960, testLifts = listOf(LiftTestDraft("bb_bench", 5, 225.0)))
+        assertEquals(3, draft.days)
+        assertNull(draft.together)
+        val four = builder.answers(draft.copy(days = 4))
+        assertEquals(BothAnswers.Together.SAME_VISIT, four.both.together)
+        assertEquals(R.string.test_training_same_visit, preview(four).testTraining.single().reason)
+        val five = builder.answers(draft.copy(days = 5))
+        assertEquals(BothAnswers.Together.SEPARATE_DAYS, five.both.together)
+        assertTrue(preview(five).testTraining.single().slots.isNotEmpty())
+        assertEquals(BothAnswers.Together.SAME_VISIT, builder.answers(draft.copy(days = 6,
+            together = BothAnswers.Together.SAME_VISIT)).both.together)
+    }
+
+    @Test fun `case 55 a hinge pick at four days derives Same visit`() {
+        val draft = SetupDraft().chooseFitnessTest().pick(TestPick.Run(FitnessTest.TWO_MILE))
+            .pick(TestPick.Library(ExerciseLibrary.get("trap_dl"))).copy(days = 4)
+        assertNull(draft.together)
+        assertEquals(BothAnswers.Together.SAME_VISIT, builder.answers(draft).both.together)
+    }
+
+    @Test fun `case 55 a dumbbell gym leaves the deadlift untrained and keeps its requirement`() {
+        val draft = SetupDraft().chooseFitnessTest().pick(TestPick.Library(ExerciseLibrary.get("trap_dl")))
+            .copy(equipment = EquipmentPreset.DUMBBELLS.equipment, testLifts = listOf(LiftTestDraft("trap_dl", 3, 340.0)))
+        val answers = builder.answers(draft)
+        assertEquals(listOf(LiftTest("trap_dl", 3)), answers.lifts)
+        assertEquals(340.0, draft.testLifts.single().goalLb)
+        assertEquals(R.string.test_training_equipment, preview(answers).testTraining.single().reason)
+        assertFalse("trap_dl" in builder.currentMains(draft))
+    }
+
+    @Test fun `case 61 a nondefault test lift binds its row and survives Review answers`() {
+        val lift = LiftTest("incline_db", 5)
+        val draft = SetupDraft().chooseFitnessTest().pick(TestPick.Library(ExerciseLibrary.get(lift.exerciseId)))
+            .copy(testLifts = listOf(LiftTestDraft(lift.exerciseId, 5, 100.0)), experience = LiftExperience.UNDER_A_YEAR)
+        val answers = builder.answers(draft)
+        assertEquals(listOf("incline_db"), builder.mainChoices(draft)[2])
+        assertEquals("incline_db", SetupFlowFixtures.state(draft).lifts.single { it.row == 2 }.selectedId)
+        assertFalse("bb_bench" in assertNotNull(answers.mains))
+        val restored = builder.draftFrom(answers, SetupRecipeJson.encode(answers), PlanSettings(goalsLb = mapOf("incline_db" to 110.0)))
+        assertEquals(listOf(LiftTestDraft("incline_db", 5, 110.0)), restored.testLifts)
+        assertEquals(answers, builder.answers(restored))
+        val slots = Planner.plan(answers).program.days.flatMap { it.exercises }.filter { it.exerciseId == "incline_db" }
+        assertTrue(slots.any { it.rule?.role == SlotRole.MAIN && it.structure == SetStructure.STRAIGHT })
+        assertTrue(SetupStep.LIFTS in builder.steps(draft))
+        assertTrue(SetupStep.RECENT in builder.steps(draft))
+    }
+
+    @Test fun `a legacy Both Muscle test keeps its screens and resolved schedule`() {
+        val answers = SetupAnswers(branch = PlanBranch.BOTH, goal = LiftGoal.MUSCLE, days = 4,
+            experience = LiftExperience.A_YEAR_OR_MORE,
+            run = RunAnswers(goal = RunGoal.FITNESS_TEST, goalSeconds = 960), both = BothAnswers(cardioFirst = false))
+        val draft = builder.draftFrom(answers, SetupRecipeJson.encode(answers), PlanSettings())
+        assertEquals(BothAnswers.Together.SEPARATE_DAYS, draft.together)
+        for (step in listOf(SetupStep.SUB_GOAL, SetupStep.ORDER, SetupStep.LIFTS, SetupStep.RECENT)) {
+            assertTrue(step in builder.steps(draft))
+        }
+        val mapped = builder.answers(draft)
+        assertEquals(answers.copy(both = answers.both.copy(together = answers.together())), mapped)
+        assertEquals(Planner.plan(answers).program, Planner.plan(mapped).program)
+    }
+
+    @Test fun `a mixed race and test plan keeps its run when a test lift is added and restored`() {
+        val original = SetupAnswers(branch = PlanBranch.BOTH, days = 4,
+            run = RunAnswers(goal = RunGoal.FIVE_TO_TEN_K, goalSeconds = 3300),
+            tests = listOf(TestAnswer(TestEventGoal(TestRef("custom_pushup_window", 1, 60), 30))))
+        val draft = builder.draftFrom(original).pick(TestPick.Library(ExerciseLibrary.get("incline_db")))
+            .copy(testLifts = listOf(LiftTestDraft("incline_db", 5, 100.0)))
+        val answers = builder.answers(draft)
+        val restored = builder.draftFrom(answers, SetupRecipeJson.encode(answers), PlanSettings(goalsLb = mapOf("incline_db" to 100.0)))
+        assertEquals(false, restored.fitnessTest)
+        assertEquals(original.run, builder.answers(restored).run)
+        assertEquals(PlanBranch.BOTH, builder.answers(restored).branch)
+        assertEquals(listOf(LiftTestDraft("incline_db", 5, 100.0)), restored.testLifts)
+        assertTrue(SetupStep.EVENT in builder.steps(restored))
+    }
+
+    @Test fun `a trimmed prep day shows one Why line for its day`() {
+        val answers = SetupAnswers(tests = listOf(TestAnswer(TestEventGoal(TestRef("custom_pushup_window", 1, 60), 30))))
+        val draft = Planner.plan(answers).copy(reasons = listOf(PlanReason.ShortSession("A", 0), PlanReason.ShortSession("A", 2)))
+        val why = (builder.planPreview(draft, answers) as PlanPreviewUi.Ready).why
+        assertFalse(PlanWhy.Floor("A", 60) in why)
+        assertEquals(1, why.count { it == PlanWhy.Trimmed("A", 60) })
     }
 
 }

@@ -1,0 +1,177 @@
+{
+  "seat": "fitness-test-library",
+  "device": "w360dp-h720dp-night-xxhdpi",
+  "start": {
+    "date": "2026-11-27",
+    "time": "17:30",
+    "zone": "America/Chicago"
+  },
+  "steps": [
+    {
+      "scrollTo": {
+        "text": "Fitness test"
+      }
+    },
+    {
+      "tap": {
+        "text": "Fitness test"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your test"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add an event"
+      }
+    },
+    {
+      "tap": {
+        "text": "Strength"
+      }
+    },
+    {
+      "type": {
+        "text": "Search",
+        "value": "bb bench",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "type": {
+        "text": "Required weight (lb)",
+        "value": "225",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add an event"
+      }
+    },
+    {
+      "tap": {
+        "text": "Cardio"
+      }
+    },
+    {
+      "tap": {
+        "text": "2-mile run"
+      }
+    },
+    {
+      "type": {
+        "text": "Required time",
+        "value": "16:00",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "5"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Under a year"
+      }
+    },
+    {
+      "tap": {
+        "text": "Some"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your lifts"
+      }
+    },
+    {
+      "expect": {
+        "text": "Barbell Bench Press"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Recent numbers"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "type": {
+        "text": "Minutes",
+        "value": "25",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Lifting and running"
+      }
+    },
+    {
+      "expect": {
+        "text": "Separate days"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "expect": {
+        "text": "Your plan"
+      }
+    },
+    {
+      "checkpoint": "fitness-test-bench-five-days"
+    }
+  ]
+}

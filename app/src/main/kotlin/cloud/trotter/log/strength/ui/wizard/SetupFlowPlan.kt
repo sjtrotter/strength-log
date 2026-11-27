@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.wizard
 
+import cloud.trotter.log.strength.ui.test.testRunTrainingText
+import cloud.trotter.log.strength.ui.test.testTrainingText
 import java.time.format.TextStyle
 import java.util.Locale
 import androidx.compose.foundation.layout.Arrangement
@@ -73,8 +75,10 @@ internal fun PlanStep(state: SetupFlowUiState, actions: SetupFlowActions) {
                     else R.string.setup_flow_sprint_spacing_two), style = MaterialTheme.typography.bodyMedium)
                 Text(stringResource(sprintHighDayLabel(sprint.jumps, sprint.nordic)), style = MaterialTheme.typography.bodyMedium)
             }
+            plan.testTraining.forEach { Text(testTrainingText(it), style = MaterialTheme.typography.bodyMedium) }
+            plan.testRun?.let { (test, program) -> Text(testRunTrainingText(test, program)) }
             plan.rows.forEach { row -> PlanRow(row, state.draft.unit, state.draft.isSprint) }
-            if (state.draft.branch == PlanBranch.RUN) {
+            if (SetupFlowStateBuilder.branch(state.draft) == PlanBranch.RUN) {
                 SetupLabel(stringResource(R.string.setup_flow_strength_blocks))
                 SetupSegments((0..2).map(Int::toString), state.draft.strengthBlocks, actions.onStrengthBlocks)
             }

@@ -32,7 +32,6 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.GoalTime
 import cloud.trotter.log.strength.domain.model.PlanGoalDate
-import cloud.trotter.log.strength.domain.planner.FitnessTest
 import cloud.trotter.log.strength.domain.planner.PlanBranch
 import cloud.trotter.log.strength.domain.planner.RunEvent
 import cloud.trotter.log.strength.domain.planner.RunGoal
@@ -60,7 +59,7 @@ internal fun runGoalLabel(goal: RunGoal): Int = when (goal) {
 @Composable
 internal fun RunGoalStep(state: SetupFlowUiState, actions: SetupFlowActions) {
     Column(Modifier.selectableGroup()) {
-        RunGoal.entries.forEach { goal ->
+        RunGoal.entries.filter { it != RunGoal.FITNESS_TEST }.forEach { goal ->
             ChoiceRow(stringResource(runGoalLabel(goal)), stringResource(when (goal) {
                 RunGoal.FIRST_5K -> R.string.setup_flow_run_first_5k_body
                 RunGoal.FIVE_TO_TEN_K -> R.string.setup_flow_run_5k_10k_body
@@ -113,7 +112,7 @@ internal fun SetupTime(value: Int?, label: String, minSeconds: Int = 1, maxSecon
 }
 
 @Composable
-private fun SetupDistance(value: Int?, activity: CardioActivity, onChange: (Int?) -> Unit) {
+internal fun SetupDistance(value: Int?, activity: CardioActivity, onChange: (Int?) -> Unit) {
     val unit = distanceUnitFor(activity)
     val change: (Double?) -> Unit = { onChange(it?.let(unit::toMetres)) }
     NumberField(value = value?.takeIf { it > 0 }?.let(unit::fromMetres), onValueChange = change, onDraftChange = change,
@@ -145,44 +144,16 @@ internal fun EventStep(state: SetupFlowUiState, actions: SetupFlowActions) {
         SetupTime(draft.marathonBestSeconds, stringResource(R.string.setup_flow_marathon_best),
             minSeconds = GoalTime.floorSeconds(RunEvent.MARATHON.metres, run.activity), onChange = actions.onMarathonBest)
     }
-    if (draft.runGoal == RunGoal.FITNESS_TEST) {
-        SetupLabel(stringResource(R.string.setup_flow_test_label))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            FitnessTest.entries.forEach { test ->
-                SetupChip(draft.test == test, { focus.clearFocus(); actions.onTest(test) }) {
-                    Text(stringResource(when (test) {
-                        FitnessTest.TWO_MILE -> R.string.setup_flow_test_two_mile
-                        FitnessTest.ONE_AND_HALF_MILE -> R.string.setup_flow_test_mile_and_half
-                        FitnessTest.COOPER -> R.string.setup_flow_test_cooper
-                        FitnessTest.PACER -> R.string.setup_flow_test_pacer
-                        FitnessTest.HAMR -> R.string.setup_flow_test_hamr
-                    }))
-                }
-            }
-        }
-        if (draft.test.metres != null) {
-            SetupTime(draft.goalSeconds, stringResource(R.string.plan_goal_target_time),
-                minSeconds = SetupFlowStateBuilder.goalTimeFloor(draft), invalid = INVALID_GOAL_TIME, onChange = actions.onGoalSeconds)
-        } else {
-            val change: (Double?) -> Unit = { actions.onTestScore(it?.toInt()) }
-            NumberField(value = draft.testScore?.toDouble(), onValueChange = change, onDraftChange = change,
-                label = stringResource(if (draft.test == FitnessTest.COOPER) R.string.setup_flow_test_target_metres
-                    else R.string.plan_goal_target_shuttles),
-                minValue = 1.0, maxValue = if (draft.test == FitnessTest.COOPER) 200_000.0 else 999.0)
-        }
-    } else {
-        SetupLabel(stringResource(R.string.setup_flow_event_goal_label))
-        SetupSegments(listOf(stringResource(R.string.setup_flow_event_finish), stringResource(R.string.setup_flow_event_time)),
-            if (timed) 1 else 0) {
-            actions.onGoalSeconds(if (it == 1) draft.goalSeconds ?: INVALID_GOAL_TIME else null)
-        }
-        if (timed) SetupTime(draft.goalSeconds, stringResource(R.string.plan_goal_target_time),
-            minSeconds = SetupFlowStateBuilder.goalTimeFloor(draft)) {
-            actions.onGoalSeconds(it ?: INVALID_GOAL_TIME)
-        }
+    SetupLabel(stringResource(R.string.setup_flow_event_goal_label))
+    SetupSegments(listOf(stringResource(R.string.setup_flow_event_finish), stringResource(R.string.setup_flow_event_time)),
+        if (timed) 1 else 0) {
+        actions.onGoalSeconds(if (it == 1) draft.goalSeconds ?: INVALID_GOAL_TIME else null)
     }
-    if (draft.runGoal.events.isNotEmpty() || draft.runGoal == RunGoal.FITNESS_TEST &&
-        draft.test != FitnessTest.COOPER && (draft.test.metres != null || run.testScore != null)) {
+    if (timed) SetupTime(draft.goalSeconds, stringResource(R.string.plan_goal_target_time),
+        minSeconds = SetupFlowStateBuilder.goalTimeFloor(draft)) {
+        actions.onGoalSeconds(it ?: INVALID_GOAL_TIME)
+    }
+    if (draft.runGoal.events.isNotEmpty()) {
         SetupEventDate(run.dateEpochDay, actions.onEventDate)
     }
     SetupLabel(stringResource(R.string.setup_flow_recent_label))

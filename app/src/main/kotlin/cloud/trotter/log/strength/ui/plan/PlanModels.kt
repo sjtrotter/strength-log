@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.ui.test.TestTrainingUi
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.domain.planner.FitnessTest
 import cloud.trotter.log.strength.domain.model.TestGoal
 import cloud.trotter.log.strength.domain.model.TestEventGoal
 import androidx.compose.runtime.Immutable
@@ -42,12 +45,18 @@ data class PlanUiState(
     val sprintGoalDraft: SprintGoalDraft? = null,
     val testGoal: PlanTestGoalUi? = null,
     val testGoalDraft: TestGoalDraft? = null,
+    val testLifts: List<PlanTestLiftUi> = emptyList(),
+    val testRun: Pair<FitnessTest, Program>? = null,
 )
+
+data class PlanTestLiftUi(val exerciseId: String, val name: String, val reps: Int, val goalLb: Double?,
+    val bestLb: Double?, val met: Boolean, val training: TestTrainingUi)
 
 data class PlanTestGoalUi(val goal: TestGoal, val rows: List<PlanTestEventUi>)
 
 /** [best] is reps or seconds, null before any result. */
-data class PlanTestEventUi(val event: TestEventGoal, val name: String, val timed: Boolean, val best: Int?, val met: Boolean)
+data class PlanTestEventUi(val event: TestEventGoal, val name: String, val timed: Boolean, val best: Int?, val met: Boolean,
+    val training: TestTrainingUi? = null)
 
 data class PlanSprintGoalUi(val goal: PlanGoal.Sprint, val best: SprintAttempt?)
 

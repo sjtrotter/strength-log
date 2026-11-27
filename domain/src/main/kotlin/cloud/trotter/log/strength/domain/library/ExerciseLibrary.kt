@@ -200,6 +200,7 @@ object ExerciseLibrary {
         ExerciseEntry("low_cable_fly", "Low-to-High Cable Fly", H_PUSH, listOf(CABLE), false, weighted, 16, shortName = "Low Cable Fly"),
         ExerciseEntry("pushup", "Push-Up", H_PUSH, listOf(BODYWEIGHT), false, reps(15), 17, weightedPairId = "weighted_pushup"),
         ExerciseEntry("hand_release_pushup", "Hand-Release Push-Up", H_PUSH, listOf(BODYWEIGHT), false, reps(10), 20, shortName = "HR Push-Up"),
+        ExerciseEntry("knee_pushup", "Knee Push-Up", H_PUSH, listOf(BODYWEIGHT), false, reps(5), 21),
         ExerciseEntry("bw_dip", "Dip", H_PUSH, listOf(BODYWEIGHT), false, reps(10), 18, weightedPairId = "dips"),
         ExerciseEntry("weighted_pushup", "Weighted Push-Up", H_PUSH, listOf(BODYWEIGHT), false, weighted, 19),
 
@@ -242,6 +243,7 @@ object ExerciseLibrary {
         ExerciseEntry("weighted_pullup", "Weighted Pull-Up", V_PULL, listOf(PULLUP_BAR), false, weighted, 10),
         ExerciseEntry("weighted_neutral_pullup", "Weighted Neutral-Grip Pull-Up", V_PULL, listOf(PULLUP_BAR), false, weighted, 11),
         ExerciseEntry("dead_hang", "Dead Hang", V_PULL, listOf(PULLUP_BAR), false, time(30), 12, dose = Dose(3, 60), holdCeilingSeconds = 60),
+        ExerciseEntry("negative_pullup", "Negative Pull-Up", V_PULL, listOf(PULLUP_BAR), false, reps(5), 13),
 
         ExerciseEntry("cable_lateral", "Cable Lateral Raise", SIDE_DELT, listOf(CABLE), false, weighted, 1, shortName = "Cable Lateral"),
         ExerciseEntry("db_lateral", "DB Lateral Raise", SIDE_DELT, listOf(DUMBBELL), true, weighted, 2, shortName = "DB Lateral"),
@@ -302,6 +304,7 @@ object ExerciseLibrary {
         ExerciseEntry("body_saw", "Body Saw", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, reps(10), 5),
         ExerciseEntry("hollow_hold", "Hollow Hold", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(30), 6, holdCeilingSeconds = 45),
         ExerciseEntry("high_plank", "High Plank", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(45), 7, holdCeilingSeconds = 60),
+        ExerciseEntry("knee_plank", "Knee Plank", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(30), 8),
 
         ExerciseEntry("pallof", "Pallof Press", CORE_ANTI_ROT, listOf(CABLE), false, weighted, 1),
         ExerciseEntry("suitcase_carry", "Suitcase Carry", CORE_ANTI_ROT, listOf(DUMBBELL), true, time(40, 50.0), 2, eachSide = true),

@@ -18,13 +18,13 @@ private const val STRENGTH_SECONDS = 1_500
 
 internal fun easyLimit(long: CardioBlock?): Int? = long?.let { maxOf(60, (3 * plannedSeconds(it) / 4) / 60 * 60) }
 
-/** R10's easy-run stop: minutes minus five for warm-up and, on a strength-block day, 25 for lifts;
+/** R10's easy-run stop: minutes minus prep, five for warm-up and, on a strength-block day, 25 for lifts;
  *  a 20-minute floor before the limit of 75 percent of the long run, rounded down to a minute.
  *  These allowances and the ratio are practice; no source sets them. At creation [long] is the capped stored
  *  long run. At Finish pass the day's minutes, whether it carries a strength block, and the current long run,
  *  so the limit follows its growth (audit 2026-11-13 row 4, R10 fixed through R11). */
-fun easyRunSeconds(minutes: Int, strength: Boolean, long: CardioBlock?): Int = minOf(
-    maxOf(EASY_SECONDS, minutes * 60 - SessionBudget.WARM_UP_SECONDS - if (strength) STRENGTH_SECONDS else 0),
+fun easyRunSeconds(minutes: Int, strength: Boolean, long: CardioBlock?, reservedSeconds: Int = 0): Int = minOf(
+    maxOf(EASY_SECONDS, minutes * 60 - SessionBudget.WARM_UP_SECONDS - reservedSeconds - (if (strength) STRENGTH_SECONDS else 0)),
     easyLimit(long) ?: Int.MAX_VALUE,
 )
 

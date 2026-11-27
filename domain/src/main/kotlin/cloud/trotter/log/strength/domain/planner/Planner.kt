@@ -85,12 +85,12 @@ object Planner {
             (atLeast == RunPhase.BASE && answers.run.goal.phases.isEmpty() && answers.run.phases == listOf(RunPhase.LADDER)))
         require(todayEpochDay != null || answers.branch == PlanBranch.LIFT || answers.run.dateEpochDay == null)
         return when (answers.branch) {
-            PlanBranch.LIFT -> liftDraft(answers, known).withBalanceDays(answers, known).withTestPrep(answers, known)
+            PlanBranch.LIFT -> liftDraft(answers, known).withBalanceDays(answers, known).withTestPrep(answers)
             PlanBranch.RUN -> runDraft(answers, known, todayEpochDay, answers.slotGoal, atLeast)
             PlanBranch.BOTH -> if (answers.both.sprint) sprintDraft(answers, known, answers.slotGoal)
-                else bothDraft(answers, known, todayEpochDay, atLeast).withTestPrep(answers, known)
+                else bothDraft(answers, known, todayEpochDay, atLeast).withTestPrep(answers)
             PlanBranch.SPRINT -> sprintDraft(answers, known, answers.slotGoal)
-        }
+        }.withTestWeeks(answers, todayEpochDay)
     }
 
     /** The smallest minutes answer at or above [answers]'s whose plan needs no ladder step and is not over budget;
@@ -163,6 +163,7 @@ internal fun liftDraft(
 ): PlanDraft {
     val mains = resolveMains(answers)
     val reasons = mutableListOf<PlanReason>()
+    // Prep reserves time but supplies no weekly credit, even when it replaces an ordinary slot.
     val fittedDays = layout(answers, mains).map { day ->
         if (day.kind != ProgramDayKind.STRENGTH) day else {
             val (fitted, dayReasons) = fitDay(day, answers, budgetSeconds)
@@ -171,9 +172,24 @@ internal fun liftDraft(
         }
     }
     val touched = reasons.filterIsInstance<PlanReason.ShortSession>().map { it.dayId }.toSet()
-    val (balancedDays, volumeReasons) = VolumeBalance.balance(fittedDays, answers, mains.map { it.id }.toSet(), touched, budgetSeconds)
+    val reservedSeconds = TestPrep.place(fittedDays, answers).associate { day ->
+        day.id to TestPrep.reservedSeconds(day, answers.slotGoal)
+    }
+    val (balancedDays, volumeReasons) = VolumeBalance.balance(fittedDays, answers, mains.map { it.id }.toSet(), touched,
+        budgetSeconds, reservedSeconds)
     reasons += volumeReasons
-    val (days, working) = seedAll(balancedDays, answers, known)
+    val preparedDays = TestPrep.place(balancedDays, answers).map { day ->
+        if (day.kind != ProgramDayKind.STRENGTH || day.exercises.none { it.prescription?.test != null }) day else {
+            val (fitted, dayReasons) = fitDay(day, answers, budgetSeconds)
+            reasons.removeAll { reason ->
+                reason is PlanReason.OverBudget && reason.dayId == day.id ||
+                    dayReasons.isNotEmpty() && reason is PlanReason.ShortSession && reason.dayId == day.id && reason.step != 0
+            }
+            reasons += dayReasons
+            fitted
+        }
+    }
+    val (days, working) = seedAll(preparedDays, answers, known)
     return PlanDraft(Program(days), working,
         if (answers.experience == LiftExperience.A_YEAR_OR_MORE) 6 else null, reasons)
 }

@@ -132,7 +132,7 @@ class DayViewModelBenchmarkTest {
         val plan = requireNotNull(repo.plans.selectedPlanIdFlow.first())
         val id = db.programDao().exercisesForDay(plan, "A").single().id
         repo.setPrescription(id, Prescription(target, eachSide = eachSide, test = ref))
-        repo.plans.setTestGoal(plan, if (goal) TestGoal(listOf(TestEventGoal(ref, if (event.timed) 220 else 40))) else null)
+        repo.plans.setTestGoal(plan, if (goal) TestGoal(listOf(TestEventGoal(ref, if (event.timed) minOf(220, TestEvents.requiredLimit(event)) else 40))) else null)
     }
 
     private suspend fun TestScope.readyVm(handle: SavedStateHandle = SavedStateHandle()): DayViewModel {
@@ -166,6 +166,95 @@ class DayViewModelBenchmarkTest {
         vm.changeTimedRepDraft("27")
         vm.logTimedRepCount()
         runCurrent()
+    }
+
+    @Test fun `case 59 a max unbroken benchmark writes its count as STOPPED`() = test {
+        val ref = TestRef("pullup:REPS_CONTINUOUS", 1)
+        prepare(ref, target = PrescribedTarget.Reps(5))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val card = vm.uiState.value.exercises.single()
+        assertEquals("Pull-Up / Chin-Up, max unbroken", card.workingHeading)
+        assertNull(card.timedRepAim)
+        assertEquals(0, row().reps)
+        vm.changeReps(card.programExerciseId, Slot.MAIN, 0, 14)
+        runCurrent()
+        vm.toggleDone(card.programExerciseId, 0, true, Slot.MAIN)
+        runCurrent()
+        val result = repo.history.testResultsFlow.first().single()
+        assertEquals(14, result.count)
+        assertNull(result.windowSeconds)
+        assertEquals("STOPPED", result.stop)
+        assertEquals(TestEvents.get(ref.eventId), TestEventJson.decode(result.rulesJson))
+        vm.changeReps(card.programExerciseId, Slot.MAIN, 0, 15)
+        runCurrent()
+        assertEquals("STOPPED", repo.history.testResultsFlow.first().single().stop)
+    }
+
+    @Test fun `case 60 a capped hold benchmark ends at the cap and writes LIMIT`() = test {
+        prepare(TestRef("wall_sit:MAX_HOLD", 1), target = PrescribedTarget.Hold(55))
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        val card = vm.uiState.value.exercises.single()
+        assertTrue(card.holdPressureCaution)
+        vm.startHoldPastTarget(card.programExerciseId, 0)
+        runCurrent()
+        assertEquals(120, vm.uiState.value.hold?.event?.targetSeconds)
+        tick(120_000)
+        assertTrue(row().done)
+        assertEquals(120, row().seconds)
+        val result = repo.history.testResultsFlow.first().single()
+        assertEquals("LIMIT", result.stop)
+        vm.changeSeconds(card.programExerciseId, Slot.MAIN, 0, 95)
+        runCurrent()
+        assertEquals(result.copy(seconds = 95, stop = "STOPPED"), repo.history.testResultsFlow.first().single())
+    }
+
+    @Test fun `case 60 an AFT plank stopped by hand at 300 s writes STOPPED and keeps it on edit`() = test {
+        prepare(plank)
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        vm.startHold()
+        runCurrent()
+        tick(300_000)
+        vm.stopHold()
+        runCurrent()
+        assertEquals(300, row().seconds)
+        assertEquals("STOPPED", repo.history.testResultsFlow.first().single().stop)
+        val id = vm.uiState.value.exercises.single().programExerciseId
+        vm.changeSeconds(id, Slot.MAIN, 0, 600)
+        runCurrent()
+        assertEquals("LIMIT", repo.history.testResultsFlow.first().single().stop)
+        vm.changeSeconds(id, Slot.MAIN, 0, 300)
+        runCurrent()
+        assertEquals("STOPPED", repo.history.testResultsFlow.first().single().stop)
+    }
+
+    @Test fun `case 60 an each side benchmark holds both sides and records the shorter`() = test {
+        prepare(TestRef("side_plank:MAX_HOLD", 1), target = PrescribedTarget.Hold(30), eachSide = true)
+        val vm = readyVm()
+        vm.startWorkout()
+        runCurrent()
+        assertTrue(vm.uiState.value.exercises.single().headerTarget.eachSide)
+        vm.startHold()
+        runCurrent()
+        assertEquals(2, vm.uiState.value.hold?.event?.sides)
+        tick(95_000)
+        vm.stopHold()
+        runCurrent()
+        assertFalse(row().done)
+        vm.startHold()
+        runCurrent()
+        tick(80_000)
+        vm.stopHold()
+        runCurrent()
+        assertTrue(row().done)
+        assertEquals(80, row().seconds)
+        assertEquals(80, repo.history.testResultsFlow.first().single().seconds)
+        assertEquals("STOPPED", repo.history.testResultsFlow.first().single().stop)
     }
 
     @Test fun `editing the test date removes the pre Start Benchmark without restarting`() = test {
@@ -452,7 +541,7 @@ class DayViewModelBenchmarkTest {
     }
 
     @Test fun `a hold benchmark buzzes once at the ceiling and ends itself at ten minutes`() = test {
-        prepare(plank, eachSide = true)
+        prepare(plank)
         val vm = readyVm()
         vm.startWorkout()
         runCurrent()

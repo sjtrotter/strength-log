@@ -21,6 +21,8 @@ import cloud.trotter.log.strength.domain.model.Prescription
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
+import cloud.trotter.log.strength.domain.records.LiftSetRow
+import cloud.trotter.log.strength.domain.records.LiftTestProgress
 import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.model.SetStructure
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
@@ -78,6 +80,25 @@ class JournalBuilderTest {
 
     private val squat = JournalBuilder.MainLift("bb_back_squat", "Barbell Back Squat", dayIndex = 0, goalLb = 235.0)
     private val bench = JournalBuilder.MainLift("bb_bench", "Barbell Bench Press", dayIndex = 1, goalLb = 195.0)
+
+    @Test fun `case 61 History's goal verdict matches the card for a test lift from the raw sets`() {
+        val lift = bench.copy(goalLb = 225.0)
+        val sets = listOf(LiftSetRow(1, millis(today), "bb_bench", 205.0, 5, SetKind.WORK, true),
+            LiftSetRow(1, millis(today), "bb_bench", 225.0, 4, SetKind.WORK, true),
+            LiftSetRow(1, millis(today), "bb_bench", 215.0, 6, SetKind.WORK, true))
+        val history = listOf(top("bb_bench", today, 225.0, 1))
+        fun verdict(rows: List<LiftSetRow>, tops: List<TopSetRow> = history): Boolean = JournalBuilder.trajectories(
+            listOf(lift), tops, WeightUnit.LB, zone, mapOf("bb_bench" to 5), rows).single().goalMet
+        assertEquals(215.0, LiftTestProgress.best(5, sets.map { it.set }))
+        assertFalse(verdict(sets))
+        assertTrue(JournalBuilder.trajectories(listOf(lift), history, WeightUnit.LB, zone).single().goalMet)
+        assertTrue(verdict(sets + LiftSetRow(1, millis(today), "bb_bench", 225.0, 5, SetKind.WORK, true)))
+        val ramped = listOf(LiftSetRow(2, millis(today), "bb_bench", 230.0, 1, SetKind.TOP, true),
+            LiftSetRow(2, millis(today), "bb_bench", 225.0, 5, SetKind.BACKOFF, true),
+            LiftSetRow(2, millis(today), "bb_bench", 240.0, 3, SetKind.RAMP, true))
+        assertEquals(225.0, LiftTestProgress.best(5, ramped.map { it.set }))
+        assertTrue(verdict(ramped, listOf(top("bb_bench", today, 230.0, 2))))
+    }
 
     @Test fun `case 53 test trends split by identity and need two points`() {
         val hrp = TestRef("aft_hrp", 1, 120)

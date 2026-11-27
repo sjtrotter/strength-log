@@ -12,6 +12,7 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.planner.EquipmentPreset
 import cloud.trotter.log.strength.domain.planner.LiftExperience
+import cloud.trotter.log.strength.domain.planner.LiftTest
 import cloud.trotter.log.strength.domain.planner.PlanBranch
 import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.domain.planner.RecentNumber
@@ -37,6 +38,7 @@ import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.LoadSteps
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -56,6 +58,22 @@ class SetupRecipeJsonTest {
         mains = Planner.defaultMains(EquipmentPreset.DUMBBELLS.equipment),
         recent = mapOf(Planner.defaultMains(EquipmentPreset.DUMBBELLS.equipment)[2] to RecentNumber(80.0, 8, Effort.GOOD)))
     private val settings = PlanSettings(equipment = answers.equipment, loadSteps = answers.steps)
+
+    @Test fun `lift tests are optional v2 recipe facts with no required weight`() {
+        val lifts = listOf(LiftTest("bb_bench", 5), LiftTest("trap_dl", 3))
+        val answers = SetupAnswers(lifts = lifts)
+        val json = SetupRecipeJson.encode(answers)
+        SetupRecipeJson.validate(json)
+        assertEquals(lifts, SetupRecipeJson.lifts(json))
+        assertEquals(lifts, SetupRecipeJson.decode(json, PlanSettings(), WeightUnit.LB)!!.lifts)
+        val old = JsonObject(Json.parseToJsonElement(json).jsonObject - "lifts").toString()
+        assertEquals(emptyList(), SetupRecipeJson.lifts(old))
+        for (invalid in listOf("bb_bench" to 0, "bb_bench" to 11, "back_ext" to 5, "unknown" to 5)) {
+            val bad = json.replace("\"exerciseId\":\"bb_bench\",\"reps\":5",
+                "\"exerciseId\":\"${invalid.first}\",\"reps\":${invalid.second}")
+            assertFailsWith<IllegalArgumentException> { SetupRecipeJson.validate(bad) }
+        }
+    }
 
     @Test fun `answers round trip without gear`() {
         val json = SetupRecipeJson.encode(answers)

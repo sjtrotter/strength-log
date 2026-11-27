@@ -31,6 +31,17 @@ class PlannerBothTest {
     private fun block(seconds: Int, hard: Boolean = false) = CardioBlock(CardioActivity.ROAD_RUN,
         listOf(CardioSetSpec(CardioRole.WORK, Measure.Time(seconds), hard = hard)))
 
+    @Test fun `case 61 the five day Separate plan keeps the interval day and trains the bench`() {
+        val answers = answers(days = 5, cardioFirst = true, together = BothAnswers.Together.SEPARATE_DAYS)
+            .copy(goal = LiftGoal.STRENGTH, run = RunAnswers(RunGoal.FITNESS_TEST, RunExperience.SOME,
+                goalSeconds = 960, longest = Measure.Time(1500)), lifts = listOf(LiftTest("bb_bench", 5)))
+        val draft = plan(answers, KnownLoads.NONE)
+        assertEquals(listOf(RunSession.EASY, RunSession.TEST_INTERVALS, RunSession.EASY), draft.sessions.values.toList())
+        assertEquals(1, draft.program.days.count { it.kind == ProgramDayKind.REST })
+        val slots = draft.program.strengthDays.flatMap { it.exercises }.filter { it.exerciseId == "bb_bench" }
+        assertEquals(listOf(SlotRole.MAIN, SlotRole.SECONDARY), slots.map { it.rule!!.role })
+    }
+
     @Test fun `lift first separate alternates full body and run days with remapped rows`() {
         val answers = answers(days = 4, together = BothAnswers.Together.SEPARATE_DAYS)
         val draft = plan(answers)

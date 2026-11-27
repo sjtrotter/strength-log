@@ -18,6 +18,8 @@ import cloud.trotter.log.strength.data.db.entity.WorkoutSessionEntity
 import cloud.trotter.log.strength.data.serialization.PrescriptionJson
 import cloud.trotter.log.strength.domain.model.PrescribedTarget
 import cloud.trotter.log.strength.domain.model.Prescription
+import cloud.trotter.log.strength.data.serialization.TestEventJson
+import cloud.trotter.log.strength.domain.standards.TestEvents
 import cloud.trotter.log.strength.domain.standards.RestCategory
 import cloud.trotter.log.strength.domain.standards.RestPolicy
 import cloud.trotter.log.strength.domain.standards.RestSettings
@@ -103,6 +105,20 @@ class BackupCodecTest {
         sessions = sessions,
         cardioSessions = cardioSessions,
     )
+
+    @Test fun `case 59 a derived test result imports at v35`() {
+        val event = TestEvents.get("pullup:REPS_CONTINUOUS")
+        val result = TestResultBackup(71, 1000, planId = 1, dayId = "A", runId = "run", programExerciseId = 7,
+            setIndex = 0, exerciseId = "pullup", eventId = event.id, eventVersion = 1,
+            windowSeconds = null, count = 14, stop = "STOPPED", rulesJson = TestEventJson.encode(event))
+        val source = BackupDocument(settings = SettingsBackup(200, 40, weightUnit = "LB", wizardComplete = true),
+            plans = listOf(PlanBackup(1, "Test", "AUTHORED", 1000)), testResults = listOf(result))
+        val decoded = codec.decode(codec.encode(source))
+        assertEquals(35, decoded.schemaVersion)
+        assertEquals(listOf(result), decoded.testResults)
+        assertEquals(event.id, decoded.toSnapshot().testResults.single().eventId)
+        assertEquals(14, decoded.toSnapshot().testResults.single().count)
+    }
 
     @Test
     fun `v15 round trip preserves membership including all plans paused`() {

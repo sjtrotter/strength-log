@@ -23,6 +23,8 @@ import cloud.trotter.log.strength.domain.progression.SlotRole
 import cloud.trotter.log.strength.domain.records.CardioBests
 import cloud.trotter.log.strength.domain.records.CardioRecordKey
 import cloud.trotter.log.strength.domain.progression.FinishedRule
+import cloud.trotter.log.strength.domain.records.LiftSetRow
+import cloud.trotter.log.strength.domain.records.LiftTestProgress
 import cloud.trotter.log.strength.domain.records.TestResult
 import cloud.trotter.log.strength.domain.records.PersonalBests
 import cloud.trotter.log.strength.domain.units.WeightStepper
@@ -102,12 +104,17 @@ object JournalBuilder {
         topSets: List<TopSetRow>,
         unit: WeightUnit,
         zone: ZoneId = ZoneId.systemDefault(),
+        testReps: Map<String, Int> = emptyMap(),
+        liftSets: List<LiftSetRow> = emptyList(),
     ): List<TrajectoryCard> {
         val byExercise = topSets.groupBy { it.exerciseId }
         return mains.mapNotNull { lift ->
             val rows = byExercise[lift.exerciseId].orEmpty()
             if (rows.isEmpty()) return@mapNotNull null
-            card(lift, rows, unit, zone)
+            val reps = testReps[lift.exerciseId]
+            val best = if (reps == null) rows.maxOf { it.topWeightLb } else LiftTestProgress.best(reps,
+                liftSets.filter { it.exerciseId == lift.exerciseId }.map { it.set })
+            card(lift, rows, unit, zone, best)
         }
     }
 
@@ -116,6 +123,7 @@ object JournalBuilder {
         rows: List<TopSetRow>,
         unit: WeightUnit,
         zone: ZoneId,
+        best: Double?,
     ): TrajectoryCard {
         var standing: LoggedSet? = null
         val points = rows.map { row ->
@@ -138,7 +146,7 @@ object JournalBuilder {
             points = points,
             goalValue = goal,
             goalLabel = goalLb?.let { WeightStepper.format(unit.fromLb(it)) },
-            goalMet = goalLb != null && rows.maxOf { it.topWeightLb } >= goalLb,
+            goalMet = goalLb != null && best != null && best >= goalLb,
             latestLabel = WeightStepper.format(unit.fromLb(rows.last().topWeightLb)),
             unit = unit,
             axisMin = axisBound(values, goal, low = true),

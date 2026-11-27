@@ -16,6 +16,7 @@ import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.planner.LiftExperience
 import cloud.trotter.log.strength.domain.planner.SessionBudget
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
+import cloud.trotter.log.strength.domain.planner.TestPrep
 import cloud.trotter.log.strength.domain.planner.easyRunSeconds
 import cloud.trotter.log.strength.domain.progression.CardioChange
 import cloud.trotter.log.strength.domain.progression.CardioEffort
@@ -157,7 +158,8 @@ object CardioJudge {
             setup != null && programDay != null) {
             val inputs = requireNotNull(plan)
             val long = inputs.program.days.firstOrNull { it.cardioRule?.session == RunSession.LONG }?.cardioToRun
-            EasyRunContext(easyRunSeconds(setup.minutes, programDay.exercises.isNotEmpty(), long), inputs.cyclesCompleted)
+            EasyRunContext(easyRunSeconds(setup.minutes, programDay.exercises.isNotEmpty(), long,
+                TestPrep.reservedSeconds(programDay, setup.slotGoal)), inputs.cyclesCompleted)
         } else null
         val ctx = Progression.CardioContext(today, measure, percent, runCap = runCap, sprint = context,
             easy = easy, budgetSeconds = budget, ladder = ladderContext)

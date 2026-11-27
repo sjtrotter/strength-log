@@ -1,6 +1,8 @@
 package cloud.trotter.log.strength.domain.planner
 
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.Muscle
+import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.model.ProgramExercise
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.SlotRole
@@ -128,6 +130,33 @@ class VolumeBalanceTest {
         assertEquals(12.0, weekly[Muscle.LATS])
         assertEquals(12.0, weekly[Muscle.UPPER_BACK])
         assertTrue(draft.reasons.isEmpty())
+    }
+
+    @Test fun `prep reserves constrain both new slots and set growth at the same budget`() {
+        val answers = SetupAnswers(goal = LiftGoal.STRENGTH, days = 2)
+        val mains = resolveMains(answers)
+        val days = layout(answers, mains)
+        val chosen = mains.map { it.id }.toSet()
+        val expected = VolumeBalance.balance(days, answers, chosen, emptySet(), budgetSeconds = 3500)
+        val actual = VolumeBalance.balance(days, answers, chosen, emptySet(), budgetSeconds = 3600,
+            reservedSeconds = days.associate { it.id to 100 })
+        assertEquals(expected, actual)
+        assertEquals(listOf(PlanReason.ShortSession("A", 0), PlanReason.ShortSession("B", 0)), actual.second)
+        assertTrue(actual.first.all { SessionBudget.seconds(it, answers.goal) + 100 <= 3600 })
+        assertEquals(VolumeBalance.balance(days, answers, chosen, emptySet()),
+            VolumeBalance.balance(days, answers, chosen, emptySet(), reservedSeconds = days.associate { it.id to 0 }))
+    }
+
+    @Test fun `new slot hosts are ordered by ordinary seconds plus each day's reserve`() {
+        val answers = SetupAnswers(goal = LiftGoal.GENERAL, days = 2,
+            excluded = ExerciseLibrary.entries.map { it.id }.toSet() - "pushup")
+        val days = listOf(ProgramDay("A", "A", "", emptyList()), ProgramDay("B", "B", "", emptyList()))
+        val (ordinary, _) = VolumeBalance.balance(days, answers, emptySet(), emptySet())
+        val (reserved, reasons) = VolumeBalance.balance(days, answers, emptySet(), emptySet(),
+            reservedSeconds = mapOf("A" to 200))
+        assertEquals(listOf(4, 0), ordinary.map { it.exercises.sumOf { slot -> slot.targetSets } })
+        assertEquals(listOf(0, 4), reserved.map { it.exercises.sumOf { slot -> slot.targetSets } })
+        assertTrue(reasons.isEmpty())
     }
 
     @Test fun `catalog bound back floors stay short without a minutes reason`() {

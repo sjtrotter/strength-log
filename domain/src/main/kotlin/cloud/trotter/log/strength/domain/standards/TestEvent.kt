@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.domain.standards
 
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
+
 /** Stored by name; new constants go at the end. */
 enum class TestSetType { REPS_IN_WINDOW, REPS_CONTINUOUS, REPS_CADENCE, MAX_HOLD }
 
@@ -93,8 +95,54 @@ object TestEvents {
 
     private val byId = all.associateBy { it.id }
 
-    fun find(id: String): TestEvent? = byId[id]
-    fun get(id: String): TestEvent = requireNotNull(byId[id]) { "Unknown test event: $id" }
+    fun find(id: String): TestEvent? {
+        byId[id]?.let { return it }
+        val exerciseId = id.substringBefore(':', "")
+        val format = TestFormat.entries.firstOrNull { it.name == id.substringAfter(':', "") } ?: return null
+        val event = derived(exerciseId, format) ?: return null
+        return event.takeIf { it.id == id }
+    }
+
+    fun derivedId(exerciseId: String, format: TestFormat): String = when {
+        format == TestFormat.REPS_IN_WINDOW && exerciseId == "pushup" -> "custom_pushup_window"
+        format == TestFormat.REPS_IN_WINDOW && exerciseId == "situp" -> "custom_situp_window"
+        else -> "$exerciseId:${format.name}"
+    }
+
+    fun derived(exerciseId: String, format: TestFormat): TestEvent? {
+        val entry = ExerciseLibrary.find(exerciseId) ?: return null
+        if (format !in TestFormat.eligible(entry)) return null
+        val setType = format.setType ?: return null
+        val id = derivedId(exerciseId, format)
+        byId[id]?.let { return it }
+        val noun = when (format) {
+            TestFormat.REPS_IN_WINDOW -> "in a window"
+            TestFormat.REPS_CONTINUOUS -> "max unbroken"
+            TestFormat.MAX_HOLD -> "max hold"
+            TestFormat.HEAVIEST_FOR_REPS -> return null
+        }
+        val form = when (format) {
+            TestFormat.REPS_IN_WINDOW -> "Your test's count in its window, under your test's own standard."
+            TestFormat.REPS_CONTINUOUS -> "Reps without rest until you stop, under your test's own standard."
+            TestFormat.MAX_HOLD -> if (entry.pressureCaution) "Held to 2:00 at most here. Keep breathing."
+                else "Held until form breaks or you stop."
+            TestFormat.HEAVIEST_FOR_REPS -> return null
+        }
+        return TestEvent(id, 1, "${entry.name}, $noun", exerciseId, setType,
+            ceilingSeconds = entry.holdCeilingSeconds.takeIf { entry.pressureCaution },
+            form = form, faults = "Your own.", rest = "Your own.", scoring = "None: a typed required number.",
+            sourceUrl = "https://github.com/sjtrotter/strength.log", sourceDate = "2026-11-27",
+            custom = format == TestFormat.REPS_IN_WINDOW)
+    }
+
+    fun editions(exerciseId: String, format: TestFormat): List<TestEvent> =
+        all.filter { !it.custom && it.exerciseId == exerciseId && it.setType == format.setType }
+
+    fun requiredLimit(event: TestEvent): Int = ExerciseLibrary.find(event.exerciseId)?.let { entry ->
+        entry.holdCeilingSeconds?.takeIf { entry.pressureCaution }
+    } ?: 3600
+
+    fun get(id: String): TestEvent = requireNotNull(find(id)) { "Unknown test event: $id" }
 
     fun window(event: TestEvent, typed: Int?): Int? = window(event.windowSeconds, event.custom, typed)
 

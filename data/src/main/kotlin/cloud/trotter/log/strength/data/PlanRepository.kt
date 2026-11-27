@@ -257,6 +257,21 @@ class PlanRepository(
     suspend fun setTestGoal(planId: Long, goal: TestGoal?) =
         planDao.updateTestGoal(planId, goal?.let(TestGoalJson::encode))
 
+    suspend fun setGoalDate(planId: Long, date: Long?) = db.withTransaction {
+        require(PlanGoalDate.isValid(date))
+        val plan = planDao.plan(planId) ?: return@withTransaction
+        val goal = PlanGoalJson.decode(plan.goalJson)
+        val testGoal = TestGoalJson.decode(plan.testGoalJson)
+        val next = when (goal) {
+            is PlanGoal.Timed -> goal.copy(byEpochDay = date)
+            is PlanGoal.Shuttle -> goal.copy(byEpochDay = date)
+            is PlanGoal.Sprint -> goal.copy(byEpochDay = date)
+            null -> null
+        }
+        planDao.updateGoal(planId, next?.let(PlanGoalJson::encode))
+        planDao.updateTestGoal(planId, testGoal?.copy(byEpochDay = date)?.let(TestGoalJson::encode))
+    }
+
     suspend fun logShuttleAttempt(planId: Long, shuttles: Int) = db.withTransaction {
         val goal = PlanGoalJson.decode(planDao.plan(planId)?.goalJson) as? PlanGoal.Shuttle
             ?: return@withTransaction
@@ -304,7 +319,8 @@ class PlanRepository(
 
     /** Writes the plan, rules and opening rows in one transaction, so a crash leaves no half plan.
      *  A selected plan with no days is filled in place. */
-    suspend fun createPlannedPlan(name: String, answers: SetupAnswers): Long {
+    suspend fun createPlannedPlan(name: String, answers: SetupAnswers, goalsLb: Map<String, Double> = emptyMap()): Long {
+        require(goalsLb.values.all { it.isFinite() && it > 0.0 && it <= PlanRecipeJson.MAX_GOAL_LB })
         require(name.trim().length in 1..40)
         return planSelectionLock.withLock {
             val storedId = settings.selectedPlanIdFlow.first()
@@ -312,7 +328,7 @@ class PlanRepository(
                 val draft = planned(answers)
                 val recipe = SetupRecipeJson.encode(answers, draft.phase)
                 val planSettings = PlanSettings(defaultsFor = answers.slotGoal, loadSteps = answers.steps,
-                    equipment = answers.equipment)
+                    equipment = answers.equipment, goalsLb = goalsLb)
                 val nextDay = draft.program.rotationDays.firstOrNull()?.let {
                     Rotation.trainingDayFrom(draft.program, it.id)
                 }

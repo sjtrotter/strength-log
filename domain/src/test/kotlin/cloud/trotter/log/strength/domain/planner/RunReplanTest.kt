@@ -4,6 +4,8 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.model.CardioFamily
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
 import cloud.trotter.log.strength.domain.model.CardioRole
+import cloud.trotter.log.strength.domain.model.TestEventGoal
+import cloud.trotter.log.strength.domain.standards.TestRef
 import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
@@ -44,6 +46,24 @@ class RunReplanTest {
     }
     private fun nextCase30(stored: Program = case30()) = RunReplan.next(stored, case30Answers, RunPhase.BASE,
         known(10_371, 3733), TODAY + 175, WeekLoad(RecentMaxima(null, 7814), RecentMaxima(10_371, 3733)), 0.36)
+
+    @Test fun `a ladder exit reserves the stored prep before sizing its easy run`() {
+        val setup = SetupAnswers(branch = PlanBranch.BOTH, goal = LiftGoal.STRENGTH,
+            both = BothAnswers(true, BothAnswers.Together.SAME_VISIT),
+            run = RunAnswers(RunGoal.FITNESS_TEST, RunExperience.SOME, goalSeconds = 780, longest = Measure.Time(600)),
+            tests = listOf(TestAnswer(TestEventGoal(TestRef("custom_pushup_window", 1, 60), 30)),
+                TestAnswer(TestEventGoal(TestRef("custom_situp_window", 1, 60), 35))))
+        val ladder = Planner.plan(setup, todayEpochDay = TODAY).program
+        val stored = ladder.copy(days = ladder.days.map { day ->
+            if (day.cardioRule?.ladderLevel == null) day else day.copy(cardioRule = requireNotNull(day.cardioRule).copy(ladderLevel = null))
+        })
+        val history = known(null, 1800).copy(longestRunning = mapOf(CardioFamily.RUN to 1800))
+        val next = assertNotNull(RunReplan.next(stored, setup, RunPhase.LADDER, history, TODAY, week(5400), null))
+        val a = next.program.days.first()
+        assertEquals(Measure.Time(1200), a.cardioBlock!!.sets.single().end)
+        assertEquals(900, TestPrep.reservedSeconds(a))
+        assertEquals(stored.days.first().exercises, a.exercises)
+    }
 
     @Test fun `the ladder exit waits for every ladder day`() {
         val stored = ladder().let { p -> p.copy(days = p.days.map {

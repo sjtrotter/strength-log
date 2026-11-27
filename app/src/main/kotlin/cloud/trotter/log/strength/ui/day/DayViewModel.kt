@@ -25,7 +25,6 @@ import cloud.trotter.log.strength.data.db.entity.TestResultEntity
 import cloud.trotter.log.strength.data.serialization.TestEventJson
 import cloud.trotter.log.strength.domain.progression.Benchmark
 import cloud.trotter.log.strength.domain.standards.TestEvents
-import cloud.trotter.log.strength.domain.standards.TestStop
 import cloud.trotter.log.strength.data.db.entity.Slot
 import cloud.trotter.log.strength.data.forRun
 import cloud.trotter.log.strength.data.isSlotSkipped
@@ -1738,7 +1737,7 @@ class DayViewModel @Inject constructor(
             return
         }
         val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }
-        val runPastTarget = card?.benchmark != null || (pastTarget && card?.holdPressureCaution != true)
+        val runPastTarget = (card?.benchmark != null || pastTarget) && card?.holdPressureCaution != true
         startSetTimer(programExerciseId, setIndex, { holdToStart(programExerciseId, setIndex) }, { it.dayId },
             onAccepted = { savedState[KEY_HOLD_PAST_TARGET] = runPastTarget }) {
             savedState[KEY_HOLD] = it
@@ -1754,7 +1753,7 @@ class DayViewModel @Inject constructor(
             return
         }
         val elapsed = BootAnchor(event.wallStart, event.elapsedStart, event.bootCount).elapsedSince(cardioClock.clocks())
-        val held = HoldClock.heldSeconds(elapsed, HoldClock.limitSeconds(event.targetSeconds, holdPastTarget))
+        val held = HoldClock.heldSeconds(elapsed, holdLimit(event))
         if (held < 1 && event.heldSeconds.isEmpty()) clearHold() else endHoldSide(event, held, buzz = false)
     }
 
@@ -1978,15 +1977,12 @@ class DayViewModel @Inject constructor(
         result: RunWriteResult, programExerciseId: Long, slot: String, index: Int, row: LoggedSet?,
     ) {
         if (result !is RunWriteResult.InRun || slot != Slot.MAIN || row?.done != true) return
-        val link = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId }?.prescriptionTest ?: return
+        val card = uiState.value.exercises.firstOrNull { it.programExerciseId == programExerciseId } ?: return
+        val link = card.prescriptionTest ?: return
         historyRepository.updateTestResult(result.runId, programExerciseId, index,
             count = if (link.event.timed) null else row.reps,
             seconds = if (link.event.timed) row.seconds else null,
-            stop = when {
-                !link.event.timed -> TestStop.TIME_UP
-                row.seconds >= HoldClock.limitSeconds(row.seconds, true) -> TestStop.LIMIT
-                else -> TestStop.STOPPED
-            }.name)
+            stop = Benchmark.stop(link.event, card.holdPressureCaution, row).name)
     }
 
     fun toggleDone(programExerciseId: Long, index: Int, checked: Boolean, slot: String) {
@@ -2248,11 +2244,7 @@ class DayViewModel @Inject constructor(
                         windowSeconds = TestEvents.window(link.event, link.ref.windowSeconds),
                         count = if (link.event.timed) null else after.reps,
                         seconds = if (link.event.timed) after.seconds else null,
-                        stop = when {
-                            !link.event.timed -> TestStop.TIME_UP
-                            after.seconds >= HoldClock.limitSeconds(hold?.targetSeconds ?: after.seconds, true) -> TestStop.LIMIT
-                            else -> TestStop.STOPPED
-                        }.name,
+                        stop = Benchmark.stop(link.event, card.holdPressureCaution, after).name,
                         rulesJson = TestEventJson.encode(link.event),
                     ))
                 }
@@ -2953,6 +2945,15 @@ class DayViewModel @Inject constructor(
         holdEvent.value?.takeIf { it.dayId == dayId && it.programExerciseId == programExerciseId }?.let { clearHold() }
     }
 
+    private fun holdLimit(event: HoldEvent): Int {
+        val card = uiState.value.exercises.firstOrNull { it.programExerciseId == event.programExerciseId }
+        if (card != null) {
+            val link = card.prescriptionTest
+            if (link != null) return Benchmark.holdLimit(link.event, card.holdPressureCaution)
+        }
+        return HoldClock.limitSeconds(event.targetSeconds, holdPastTarget)
+    }
+
     private fun holdToStart(programExerciseId: Long, setIndex: Int): HoldEvent? {
         if (cardioRun.value != null || timedRepEvent.value != null || holdEvent.value != null) return null
         val state = uiState.value
@@ -2985,7 +2986,7 @@ class DayViewModel @Inject constructor(
         }
         if (!event.running) return HoldState(event, 0)
         val elapsed = BootAnchor(event.wallStart, event.elapsedStart, event.bootCount).elapsedSince(cardioClock.clocks())
-        val limit = HoldClock.limitSeconds(event.targetSeconds, holdPastTarget)
+        val limit = holdLimit(event)
         if (HoldClock.reached(elapsed, limit)) {
             endHoldSide(event, limit, buzz = holdAlertAnchor == event.wallStart)
             return holdEvent.value?.let { HoldState(it, if (it.complete) it.loggedSeconds else 0) }
@@ -3301,7 +3302,7 @@ class DayViewModel @Inject constructor(
         }
         val benchmark = benchmarkLink?.let { BenchmarkUi(it.event.name, it.ref.windowSeconds, it.event.ceilingSeconds) }
         val cardPrescription = if (benchmarkLink != null) performed.prescription?.copy(
-            target = Benchmark.target(benchmarkLink.event, benchmarkLink.ref), eachSide = false,
+            target = Benchmark.target(benchmarkLink.event, benchmarkLink.ref),
         ) else performed.prescription
         val entry = performed.entry
         val name = entry?.name ?: performed.exerciseId

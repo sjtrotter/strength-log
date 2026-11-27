@@ -6,6 +6,7 @@ import cloud.trotter.log.strength.domain.model.SetKind
 import cloud.trotter.log.strength.domain.standards.HoldClock
 import cloud.trotter.log.strength.domain.standards.TestEvent
 import cloud.trotter.log.strength.domain.standards.TestRef
+import cloud.trotter.log.strength.domain.standards.TestStop
 import cloud.trotter.log.strength.domain.standards.TestSetType
 
 /** Spacing is preference: every 2 to 4 weeks, with the last benchmark about a week before test day (#646). */
@@ -22,15 +23,26 @@ object Benchmark {
     fun target(event: TestEvent, ref: TestRef): PrescribedTarget = when (event.setType) {
         TestSetType.REPS_IN_WINDOW -> PrescribedTarget.RepsInTime(requireNotNull(ref.windowSeconds))
         TestSetType.MAX_HOLD -> PrescribedTarget.Hold(event.ceilingSeconds ?: HoldClock.PAST_TARGET_LIMIT_SECONDS)
-        TestSetType.REPS_CONTINUOUS, TestSetType.REPS_CADENCE -> error("No benchmark execution for ${event.setType} yet")
+        TestSetType.REPS_CONTINUOUS -> PrescribedTarget.Reps(0)
+        TestSetType.REPS_CADENCE -> error("No benchmark execution for ${event.setType} yet")
     }
 
     fun row(event: TestEvent, ref: TestRef): LoggedSet = when (val target = target(event, ref)) {
-        is PrescribedTarget.RepsInTime -> LoggedSet(0.0, 0, SetKind.WORK)
+        is PrescribedTarget.RepsInTime, is PrescribedTarget.Reps -> LoggedSet(0.0, 0, SetKind.WORK)
         is PrescribedTarget.Hold -> LoggedSet(0.0, 0, SetKind.WORK, seconds = target.seconds)
-        is PrescribedTarget.LoadReps, is PrescribedTarget.Reps -> error("unreachable")
+        is PrescribedTarget.LoadReps -> error("unreachable")
+    }
+
+    fun holdLimit(event: TestEvent, pressureCaution: Boolean): Int = HoldClock.limitSeconds(
+        event.ceilingSeconds ?: HoldClock.PAST_TARGET_LIMIT_SECONDS, pastTarget = !pressureCaution)
+
+    fun stop(event: TestEvent, pressureCaution: Boolean, row: LoggedSet): TestStop = when (event.setType) {
+        TestSetType.REPS_IN_WINDOW -> TestStop.TIME_UP
+        TestSetType.REPS_CONTINUOUS -> TestStop.STOPPED
+        TestSetType.MAX_HOLD -> if (row.seconds >= holdLimit(event, pressureCaution)) TestStop.LIMIT else TestStop.STOPPED
+        TestSetType.REPS_CADENCE -> error("No benchmark execution for ${event.setType} yet")
     }
 
     fun runnable(event: TestEvent): Boolean =
-        event.setType == TestSetType.REPS_IN_WINDOW || event.setType == TestSetType.MAX_HOLD
+        event.setType != TestSetType.REPS_CADENCE
 }

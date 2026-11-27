@@ -31,6 +31,7 @@ internal fun fitDay(
                 current.exercises.mapNotNull { slot ->
                     val role = requireNotNull(slot.rule).role
                     when {
+                        slot.prescription?.test != null -> slot
                         keepPlyos && role == SlotRole.PLYO -> slot
                         keepNordic && ExerciseLibrary.get(slot.exerciseId).pattern == MovementPattern.KNEE_FLEXION -> slot
                         else -> when (role) {
@@ -41,13 +42,13 @@ internal fun fitDay(
                     }
                 }
             }
-            2 -> current.exercises.filterNot { it.rule?.role == SlotRole.SECONDARY }
+            2 -> current.exercises.filterNot { it.prescription?.test == null && it.rule?.role == SlotRole.SECONDARY }
             3 -> current.exercises.map { slot ->
-                if (slot.rule?.role == SlotRole.MAIN) slot.copy(structure = SetStructure.STRAIGHT, targetSets = 2) else slot
+                if (slot.prescription?.test == null && slot.rule?.role == SlotRole.MAIN) slot.copy(structure = SetStructure.STRAIGHT, targetSets = 2) else slot
             }
             4 -> current.exercises.map { slot ->
                 val rule = requireNotNull(slot.rule)
-                if (rule.role != SlotRole.MAIN) slot
+                if (slot.prescription?.test != null || rule.role != SlotRole.MAIN) slot
                 else if (ExerciseLibrary.get(slot.exerciseId).tracking == TrackingType.WEIGHTED) {
                     slot.copy(structure = SetStructure.RAMP_TOP, targetSets = 2, rule = rule.copy(scheme = shortScheme))
                 } else slot.copy(structure = SetStructure.STRAIGHT, targetSets = 1)
@@ -56,15 +57,15 @@ internal fun fitDay(
                 val rule = requireNotNull(slot.rule)
                 val kind = if (slot.structure.hasTopSet) SetKind.TOP else SetKind.WORK
                 val tracking = ExerciseLibrary.get(slot.exerciseId).tracking
-                if (rule.role == SlotRole.MAIN &&
+                if (slot.prescription?.test == null && rule.role == SlotRole.MAIN &&
                     RestPolicy.effectiveRestSeconds(kind, tracking, emptyMap(), rule, answers.goal) > 120) {
                     slot.copy(rule = rule.copy(restSeconds = 120))
                 } else slot
             }
-            6 -> current.exercises.filterNot { it.rule?.role == SlotRole.CORE }
-            7 -> if (keepPlyos) current.exercises.filterNot { it.rule?.role == SlotRole.PLYO } else current.exercises
+            6 -> current.exercises.filterNot { it.prescription?.test == null && it.rule?.role == SlotRole.CORE }
+            7 -> if (keepPlyos) current.exercises.filterNot { it.prescription?.test == null && it.rule?.role == SlotRole.PLYO } else current.exercises
             else -> if (keepNordic) current.exercises.filterNot {
-                ExerciseLibrary.get(it.exerciseId).pattern == MovementPattern.KNEE_FLEXION
+                it.prescription?.test == null && ExerciseLibrary.get(it.exerciseId).pattern == MovementPattern.KNEE_FLEXION
             } else current.exercises
         }
         if (slots.isNotEmpty()) current = current.copy(exercises = slots)

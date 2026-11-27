@@ -30,6 +30,7 @@ import kotlinx.serialization.json.intOrNull
 import cloud.trotter.log.strength.domain.model.PlanGoalDate
 import cloud.trotter.log.strength.domain.model.TestEventGoal
 import cloud.trotter.log.strength.domain.model.TestGoal
+import cloud.trotter.log.strength.domain.planner.LiftTest
 import cloud.trotter.log.strength.domain.planner.TestAnswer
 import cloud.trotter.log.strength.domain.standards.TestRef
 
@@ -40,6 +41,10 @@ import cloud.trotter.log.strength.domain.standards.TestRef
     fun answer(): TestAnswer = TestAnswer(TestEventGoal(TestRef(eventId, version, windowSeconds), required), lastResult)
 }
 
+@Serializable internal data class LiftTestDto(val exerciseId: String, val reps: Int) {
+    fun lift(): LiftTest = LiftTest(exerciseId, reps)
+}
+
 @Serializable internal data class SetupRecipeDto(
     val v: Int, val branch: String, val goal: String, val days: Int, val minutes: Int, val experience: String,
     val olderAdult: Boolean = false, val mains: List<String>? = null,
@@ -47,6 +52,7 @@ import cloud.trotter.log.strength.domain.standards.TestRef
     val balanceDays: Boolean = false, val run: RunRecipeDto? = null, val both: BothRecipeDto? = null,
     val runPhase: String? = null, val sprint: SprintRecipeDto? = null,
     val tests: List<TestRecipeDto> = emptyList(), val testDateEpochDay: Long? = null,
+    val lifts: List<LiftTestDto> = emptyList(),
 )
 @Serializable internal data class RecentNumberDto(val weightLb: Double, val reps: Int, val effort: String)
 
@@ -113,6 +119,7 @@ object SetupRecipeJson {
             tests = answers.tests.map { TestRecipeDto(it.goal.ref.eventId, it.goal.ref.version,
                 it.goal.ref.windowSeconds, it.goal.required, it.lastResult) },
             testDateEpochDay = answers.testDateEpochDay,
+            lifts = answers.lifts.map { LiftTestDto(it.exerciseId, it.reps) },
         ))
     }
 
@@ -122,6 +129,11 @@ object SetupRecipeJson {
             version != null && !version.isString && version.intOrNull == VERSION
         }
     }.getOrNull()
+
+    fun lifts(json: String): List<LiftTest> = runCatching {
+        validate(json)
+        SetJson.decode(SetupRecipeDto.serializer(), json).lifts.map(LiftTestDto::lift)
+    }.getOrDefault(emptyList())
 
     fun isV2(json: String): Boolean = v2Object(json) != null
 
@@ -167,6 +179,7 @@ object SetupRecipeJson {
                 run = dto.run?.answers() ?: RunAnswers(), both = dto.both?.answers() ?: BothAnswers(),
                 sprint = dto.sprint?.answers() ?: SprintAnswers(),
                 tests = dto.tests.map(TestRecipeDto::answer), testDateEpochDay = dto.testDateEpochDay,
+                lifts = dto.lifts.map(LiftTestDto::lift),
             )
         }.getOrNull()
     }
@@ -177,6 +190,8 @@ object SetupRecipeJson {
         val branch = PlanBranch.valueOf(dto.branch)
         val sprintPlan = branch == PlanBranch.SPRINT || branch == PlanBranch.BOTH && dto.both?.sprint == true
         require(dto.v == VERSION)
+        val lifts = dto.lifts.map(LiftTestDto::lift)
+        require(lifts.map { it.exerciseId }.distinct().size == lifts.size)
         require(dto.tests.isEmpty() || branch == PlanBranch.LIFT || branch == PlanBranch.BOTH && dto.both?.sprint != true)
         require(PlanGoalDate.isValid(dto.testDateEpochDay))
         if (dto.tests.isNotEmpty()) TestGoal(dto.tests.map { it.answer().goal }, dto.testDateEpochDay)

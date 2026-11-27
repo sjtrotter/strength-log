@@ -120,6 +120,18 @@ class HistoryRepositoryHistoryReadTest {
         )
     }
 
+    @Test fun `liftSetsFlow preserves every raw set for the reps-aware goal verdict`() = runTest {
+        seedOlderSession()
+        seedNewerSessionWithAnUncheckedTop()
+        val raw = repo.liftSetsFlow.first()
+        assertEquals(6, raw.size)
+        assertEquals(listOf(5, 5, 8, 5, 5, 3), raw.map { it.reps })
+        assertEquals(listOf(SetKind.RAMP, SetKind.TOP, SetKind.BACKOFF, SetKind.WORK, SetKind.RAMP, SetKind.TOP), raw.map { it.kind })
+        assertFalse(raw.last().done)
+        assertEquals(2, raw.map { it.sessionId }.distinct().size)
+        assertEquals(listOf(1000L, 1000L, 1000L, 1000L, 2000L, 2000L), raw.map { it.completedAt })
+    }
+
     // --- sessionSummariesFlow --------------------------------------------------
 
     @Test

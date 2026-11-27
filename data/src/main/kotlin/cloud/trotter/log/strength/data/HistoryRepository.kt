@@ -8,6 +8,7 @@ import cloud.trotter.log.strength.data.db.dao.CustomExerciseDao
 import cloud.trotter.log.strength.data.db.dao.SessionDao
 import cloud.trotter.log.strength.data.db.dao.SessionSummaryRow
 import cloud.trotter.log.strength.data.db.dao.SessionTonnageRow
+import cloud.trotter.log.strength.domain.records.LiftSetRow
 import cloud.trotter.log.strength.data.db.dao.TopSetRow
 import cloud.trotter.log.strength.data.db.entity.TestResultEntity
 import cloud.trotter.log.strength.data.db.entity.CardioRouteEntity
@@ -278,6 +279,14 @@ class HistoryRepository(
         sessionSummariesFlow.map { sessions ->
             sessions.filter { belongsToPlan(it.session.planId, planId) }
         }
+
+    val liftSetsFlow: Flow<List<LiftSetRow>> = sessionDao.observeTrajectorySets().map { rows ->
+        rows.mapNotNull { row ->
+            val kind = SetKind.entries.firstOrNull { it.name == row.set.kind } ?: return@mapNotNull null
+            LiftSetRow(row.set.sessionId, row.completedAt, row.set.exerciseId, row.set.weightLb, row.set.reps,
+                kind, row.set.done)
+        }
+    }.distinctUntilChanged()
 
     /** Every session's heaviest set counted by PersonalBests per lift, oldest first. */
     val topSetHistoryFlow: Flow<List<TopSetRow>> = sessionDao.observeTrajectorySets().map { rows ->

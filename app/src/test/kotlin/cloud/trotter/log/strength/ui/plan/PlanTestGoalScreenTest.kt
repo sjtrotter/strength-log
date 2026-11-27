@@ -14,6 +14,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
+import cloud.trotter.log.strength.domain.model.TestEventGoal
+import cloud.trotter.log.strength.domain.model.TestGoal
+import cloud.trotter.log.strength.domain.standards.TestEvents
 import cloud.trotter.log.strength.domain.standards.TestRef
 import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.log.JournalBuilder
@@ -46,6 +49,21 @@ class PlanTestGoalScreenTest {
     @After fun restoreWindowSize() {
         val previous = previousWindowSize
         if (previous == null) System.clearProperty(WINDOW_SIZE) else System.setProperty(WINDOW_SIZE, previous)
+    }
+
+    @Test fun `case 60 the editor refuses a required hold above the cap`() {
+        val event = TestEvents.get("wall_sit:MAX_HOLD")
+        val goal = TestEventGoal(TestRef(event.id, 1), 90)
+        val ui = PlanTestGoalUi(TestGoal(listOf(goal)), listOf(PlanTestEventUi(goal, event.name, true, null, false)))
+        val state = mutableStateOf(TestGoalDraft(mapOf(event.id to "1:30")))
+        rule.setContent { AppTheme { PlanTestGoalEditor(ui, state.value, actions().copy(onTestGoalDraft = { state.value = it })) } }
+        val hold = rule.onNode(hasSetTextAction() and hasText(event.name))
+        hold.performTextReplacement("2:10")
+        rule.onNodeWithText("Save").assertIsNotEnabled()
+        hold.performTextReplacement("2:00")
+        rule.onNodeWithText("Save").assertIsEnabled()
+        hold.performTextReplacement("2:01")
+        rule.onNodeWithText("Save").assertIsNotEnabled()
     }
 
     @Test fun `the card reads Best and Required and the editor saves typed numbers`() {

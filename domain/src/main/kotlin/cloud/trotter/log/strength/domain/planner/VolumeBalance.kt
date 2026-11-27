@@ -53,14 +53,14 @@ internal object VolumeBalance {
         budgetSeconds: Int = answers.minutes * 60,
     ): Pair<List<ProgramDay>, List<PlanReason>> {
         val current = days.toMutableList()
-        var weekly = SetCount.weekly(Program(current)).toMutableMap()
+        var weekly = weeklyCredits(current).toMutableMap()
         while (weekly.values.any { it > CAP }) {
             val over = weekly.filterValues { it > CAP }.keys
             val candidate = current.indices.reversed().flatMap { day ->
                 current[day].exercises.indices.reversed().map { slot -> day to slot }
             }.filter { (day, index) ->
                 val slot = current[day].exercises[index]
-                current[day].kind == ProgramDayKind.STRENGTH && slot.structure == SetStructure.STRAIGHT &&
+                slot.prescription?.test == null && current[day].kind == ProgramDayKind.STRENGTH && slot.structure == SetStructure.STRAIGHT &&
                     slot.rule?.role in setOf(SlotRole.ACCESSORY, SlotRole.ISOLATION, SlotRole.CORE) &&
                     primary(slot).any(over::contains)
             }.maxByOrNull { (day, index) -> current[day].exercises[index].targetSets } ?: break
@@ -69,7 +69,7 @@ internal object VolumeBalance {
             val slot = slots[index]
             if (slot.targetSets == 1) slots.removeAt(index) else slots[index] = slot.copy(targetSets = slot.targetSets - 1)
             current[day] = current[day].copy(exercises = slots)
-            weekly = SetCount.weekly(Program(current)).toMutableMap()
+            weekly = weeklyCredits(current).toMutableMap()
         }
 
         val eligible = current.indices.filter { current[it].kind == ProgramDayKind.STRENGTH && current[it].id !in touched }
@@ -92,7 +92,7 @@ internal object VolumeBalance {
                 val grow = eligible.flatMap { day -> current[day].exercises.indices.map { day to it } }
                     .filter { (day, index) ->
                         val slot = current[day].exercises[index]
-                        slot.structure == SetStructure.STRAIGHT && slot.targetSets < SLOT_CAP &&
+                        slot.prescription?.test == null && slot.structure == SetStructure.STRAIGHT && slot.targetSets < SLOT_CAP &&
                             slot.rule?.role in setOf(SlotRole.MAIN, SlotRole.SECONDARY, SlotRole.ACCESSORY, SlotRole.ISOLATION) &&
                             muscle in primary(slot)
                     }.sortedBy { (day, index) -> current[day].exercises[index].targetSets }
@@ -127,6 +127,10 @@ internal object VolumeBalance {
         }
         return current to current.filter { it.id in stopped }.map { PlanReason.ShortSession(it.id, 0) }
     }
+
+    private fun weeklyCredits(days: List<ProgramDay>): Map<Muscle, Double> = SetCount.weekly(Program(days.map { day ->
+        day.copy(exercises = day.exercises.filter { it.prescription?.test == null })
+    }))
 
     private fun primary(slot: ProgramExercise): Set<Muscle> =
         listOfNotNull(slot.exerciseId, slot.superset?.exerciseId).flatMap { ExerciseLibrary.get(it).primary }.toSet()

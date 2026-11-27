@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.HistoryRepository
+import cloud.trotter.log.strength.data.serialization.SetupRecipeJson
 import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.data.PlanRepository
@@ -203,7 +204,9 @@ class LogViewModel @Inject constructor(
         plans.programFlow, catalog.catalogFlow, plans.selectedPlanFlow,
     ) { program, catalog, plan ->
         val planSettings = plan?.planSettings ?: PlanSettings()
-        JournalBuilder.mainLifts(program, catalog, planSettings.goalsLb, planSettings.legacyMains)
+        JournalBuilder.mainLifts(program, catalog, planSettings.goalsLb, planSettings.legacyMains) to
+            plan?.recipeJson?.let(SetupRecipeJson::lifts)
+                .orEmpty().associate { it.exerciseId to it.reps }
     }
 
     private val journalHistory = combine(
@@ -213,7 +216,9 @@ class LogViewModel @Inject constructor(
         settings.unitFlow,
         repo.cardioSessionsFlow,
         ::JournalHistory,
-    ).combine(repo.cardioSetResultsFlow) { history, sets -> history to sets }
+    ).combine(combine(repo.cardioSetResultsFlow, repo.liftSetsFlow, ::Pair)) { history, (sets, lifts) ->
+        Triple(history, sets, lifts)
+    }
 
     /**
      * The journal sections all hang off *today* — the today marker, the
@@ -229,9 +234,9 @@ class LogViewModel @Inject constructor(
         calendarOffset,
         civilTimeSource.civilTime,
         repo.testResultsFlow,
-    ) { (history, sets), mains, offset, now, results ->
+    ) { (history, sets, lifts), (mains, testReps), offset, now, results ->
         JournalUiState(
-            trajectories = JournalBuilder.trajectories(mains, history.topSets, history.unit, now.zone),
+            trajectories = JournalBuilder.trajectories(mains, history.topSets, history.unit, now.zone, testReps, lifts),
             volume = JournalBuilder.volume(history.tonnage, history.unit, now.date, now.zone),
             calendar = JournalBuilder.calendar(history.sessions, offset, now.date, now.zone, history.cardio),
             weeklyDistance = JournalBuilder.weeklyDistance(history.cardio, sets, now.date, now.zone),

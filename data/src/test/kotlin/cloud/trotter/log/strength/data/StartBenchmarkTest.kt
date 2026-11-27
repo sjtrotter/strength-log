@@ -45,6 +45,33 @@ class StartBenchmarkTest : FinishProgressionFixture() {
         assertTrue(repo.discardRun(db.programDao().day(plan, "A")!!.nextRunId))
     }
 
+    @Test fun `case 57 a prep slot on another movement never opens as a benchmark`() = runTest {
+        val plan = authored()
+        prep(plan, Prescription(PrescribedTarget.RepsInTime(120, 5), test = hrp), "knee_pushup")
+        repo.plans.setTestGoal(plan, TestGoal(listOf(TestEventGoal(hrp, 40))))
+        assertNull(opened(plan).openingJson)
+    }
+
+    @Test fun `case 60 a pressure caution benchmark opens at its cap`() = runTest {
+        val plan = authored()
+        val ref = TestRef("wall_sit:MAX_HOLD", 1)
+        prep(plan, Prescription(PrescribedTarget.Hold(55), test = ref), "wall_sit")
+        repo.plans.setTestGoal(plan, TestGoal(listOf(TestEventGoal(ref, 90))))
+        val track = opened(plan)
+        assertTrue(OpeningJson.decode(track.openingJson)!!.benchmark)
+        assertEquals(listOf(LoggedSet(0.0, 0, SetKind.WORK, seconds = 120)), SetJson.decodeSets(track.plannedJson))
+    }
+
+    @Test fun `a derived max unbroken event opens without rewriting its ref`() = runTest {
+        val plan = authored()
+        val ref = TestRef("pullup:REPS_CONTINUOUS", 1)
+        prep(plan, Prescription(PrescribedTarget.Reps(5), test = ref), "pullup")
+        repo.plans.setTestGoal(plan, TestGoal(listOf(TestEventGoal(ref, 20))))
+        val track = opened(plan)
+        assertTrue(OpeningJson.decode(track.openingJson)!!.benchmark)
+        assertEquals(listOf(LoggedSet(0.0, 0, SetKind.WORK)), SetJson.decodeSets(track.plannedJson))
+    }
+
     @Test fun `case 51 a due prep slot opens as a benchmark and a fresh result closes it`() = runTest {
         val plan = authored()
         val id = prep(plan, Prescription(PrescribedTarget.RepsInTime(120, 20), test = hrp))

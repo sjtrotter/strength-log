@@ -7,6 +7,7 @@ import cloud.trotter.log.strength.domain.progression.LoadSteps
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.domain.model.PlanGoalDate
 import cloud.trotter.log.strength.domain.model.TestEventGoal
+import cloud.trotter.log.strength.domain.standards.TestEvents
 import cloud.trotter.log.strength.domain.model.TestGoal
 
 enum class LiftExperience { NEW, UNDER_A_YEAR, A_YEAR_OR_MORE }
@@ -48,8 +49,10 @@ data class SetupAnswers(
     val balanceDays: Boolean = false,
     val tests: List<TestAnswer> = emptyList(),
     val testDateEpochDay: Long? = null,
+    val lifts: List<LiftTest> = emptyList(),
 ) {
     init {
+        require(lifts.map { it.exerciseId }.distinct().size == lifts.size)
         require(days in 1..6)
         require(minutes in MINUTES)
         require(tests.isEmpty() || branch == PlanBranch.LIFT || branch == PlanBranch.BOTH && !both.sprint)
@@ -106,5 +109,12 @@ data class BothAnswers(
 
 /** The optional last result anchors prep; benchmarks never set training targets. */
 data class TestAnswer(val goal: TestEventGoal, val lastResult: Int? = null) {
-    init { lastResult?.let { require(it in 1..3600) } }
+    init {
+        // The catalog cap is a safety rule the number must never escape.
+        val event = TestEvents.find(goal.ref.eventId)
+        lastResult?.let {
+            require(it in 0..(event?.let(TestEvents::requiredLimit) ?: 3600))
+            require(it != 0 || event?.let { value -> TestPrep.easier(value.exerciseId) } != null)
+        }
+    }
 }

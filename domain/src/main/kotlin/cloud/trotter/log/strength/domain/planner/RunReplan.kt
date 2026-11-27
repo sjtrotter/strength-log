@@ -61,7 +61,7 @@ object RunReplan {
                     ?.cardioToRun?.let { plannedSeconds(it, pace) } ?: longestEasy
                 val end = day.workEnd() as? Measure.Time
                 if (end != null) day = day.withEnd(Measure.Time(minOf(end.seconds,
-                    easyRunSeconds(answers.minutes, day.exercises.isNotEmpty(), long), old ?: Int.MAX_VALUE)))
+                    easyRunSeconds(answers.minutes, day.exercises.isNotEmpty(), long, TestPrep.reservedSeconds(day)), old ?: Int.MAX_VALUE)))
             }
             if (day.kind == ProgramDayKind.CARDIO && day.exercises != draft.program.days[index].exercises) {
                 while (day.workCount() > 1 && SessionBudget.seconds(day, answers.slotGoal) > answers.minutes * 60) {

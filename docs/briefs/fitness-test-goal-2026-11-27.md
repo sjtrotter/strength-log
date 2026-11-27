@@ -454,24 +454,29 @@ Today prep is appended after fitting and balancing, so on a strength-block day t
 the minutes and the prep always overflows; raising the minutes only lengthens the easy run. Change, in PR A, for
 every plan with tests (new or existing):
 
-- The layouts place the prep before fitting. `runDraft` appends `TestPrep.slots(answers)` to each strength block
-  on the first three block days; `liftDraft`'s layout appends it to the first three lifting days. `withTestPrep`
+- The layouts place the prep before the final budget fit. `runDraft` appends `TestPrep.slots(answers)` to each
+  strength block on the first three block days; `liftDraft` places it on the first three lifting days after
+  ordinary balancing. `withTestPrep`
   keeps only the goal and the `TestPrep` reason. One slot per exercise per day, in both layouts: when the block
   or the lifting day already picked the event's movement (a run plan's block 0 and the Lift layout's day A both
   pick the plank, `DayLayout` training 0 at `CORE_ANTI_EXT`), the prep slot replaces it, so a day never holds two
   plank slots as it does today.
-- One helper, `TestPrep.reservedSeconds(day)`, sums the budget seconds of the day's linked slots
-  (`prescription?.test != null`, `SessionBudget`'s own per-set arithmetic). `easyRunSeconds` gains a
-  `reservedSeconds` parameter subtracted beside the 1,500 s strength allowance before the floor, and all three
-  callers pass it: `runDraft` at creation (from the slots it just placed), `RunReplan.next` at a rotation wrap
+- One helper, `TestPrep.reservedSeconds(day, slotGoal)`, sums the budget seconds of the day's linked slots
+  (`prescription?.test != null`, `SessionBudget`'s own per-set arithmetic and the plan's slot goal for rest).
+  `easyRunSeconds` gains a `reservedSeconds` parameter subtracted beside the 1,500 s strength allowance before
+  the floor, and all three callers pass it: `runDraft` at creation (from the slots it just placed),
+  `RunReplan.next` at a rotation wrap
   (from the stored day), and `CardioJudge` at Finish (from the stored day), so the easy run's growth stops at the
   reserved length. The lift-first Both reserve in `bothDraft` is untouched: its prep sits inside the lift days.
 - `fitDay` skips prep slots at every step: they are never dropped and their sets are never cut. The ladder then
   trims the strength block around them and, when nothing fits, raises `OverBudget` with the final excess as it
   does today; no second reason is appended. Prep slots are never in the droppable list.
-- `VolumeBalance.balance` skips prep slots in its cap pass and its floor pass, and leaves them out of the weekly
-  credit, so every non-prep slot of a Lift plan equals the no-tests plan's, except a same-movement slot the prep
-  replaces, on days with no `ShortSession`, and the three-set dose holds (case 52's seeds, case 58).
+- `liftDraft` fits and balances the ordinary layout first, preserving the no-tests plan's floor and cap
+  decisions. It then replaces same-movement slots with prep and fits the prepared days. Neither balancing pass
+  sees prep, and prep supplies no extra weekly credit. Every non-prep slot of a Lift plan equals the no-tests
+  plan's, except a same-movement slot the prep replaces, on days with no `ShortSession`, and the three-set dose
+  holds (case 52's seeds, case 58). Replacing the push-up MAIN on a one-day, 60-minute General fitness Bodyweight
+  plan with timed push-up prep (required 30 in 1:00) adds no Dip sets or other balancing sets.
 - `TestPrep.aim` and `target` key on `setType` and `timed` already, so a derived event trains with no new rule;
   `slot` changes in three places. (1) The rule's target equals the prescription for every rep format: today
   TestPrep.kt:44 sets `RepTarget.Fixed` from the `RepsInTime` aim but keeps the entry's own `targetReps` for a
@@ -728,7 +733,8 @@ test, N days" on BOTH), and the same "Fitness test" label on a LIFT plan built t
 
 ## 5. Pinned numbers (spec §11.2)
 
-No pinned number moves. Cases 21, 48, 50, 51 and 53 are untouched. Case 49's sentence gains a third row shape
+Cases 21, 48, 50, 51 and 53 are untouched. Case 54 keeps its 3,300 s run and corrects day C's total to
+3,600 s including warm-up; its recent 55-minute RunCap anchor is explicit. Case 49's sentence gains a third row shape
 (PR A): "one WORK row (0 reps for a window or a max-unbroken set; 220 s for the AFT plank)". Reason: the
 max-unbroken benchmark is built in PR A; the existing numbers stand.
 
@@ -741,11 +747,13 @@ max-unbroken benchmark is built in PR A; the existing numbers stand.
   with its goal and prep slots` to the entry. Reason: the owner's 2026-11-24 and 2026-11-27 requests.
 - Case 54, new (PR A): a 1.5-mile, push-ups and sit-ups test picked by hand (push-up and sit-up in a 1:00 window,
   which derive to `custom_pushup_window` and `custom_situp_window`). Both, cardio first, same visit, Strength
-  rules, three days, 60 minutes, full gym, Some runner with a 25-minute nonstop run, 1.5-mile required 13:00
-  (780 s), push-ups required 30 in 1:00, sit-ups required 35 in 1:00, date 84 days out. Plan: A easy run plus
+  rules, three days, 60 minutes, full gym, Some runner with a 25-minute nonstop run, with a recent 55-minute
+  session as the RunCap anchor, 1.5-mile required 13:00 (780 s), push-ups required 30 in 1:00, sit-ups required
+  35 in 1:00, date 84 days out. Plan: A easy run plus
   strength block plus prep, B test intervals plus strength block plus prep, C easy run, D rest. Prep on A and B:
-  push-ups 3 × 15 in 1:00, sit-ups 3 × 18 in 1:00, 900 s. A: easy run 1,200 s, total 3,582 s. B: four 400 m reps
-  at 123 s (`780 × 400 / 2414 × 0.95`) with 120 s recoveries, 852 s, total 3,192 s. C: easy run 3,300 s. No
+  push-ups 3 × 15 in 1:00, sit-ups 3 × 18 in 1:00, 900 s. A: easy run 1,200 s, day total 3,582 s. B: four 400 m reps
+  at 123 s (`780 × 400 / 2414 × 0.95`) with 120 s recoveries, run 852 s, day total 3,192 s.
+  C: easy run 3,300 s, day total 3,600 s (including the 300 s warm-up). No
   `ShortSession`, no `OverBudget`; `fullDoseMinutes` = 60. Goals: `Timed(ROAD_RUN, 2414, 780, date)` and a
   two-event `TestGoal` with the same date; no `DateTooClose`. Tests: `PlannerTestPrepTest > case 54 a run and
   calisthenics test is a run-first plan with prep inside the budget`, `PlanRepositoryTest > case 54 the date write
@@ -763,7 +771,9 @@ max-unbroken benchmark is built in PR A; the existing numbers stand.
   the push-up and plank and keeps the deadlift goal`, `PlanScreenBuilderTest > case 55 the test card shows the
   deadlift row from the typed goal`, `SetupFlowStateBuilderTest > case 55 a dumbbell gym leaves the deadlift
   untrained and keeps its requirement`.
-- Case 56, new (PR A): case 54 at 30 minutes. The ladder empties both strength blocks, the prep stays:
+- Case 56, new (PR A): case 54 at 30 minutes, without the history fixture. C: easy run 1,500 s, day total 1,800 s,
+  under the 1,620 s RunCap from the typed 25-minute nonstop run. The 600/252 s excesses do not depend on history.
+  The ladder empties both strength blocks, the prep stays:
   `OverBudget(A, 600)` and `OverBudget(B, 252)`, Your plan shows "Over by 10 min" and "Over by 5 min", the
   droppable list is empty; `fitDay` also leaves `ShortSession(A, 6)` and `ShortSession(B, 6)`, which the test
   checks beside the `OverBudget` reasons. Test: `PlannerTestPrepTest > case 56 prep that does not fit reports the
@@ -777,10 +787,11 @@ max-unbroken benchmark is built in PR A; the existing numbers stand.
   slots keep three sets each on the first three lifting days. Every non-prep slot equals the no-tests plan's,
   except a same-movement slot the prep replaces, on days with no `ShortSession`: day A's ordinary two-set plank is
   replaced by the linked prep plank, so the non-prep core count is 10 sets where the no-tests plan has 12, and
-  the cap pass that trims those core sets never touches a prep slot, the floor pass never grows one, and neither
-  counts prep as credit. The equality depends on the budget not binding, which holds at 90 minutes (the
-  full-body General days are about 1,900 s plus the prep). Test: `PlannerTestPrepTest > case 58 prep is invisible
-  to volume balance`, plus the same assertion in case 52's test at 60 minutes, worded the same way.
+  balancing runs on the ordinary plan before prep replacement. Neither pass sees prep, so replacing a slot
+  preserves the ordinary plan's floor and cap decisions. The equality depends on the budget not binding, which
+  holds at 90 minutes (the full-body General days are about 1,900 s plus the prep). Test: `PlannerTestPrepTest >
+  case 58 prep is invisible to volume balance`, plus the same assertion in case 52's test at 60 minutes, worded
+  the same way.
 - Case 59, new (PR A): derived identity and the max-unbroken benchmark. Pull-ups, max unbroken, required 20, last
   8, full gym: `TestEvents.find("pullup:REPS_CONTINUOUS")` is a v1 event on `pullup` with `REPS_CONTINUOUS`, null
   window, `custom = false`, name "Pull-Up / Chin-Up, max unbroken"; `TestEvents.derivedId("pushup",

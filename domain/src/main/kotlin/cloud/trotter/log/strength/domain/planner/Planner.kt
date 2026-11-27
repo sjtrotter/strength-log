@@ -163,7 +163,8 @@ internal fun liftDraft(
 ): PlanDraft {
     val mains = resolveMains(answers)
     val reasons = mutableListOf<PlanReason>()
-    val fittedDays = TestPrep.place(layout(answers, mains), answers).map { day ->
+    // Balance the ordinary layout so prep replacement cannot change floor or cap decisions.
+    val fittedDays = layout(answers, mains).map { day ->
         if (day.kind != ProgramDayKind.STRENGTH) day else {
             val (fitted, dayReasons) = fitDay(day, answers, budgetSeconds)
             reasons += dayReasons
@@ -173,7 +174,18 @@ internal fun liftDraft(
     val touched = reasons.filterIsInstance<PlanReason.ShortSession>().map { it.dayId }.toSet()
     val (balancedDays, volumeReasons) = VolumeBalance.balance(fittedDays, answers, mains.map { it.id }.toSet(), touched, budgetSeconds)
     reasons += volumeReasons
-    val (days, working) = seedAll(balancedDays, answers, known)
+    val preparedDays = TestPrep.place(balancedDays, answers).map { day ->
+        if (day.kind != ProgramDayKind.STRENGTH || day.exercises.none { it.prescription?.test != null }) day else {
+            val (fitted, dayReasons) = fitDay(day, answers, budgetSeconds)
+            reasons.removeAll { reason ->
+                reason is PlanReason.OverBudget && reason.dayId == day.id ||
+                    dayReasons.isNotEmpty() && reason is PlanReason.ShortSession && reason.dayId == day.id
+            }
+            reasons += dayReasons
+            fitted
+        }
+    }
+    val (days, working) = seedAll(preparedDays, answers, known)
     return PlanDraft(Program(days), working,
         if (answers.experience == LiftExperience.A_YEAR_OR_MORE) 6 else null, reasons)
 }

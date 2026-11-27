@@ -33,6 +33,7 @@ import cloud.trotter.log.strength.data.serialization.PlanSettings
 import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.data.serialization.planSettings
+import cloud.trotter.log.strength.data.serialization.setupAnswers
 import cloud.trotter.log.strength.domain.model.Rotation
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramExercise
@@ -54,8 +55,10 @@ import cloud.trotter.log.strength.domain.progression.CardioHistory
 import cloud.trotter.log.strength.domain.planner.PlanBranch
 import cloud.trotter.log.strength.domain.planner.PlanDraft
 import cloud.trotter.log.strength.domain.planner.Planner
+import cloud.trotter.log.strength.domain.planner.RunGoal
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.planner.SlotKey
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.LocalDate
 import java.time.Clock
 import java.util.UUID
@@ -260,15 +263,16 @@ class PlanRepository(
     suspend fun setGoalDate(planId: Long, date: Long?) = db.withTransaction {
         require(PlanGoalDate.isValid(date))
         val plan = planDao.plan(planId) ?: return@withTransaction
-        val goal = PlanGoalJson.decode(plan.goalJson)
         val testGoal = TestGoalJson.decode(plan.testGoalJson)
-        val next = when (goal) {
-            is PlanGoal.Timed -> goal.copy(byEpochDay = date)
-            is PlanGoal.Shuttle -> goal.copy(byEpochDay = date)
-            is PlanGoal.Sprint -> goal.copy(byEpochDay = date)
-            null -> null
+        if (plan.setupAnswers(WeightUnit.LB)?.run?.goal == RunGoal.FITNESS_TEST) {
+            val next = when (val goal = PlanGoalJson.decode(plan.goalJson)) {
+                is PlanGoal.Timed -> goal.copy(byEpochDay = date)
+                is PlanGoal.Shuttle -> goal.copy(byEpochDay = date)
+                is PlanGoal.Sprint -> goal.copy(byEpochDay = date)
+                null -> null
+            }
+            planDao.updateGoal(planId, next?.let(PlanGoalJson::encode))
         }
-        planDao.updateGoal(planId, next?.let(PlanGoalJson::encode))
         planDao.updateTestGoal(planId, testGoal?.copy(byEpochDay = date)?.let(TestGoalJson::encode))
     }
 

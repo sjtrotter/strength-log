@@ -59,7 +59,28 @@ class PlanRepositoryTest : FinishProgressionFixture() {
         val plain = repo.plans.createAuthoredPlan("Run", "Day A")
         repo.plans.setGoal(plain, PlanGoal.Timed(CardioActivity.ROAD_RUN, 2414, 780))
         repo.plans.setGoalDate(plain, today + 84)
-        assertEquals(today + 84, PlanGoalJson.decode(db.planDao().plan(plain)!!.goalJson)?.byEpochDay)
+        assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 2414, 780),
+            PlanGoalJson.decode(db.planDao().plan(plain)!!.goalJson))
+    }
+
+    @Test fun `a test date edit keeps a 5K race goal and its date`() = runTest {
+        val today = LocalDate.now(clock).toEpochDay()
+        val answers = SetupAnswers(branch = PlanBranch.BOTH,
+            run = RunAnswers(RunGoal.FIVE_TO_TEN_K, RunExperience.SOME,
+                goalSeconds = 1500, longest = Measure.Time(1800), dateEpochDay = today + 84),
+            tests = listOf(TestAnswer(TestEventGoal(TestRef("custom_pushup_window", 1, 60), 30))),
+            testDateEpochDay = today + 70)
+        val plan = repo.plans.createPlannedPlan("Race and push-ups", answers)
+        val initial = assertNotNull(db.planDao().plan(plan))
+        assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 5000, 1500, today + 84),
+            PlanGoalJson.decode(initial.goalJson))
+        val testGoal = assertNotNull(TestGoalJson.decode(initial.testGoalJson))
+        for (date in listOf(today + 90, null, today + 20)) {
+            repo.plans.setGoalDate(plan, date)
+            val stored = assertNotNull(db.planDao().plan(plan))
+            assertEquals(initial.goalJson, stored.goalJson)
+            assertEquals(testGoal.copy(byEpochDay = date), TestGoalJson.decode(stored.testGoalJson))
+        }
     }
 
     @Test fun `case 55 and case 61 creation writes the lift recipe and the typed goals only in settings`() = runTest {

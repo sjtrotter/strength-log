@@ -10,6 +10,7 @@ import cloud.trotter.log.strength.domain.model.Measure
 import cloud.trotter.log.strength.domain.model.Program
 import cloud.trotter.log.strength.domain.model.ProgramDay
 import cloud.trotter.log.strength.domain.progression.CardioRule
+import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.progression.RecentMaxima
 import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.progression.RunWalkLadder
@@ -61,7 +62,7 @@ class RunReplanTest {
         val next = assertNotNull(RunReplan.next(stored, setup, RunPhase.LADDER, history, TODAY, week(5400), null))
         val a = next.program.days.first()
         assertEquals(Measure.Time(1200), a.cardioBlock!!.sets.single().end)
-        assertEquals(900, TestPrep.reservedSeconds(a))
+        assertEquals(900, TestPrep.reservedSeconds(a, setup.slotGoal))
         assertEquals(stored.days.first().exercises, a.exercises)
     }
 

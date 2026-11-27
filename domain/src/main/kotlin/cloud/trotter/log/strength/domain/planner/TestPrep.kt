@@ -49,11 +49,11 @@ object TestPrep {
             !movement.availableWith(answers.equipment, answers.excluded)) null else slot(answer, answers)
     }
 
-    fun reservedSeconds(day: ProgramDay): Int {
+    fun reservedSeconds(day: ProgramDay, goal: LiftGoal): Int {
         val prep = day.exercises.filter { it.prescription?.test != null }
         if (prep.isEmpty()) return 0
         val onlyPrep = ProgramDay(day.id, day.title, "", prep)
-        return SessionBudget.seconds(onlyPrep, LiftGoal.STRENGTH) -
+        return SessionBudget.seconds(onlyPrep, goal) -
             SessionBudget.WARM_UP_SECONDS
     }
 

@@ -121,7 +121,7 @@ internal fun runDraft(
             val block = strengthBlock(strength++, blockAnswers, mains)
             if (strength <= TestPrep.DAYS_A_ROTATION) TestPrep.place(block, TestPrep.slots(answers)) else block
         } else emptyList()
-        val reserve = TestPrep.reservedSeconds(ProgramDay(id, session.title, "", exercises))
+        val reserve = TestPrep.reservedSeconds(ProgramDay(id, session.title, "", exercises), strengthGoal)
         val template = template(session, easyRunSeconds(answers.minutes, entry.strength, long, reserve))
         var block = if (session == RunSession.LADDER) template else RunCap.capped(template, anchor, pace)
         if (block != template) reasons += PlanReason.RunCapped(id)

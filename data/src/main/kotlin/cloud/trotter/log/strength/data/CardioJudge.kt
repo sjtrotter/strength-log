@@ -158,7 +158,8 @@ object CardioJudge {
             setup != null && programDay != null) {
             val inputs = requireNotNull(plan)
             val long = inputs.program.days.firstOrNull { it.cardioRule?.session == RunSession.LONG }?.cardioToRun
-            EasyRunContext(easyRunSeconds(setup.minutes, programDay.exercises.isNotEmpty(), long, TestPrep.reservedSeconds(programDay)), inputs.cyclesCompleted)
+            EasyRunContext(easyRunSeconds(setup.minutes, programDay.exercises.isNotEmpty(), long,
+                TestPrep.reservedSeconds(programDay, setup.slotGoal)), inputs.cyclesCompleted)
         } else null
         val ctx = Progression.CardioContext(today, measure, percent, runCap = runCap, sprint = context,
             easy = easy, budgetSeconds = budget, ladder = ladderContext)

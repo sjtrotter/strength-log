@@ -23,6 +23,7 @@ import cloud.trotter.log.strength.domain.progression.RepTarget
 import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.progression.Scheme
 import cloud.trotter.log.strength.domain.progression.SlotRole
+import cloud.trotter.log.strength.domain.progression.plannedSeconds
 import cloud.trotter.log.strength.domain.standards.TestEvents
 import cloud.trotter.log.strength.domain.standards.TestRef
 import kotlin.test.Test
@@ -58,11 +59,14 @@ class PlannerTestPrepTest {
 
     private fun prep(day: ProgramDay) = day.exercises.filter { it.prescription?.test != null }
 
-    private fun assertNonPrep(answers: SetupAnswers) {
+    private fun assertNonPrep(answers: SetupAnswers, allowShortSession: Boolean = true) {
         val base = Planner.plan(answers.copy(tests = emptyList()))
         val draft = Planner.plan(answers)
         for (day in draft.program.days) {
-            if (draft.reasons.any { it is PlanReason.ShortSession && it.dayId == day.id }) continue
+            if (draft.reasons.any { it is PlanReason.ShortSession && it.dayId == day.id }) {
+                assertTrue(allowShortSession, "Unexpected ShortSession on ${day.id}")
+                continue
+            }
             val replaced = prep(day).map { it.exerciseId }.toSet()
             assertEquals(base.program.days.single { it.id == day.id }.exercises.filter { it.exerciseId !in replaced },
                 day.exercises.filter { it.prescription?.test == null })
@@ -75,21 +79,25 @@ class PlannerTestPrepTest {
         assertEquals(listOf(RunSession.EASY, RunSession.TEST_INTERVALS, RunSession.EASY), draft.sessions.values.toList())
         assertEquals(listOf(ProgramDayKind.CARDIO, ProgramDayKind.CARDIO, ProgramDayKind.CARDIO, ProgramDayKind.REST),
             draft.program.days.map { it.kind })
-        assertEquals(listOf(3582, 3192, 3300, 0), draft.program.days.map { SessionBudget.seconds(it, answers.goal) })
+        assertEquals(listOf(3582, 3192, 3600, 0), draft.program.days.map { SessionBudget.seconds(it, answers.slotGoal) })
         val a = draft.program.days[0]
         val b = draft.program.days[1]
+        val c = draft.program.days[2]
         assertEquals(Measure.Time(1200), a.cardioBlock!!.sets.single().end)
-        assertEquals(900, TestPrep.reservedSeconds(a))
-        assertEquals(900, TestPrep.reservedSeconds(b))
+        assertEquals(Measure.Time(3300), c.cardioBlock!!.sets.single().end)
+        assertEquals(900, TestPrep.reservedSeconds(a, answers.slotGoal))
+        assertEquals(900, TestPrep.reservedSeconds(b, answers.slotGoal))
         for (day in listOf(a, b)) {
             assertEquals(listOf(PrescribedTarget.RepsInTime(60, 15), PrescribedTarget.RepsInTime(60, 18)),
                 prep(day).map { it.prescription!!.target })
             assertEquals(listOf(3, 3), prep(day).map { it.targetSets })
         }
-        val work = b.cardioBlock!!.sets.filter { it.role == CardioRole.WORK }
+        val intervals = requireNotNull(b.cardioBlock)
+        val work = intervals.sets.filter { it.role == CardioRole.WORK }
+        assertEquals(852, plannedSeconds(intervals))
         assertEquals(List(4) { Measure.Distance(400) }, work.map { it.end })
         assertEquals(List(4) { Measure.Time(123) }, work.map { it.aim })
-        assertEquals(List(3) { Measure.Time(120) }, b.cardioBlock!!.sets.filter { it.role == CardioRole.RECOVERY }.map { it.end })
+        assertEquals(List(3) { Measure.Time(120) }, intervals.sets.filter { it.role == CardioRole.RECOVERY }.map { it.end })
         assertEquals(PlanGoal.Timed(CardioActivity.ROAD_RUN, 2414, 780, TODAY + 84), draft.goal)
         assertEquals(answers.testGoal, draft.testGoal)
         assertTrue(draft.reasons.none { it is PlanReason.ShortSession || it is PlanReason.OverBudget || it == PlanReason.DateTooClose })
@@ -106,7 +114,7 @@ class PlannerTestPrepTest {
         assertEquals(3, draft.sessions.size)
         assertEquals(listOf(3330, 3528), draft.program.days.take(2).map { SessionBudget.seconds(it, answers.goal) })
         for (day in draft.program.days.take(2)) {
-            assertEquals(1230, TestPrep.reservedSeconds(day))
+            assertEquals(1230, TestPrep.reservedSeconds(day, answers.slotGoal))
             assertEquals(listOf(PrescribedTarget.RepsInTime(120, 16), PrescribedTarget.Hold(110)),
                 prep(day).map { it.prescription!!.target })
             assertEquals(day.exercises.size, day.exercises.map { it.exerciseId }.distinct().size)
@@ -122,7 +130,10 @@ class PlannerTestPrepTest {
     }
 
     @Test fun `case 56 prep that does not fit reports the day over and is never droppable`() {
-        val draft = Planner.plan(calisthenics(30), calisthenicsHistory, TODAY)
+        val answers = calisthenics(30)
+        val draft = Planner.plan(answers, todayEpochDay = TODAY)
+        assertEquals(listOf(2400, 2052, 1800, 0), draft.program.days.map { SessionBudget.seconds(it, answers.slotGoal) })
+        assertEquals(Measure.Time(1500), draft.program.days[2].cardioBlock!!.sets.single().end)
         assertEquals(listOf(PlanReason.OverBudget("A", 600), PlanReason.OverBudget("B", 252)),
             draft.reasons.filterIsInstance<PlanReason.OverBudget>())
         assertEquals(listOf(PlanReason.ShortSession("A", 6), PlanReason.ShortSession("B", 6)),
@@ -153,7 +164,7 @@ class PlannerTestPrepTest {
         val answers = plain.copy(days = 6, minutes = 90, tests = listOf(
             TestAnswer(TestEventGoal(TestRef("plank:MAX_HOLD", 1), 220)),
             TestAnswer(TestEventGoal(TestRef("custom_situp_window", 1, 60), 45))))
-        assertNonPrep(answers)
+        assertNonPrep(answers, allowShortSession = false)
         val draft = Planner.plan(answers)
         assertTrue(draft.reasons.none { it is PlanReason.ShortSession })
         assertEquals(listOf(2, 2, 2, 0, 0, 0), draft.program.strengthDays.map { prep(it).size })
@@ -162,6 +173,20 @@ class PlannerTestPrepTest {
             .filter { it.prescription?.test == null && it.rule?.role == SlotRole.CORE }.sumOf { it.targetSets }
         assertEquals(10, core(draft.program))
         assertEquals(12, core(Planner.plan(answers.copy(tests = emptyList())).program))
+    }
+
+    @Test fun `replacing a push-up main with prep adds no dips or other balancing sets`() {
+        val answers = plain.copy(days = 1, minutes = 60, equipment = EquipmentPreset.BODYWEIGHT.equipment,
+            tests = listOf(TestAnswer(TestEventGoal(TestRef("custom_pushup_window", 1, 60), 30))))
+        val base = Planner.plan(answers.copy(tests = emptyList()))
+        val draft = Planner.plan(answers)
+        assertTrue(base.program.days.single().exercises.any { it.exerciseId == "pushup" && it.rule?.role == SlotRole.MAIN })
+        assertEquals(listOf("pushup"), prep(draft.program.days.single()).map { it.exerciseId })
+        for (plan in listOf(base, draft)) {
+            assertTrue(plan.reasons.none { it is PlanReason.ShortSession || it is PlanReason.OverBudget })
+            assertTrue(plan.program.days.flatMap { it.exercises }.none { it.exerciseId == "bw_dip" || it.exerciseId == "dips" })
+        }
+        assertNonPrep(answers, allowShortSession = false)
     }
 
     @Test fun `case 59 a max unbroken prep rule starts at its aim and a missing pull-up bar places no slot`() {
@@ -193,7 +218,7 @@ class PlannerTestPrepTest {
             val eachSide = slots.single { it.exerciseId == "side_plank" }
             assertEquals(Prescription(PrescribedTarget.Hold(30), eachSide = true, test = side), eachSide.prescription)
             assertEquals(3, eachSide.targetSets)
-            assertEquals(480 + 405, TestPrep.reservedSeconds(day))
+            assertEquals(480 + 405, TestPrep.reservedSeconds(day, answers.slotGoal))
         }
     }
 

@@ -51,7 +51,9 @@ internal object VolumeBalance {
         chosen: Set<String>,
         touched: Set<String>,
         budgetSeconds: Int = answers.minutes * 60,
+        reservedSeconds: Map<String, Int> = emptyMap(),
     ): Pair<List<ProgramDay>, List<PlanReason>> {
+        fun seconds(day: ProgramDay): Int = SessionBudget.seconds(day, answers.goal) + reservedSeconds.getOrDefault(day.id, 0)
         val current = days.toMutableList()
         var weekly = weeklyCredits(current).toMutableMap()
         while (weekly.values.any { it > CAP }) {
@@ -80,7 +82,7 @@ internal object VolumeBalance {
                 fun accept(dayIndex: Int, day: ProgramDay, slot: ProgramExercise): Boolean {
                     val credit = SetCount.weekly(Program(listOf(day.copy(exercises = listOf(slot.copy(targetSets = 1))))))
                     if (credit.any { (credited, sets) -> weekly.getOrDefault(credited, 0.0) + sets > CAP }) return false
-                    if (SessionBudget.seconds(day, answers.goal) > budgetSeconds) {
+                    if (seconds(day) > budgetSeconds) {
                         minutesBlocked += day.id
                         return false
                     }
@@ -105,7 +107,7 @@ internal object VolumeBalance {
                 }
                 if (grew) continue
 
-                val hosts = eligible.sortedBy { SessionBudget.seconds(current[it], answers.goal) }
+                val hosts = eligible.sortedBy { seconds(current[it]) }
                 fun addSlot(): Boolean {
                     for (reuseChosen in listOf(false, true)) for (pattern in patterns.getValue(muscle)) for (dayIndex in hosts) {
                         val day = current[dayIndex]

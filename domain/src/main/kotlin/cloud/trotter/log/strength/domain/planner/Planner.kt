@@ -163,7 +163,7 @@ internal fun liftDraft(
 ): PlanDraft {
     val mains = resolveMains(answers)
     val reasons = mutableListOf<PlanReason>()
-    // Balance the ordinary layout so prep replacement cannot change floor or cap decisions.
+    // Prep reserves time but supplies no weekly credit, even when it replaces an ordinary slot.
     val fittedDays = layout(answers, mains).map { day ->
         if (day.kind != ProgramDayKind.STRENGTH) day else {
             val (fitted, dayReasons) = fitDay(day, answers, budgetSeconds)
@@ -172,14 +172,18 @@ internal fun liftDraft(
         }
     }
     val touched = reasons.filterIsInstance<PlanReason.ShortSession>().map { it.dayId }.toSet()
-    val (balancedDays, volumeReasons) = VolumeBalance.balance(fittedDays, answers, mains.map { it.id }.toSet(), touched, budgetSeconds)
+    val reservedSeconds = TestPrep.place(fittedDays, answers).associate { day ->
+        day.id to TestPrep.reservedSeconds(day, answers.slotGoal)
+    }
+    val (balancedDays, volumeReasons) = VolumeBalance.balance(fittedDays, answers, mains.map { it.id }.toSet(), touched,
+        budgetSeconds, reservedSeconds)
     reasons += volumeReasons
     val preparedDays = TestPrep.place(balancedDays, answers).map { day ->
         if (day.kind != ProgramDayKind.STRENGTH || day.exercises.none { it.prescription?.test != null }) day else {
             val (fitted, dayReasons) = fitDay(day, answers, budgetSeconds)
             reasons.removeAll { reason ->
                 reason is PlanReason.OverBudget && reason.dayId == day.id ||
-                    dayReasons.isNotEmpty() && reason is PlanReason.ShortSession && reason.dayId == day.id
+                    dayReasons.isNotEmpty() && reason is PlanReason.ShortSession && reason.dayId == day.id && reason.step != 0
             }
             reasons += dayReasons
             fitted

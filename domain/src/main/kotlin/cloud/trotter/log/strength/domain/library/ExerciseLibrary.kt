@@ -304,7 +304,7 @@ object ExerciseLibrary {
         ExerciseEntry("body_saw", "Body Saw", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, reps(10), 5),
         ExerciseEntry("hollow_hold", "Hollow Hold", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(30), 6, holdCeilingSeconds = 45),
         ExerciseEntry("high_plank", "High Plank", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(45), 7, holdCeilingSeconds = 60),
-        ExerciseEntry("knee_plank", "Knee Plank", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(20), 8),
+        ExerciseEntry("knee_plank", "Knee Plank", CORE_ANTI_EXT, listOf(BODYWEIGHT), false, time(30), 8),
 
         ExerciseEntry("pallof", "Pallof Press", CORE_ANTI_ROT, listOf(CABLE), false, weighted, 1),
         ExerciseEntry("suitcase_carry", "Suitcase Carry", CORE_ANTI_ROT, listOf(DUMBBELL), true, time(40, 50.0), 2, eachSide = true),

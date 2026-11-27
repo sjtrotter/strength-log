@@ -58,7 +58,6 @@ import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.domain.planner.RunGoal
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.planner.SlotKey
-import cloud.trotter.log.strength.domain.units.WeightUnit
 import java.time.LocalDate
 import java.time.Clock
 import java.util.UUID

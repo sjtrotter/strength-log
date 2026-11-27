@@ -189,6 +189,47 @@ class PlannerTestPrepTest {
         assertNonPrep(answers, allowShortSession = false)
     }
 
+    @Test fun `two day Muscle balancing leaves room for timed push-up prep without dropping accessories`() {
+        val answers = SetupAnswers(goal = LiftGoal.MUSCLE, days = 2, minutes = 60,
+            equipment = EquipmentPreset.FULL_GYM.equipment,
+            tests = listOf(TestAnswer(TestEventGoal(TestRef("custom_pushup_window", 1, 60), 30))))
+        val base = Planner.plan(answers.copy(tests = emptyList()))
+        val draft = Planner.plan(answers)
+        val ordinary = layout(answers, resolveMains(answers))
+        assertEquals(2, draft.program.strengthDays.size)
+        for (day in draft.program.strengthDays) {
+            assertEquals(495, TestPrep.reservedSeconds(day, answers.slotGoal))
+            val beforeBalance = ordinary.single { it.id == day.id }
+            assertTrue(SessionBudget.seconds(beforeBalance, answers.slotGoal) + 495 <= answers.minutes * 60)
+            assertTrue(draft.reasons.none {
+                it is PlanReason.ShortSession && it.dayId == day.id && it.step >= 1 ||
+                    it is PlanReason.OverBudget && it.dayId == day.id
+            })
+            assertTrue(SessionBudget.seconds(day, answers.slotGoal) <= answers.minutes * 60)
+            val replaced = prep(day).map { it.exerciseId }.toSet()
+            fun accessories(candidate: ProgramDay) = candidate.exercises.filter {
+                it.prescription?.test == null && it.exerciseId !in replaced &&
+                    it.rule?.role in setOf(SlotRole.ACCESSORY, SlotRole.ISOLATION)
+            }
+            val expected = accessories(base.program.days.single { it.id == day.id })
+            assertTrue(expected.isNotEmpty())
+            assertEquals(expected, accessories(day))
+            assertEquals(listOf(3), prep(day).map { it.targetSets })
+        }
+        assertTrue(draft.reasons.any { it is PlanReason.ShortSession && it.step == 0 })
+    }
+
+    @Test fun `a second fit that trims prep days keeps their step zero floor reasons`() {
+        val answers = SetupAnswers(goal = LiftGoal.MUSCLE, days = 2, minutes = 60,
+            tests = listOf(TestAnswer(TestEventGoal(TestRef("custom_pushup_window", 1, 1200), 30))))
+        val draft = Planner.plan(answers)
+        for (day in draft.program.strengthDays) {
+            assertTrue(PlanReason.ShortSession(day.id, 0) in draft.reasons)
+            assertTrue(draft.reasons.any { it is PlanReason.ShortSession && it.dayId == day.id && it.step >= 1 })
+            assertEquals(listOf(3), prep(day).map { it.targetSets })
+        }
+    }
+
     @Test fun `case 59 a max unbroken prep rule starts at its aim and a missing pull-up bar places no slot`() {
         val ref = TestRef("pullup:REPS_CONTINUOUS", 1)
         val answers = plain.copy(tests = listOf(TestAnswer(TestEventGoal(ref, 20), 8)))

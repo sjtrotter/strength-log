@@ -471,10 +471,12 @@ every plan with tests (new or existing):
 - `fitDay` skips prep slots at every step: they are never dropped and their sets are never cut. The ladder then
   trims the strength block around them and, when nothing fits, raises `OverBudget` with the final excess as it
   does today; no second reason is appended. Prep slots are never in the droppable list.
-- `liftDraft` fits and balances the ordinary layout first, preserving the no-tests plan's floor and cap
-  decisions. It then replaces same-movement slots with prep and fits the prepared days. Neither balancing pass
-  sees prep, and prep supplies no extra weekly credit. Every non-prep slot of a Lift plan equals the no-tests
-  plan's, except a same-movement slot the prep replaces, on days with no `ShortSession`, and the three-set dose
+- `liftDraft` fits and balances the ordinary layout first. Before balancing, it derives each day's prep reserve
+  through `TestPrep.place` and `TestPrep.reservedSeconds`; both the floor pass's budget check and its host ordering
+  count ordinary seconds plus that day's reserve. Without tests the reserve is zero. It then replaces
+  same-movement slots with prep and fits the prepared days. Neither balancing pass sees prep as weekly credit.
+  A step-0 floor reason survives even if the prepared day's fit also trims. Every non-prep slot of a Lift plan
+  equals the no-tests plan's, except a same-movement slot the prep replaces, on days with no `ShortSession`, and the three-set dose
   holds (case 52's seeds, case 58). Replacing the push-up MAIN on a one-day, 60-minute General fitness Bodyweight
   plan with timed push-up prep (required 30 in 1:00) adds no Dip sets or other balancing sets.
 - `TestPrep.aim` and `target` key on `setType` and `timed` already, so a derived event trains with no new rule;
@@ -536,8 +538,10 @@ Arithmetic, from `SessionBudget` and `RestPolicy` (15 s setup per set, rest afte
   `neutral_pullup` → `negative_pullup` (a new bodyweight `V_PULL` REPS entry on `PULLUP_BAR`, the jump-up-and-lower
   rep), three new library entries. Each takes the last `subRank` of its pattern (`knee_pushup` H_PUSH 21 after
   `hand_release_pushup` 20, `knee_plank` CORE_ANTI_EXT 8 after `high_plank` 7, `negative_pullup` V_PULL 13 after
-  `dead_hang` 12), because `ExerciseLibrary.byPattern` feeds `accessoryCandidates` (DayLayout.kt:205) and
-  `mainChoices`; a test pins that no plan without tests on any of the six presets holds one of the three. Zero is
+  `dead_hang` 12). The knee plank's ordinary catalog target is 30 s, the library invariant's floor; linked prep
+  still uses the half-anchor aim with its 20 s floor. These ranks matter because `ExerciseLibrary.byPattern` feeds
+  `accessoryCandidates` (DayLayout.kt:205) and `mainChoices`; a test pins that no plan without tests on any of the
+  six presets holds one of the three. Zero is
   offered only for entries in the table: `testAnswer` accepts
   `lastResult = 0` only when `TestPrep.easier(exerciseId)` is non-null, the field's floor is 1 elsewhere, and the
   Why sheet says "Type none yet only for push-ups, planks and pull-ups; for other events the plan starts at the

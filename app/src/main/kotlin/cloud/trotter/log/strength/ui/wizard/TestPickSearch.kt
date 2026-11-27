@@ -31,9 +31,12 @@ object TestPickSearch {
     }
 
     internal fun disabledReason(pick: TestPick, draft: SetupDraft): Int? = when (pick) {
-        is TestPick.Run -> if (draft.testRun) {
-            if (draft.test == pick.test) R.string.setup_flow_test_picked else R.string.setup_flow_test_one_run
-        } else null
+        is TestPick.Run -> when {
+            draft.fitnessTest != true -> R.string.setup_flow_test_run_entry
+            !draft.testRun -> null
+            draft.test == pick.test -> R.string.setup_flow_test_picked
+            else -> R.string.setup_flow_test_one_run
+        }
         is TestPick.Library -> when {
             draft.tests.any { TestEvents.find(it.eventId)?.exerciseId == pick.entry.id } ||
                 draft.testLifts.any { it.exerciseId == pick.entry.id } -> R.string.setup_flow_test_picked

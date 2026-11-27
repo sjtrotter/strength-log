@@ -36,12 +36,24 @@ class TestPickSearchTest {
         assertEquals(listOf(TestPick.Library(ExerciseLibrary.get("bb_bench"))), search("bb bench"))
         assertTrue(TestPick.Library(ExerciseLibrary.get("incline_db")) in search("incline db"))
         assertEquals(listOf(TestPick.Run(FitnessTest.ONE_AND_HALF_MILE)), search("1.5-mile"))
-        assertTrue(search(filter = TestPickFilter.HOLDS).all {
+    }
+
+    @Test fun `each filter includes representative events and excludes other score types`() {
+        val holds = search(filter = TestPickFilter.HOLDS)
+        assertTrue(TestPick.Library(ExerciseLibrary.get("plank")) in holds)
+        assertTrue(TestPick.Library(ExerciseLibrary.get("wall_sit")) in holds)
+        assertFalse(TestPick.Library(ExerciseLibrary.get("farmers_carry")) in holds)
+        assertFalse(TestPick.Library(ExerciseLibrary.get("suitcase_carry")) in holds)
+        assertTrue(holds.all {
             it is TestPick.Library && TestFormat.MAX_HOLD in TestFormat.eligible(it.entry)
         })
-        assertTrue(search(filter = TestPickFilter.STRENGTH).all {
+        val strength = search(filter = TestPickFilter.STRENGTH)
+        assertTrue(TestPick.Library(ExerciseLibrary.get("bb_bench")) in strength)
+        assertTrue(TestPick.Library(ExerciseLibrary.get("pushup")) in strength)
+        assertTrue(strength.all {
             it is TestPick.Library && TestFormat.MAX_HOLD !in TestFormat.eligible(it.entry)
         })
+        assertEquals(FitnessTest.entries.map { TestPick.Run(it) }, search(filter = TestPickFilter.CARDIO))
     }
 
     @Test fun `picked entries other runs and a second lift on a taken row are disabled`() {
@@ -56,5 +68,14 @@ class TestPickSearchTest {
         assertEquals(draft, draft.pick(TestPick.Library(ExerciseLibrary.get("incline_db"))))
         val cleared = draft.removeTestPick(FitnessTest.TWO_MILE.name).removeTestPick("bb_bench")
         assertNull(TestPickSearch.disabledReason(TestPick.Run(FitnessTest.HAMR), cleared))
+    }
+
+    @Test fun `runs are disabled outside the Fitness test entry without replacing a race`() {
+        val draft = SetupFlowFixtures.both.copy(tests = listOf(TestDraft("aft_hrp", 40)))
+        FitnessTest.entries.forEach { test ->
+            val pick = TestPick.Run(test)
+            assertEquals(R.string.setup_flow_test_run_entry, TestPickSearch.disabledReason(pick, draft))
+            assertEquals(draft, draft.pick(pick))
+        }
     }
 }

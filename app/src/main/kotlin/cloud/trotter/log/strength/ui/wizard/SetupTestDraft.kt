@@ -9,7 +9,7 @@ import cloud.trotter.log.strength.domain.standards.TestEvents
 import cloud.trotter.log.strength.domain.standards.TestFormat
 import cloud.trotter.log.strength.domain.standards.TestPick
 
-internal fun SetupDraft.chooseFitnessTest(): SetupDraft = copy(fitnessTest = true, branch = PlanBranch.RUN,
+internal fun SetupDraft.chooseFitnessTest(): SetupDraft = if (fitnessTest == true) this else copy(fitnessTest = true, branch = PlanBranch.RUN,
     runGoal = RunGoal.FITNESS_TEST, cardioFirst = true, goal = LiftGoal.GENERAL, step = SetupStep.GOAL,
     together = null, tests = emptyList(), testRun = false, testLifts = emptyList(), testDate = null,
     eventDate = null, goalSeconds = null, testScore = null, sprintCardio = false)
@@ -18,8 +18,7 @@ private fun SetupDraft.testGoal(): SetupDraft = copy(
     goal = if (testRun || testLifts.isNotEmpty()) LiftGoal.STRENGTH else LiftGoal.GENERAL)
 
 internal fun SetupDraft.pick(pick: TestPick): SetupDraft = when (pick) {
-    is TestPick.Run -> if (testRun) this else copy(fitnessTest = true, testRun = true, test = pick.test,
-        testDate = if (fitnessTest == true) testDate else eventDate ?: testDate,
+    is TestPick.Run -> if (fitnessTest != true || testRun) this else copy(testRun = true, test = pick.test,
         goalSeconds = null, testScore = null, runGoal = RunGoal.FITNESS_TEST,
         cardioFirst = if (branch == PlanBranch.LIFT) true else cardioFirst).testGoal()
     is TestPick.Library -> {
@@ -51,7 +50,8 @@ internal fun SetupDraft.testFormat(exerciseId: String, format: TestFormat): Setu
     return copy(tests = tests.map { test ->
         val event = TestEvents.find(test.eventId)
         if (event == null || event.exerciseId != exerciseId || event.setType == format.setType) test
-        else test.copy(eventId = TestEvents.derivedId(exerciseId, format), windowSeconds = null)
+        else test.copy(eventId = TestEvents.derivedId(exerciseId, format),
+            windowSeconds = if (format == TestFormat.REPS_IN_WINDOW) 60 else null)
     })
 }
 

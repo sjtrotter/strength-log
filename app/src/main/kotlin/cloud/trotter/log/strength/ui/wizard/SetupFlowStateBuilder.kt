@@ -63,13 +63,14 @@ object SetupFlowStateBuilder {
         add(SetupStep.GOAL)
         val branch = branch(draft)
         val entry = draft.fitnessTest == true
-        val defaultGoal = if (draft.testRun || draft.testLifts.isNotEmpty()) LiftGoal.STRENGTH else LiftGoal.GENERAL
-        if (branch == PlanBranch.BOTH && !draft.sprintCardio && (!entry || !draft.cardioFirst)) add(SetupStep.ORDER)
-        if ((branch == PlanBranch.LIFT || branch == PlanBranch.BOTH) && (!entry || draft.goal != defaultGoal)) add(SetupStep.SUB_GOAL)
+        // New test drafts keep RUN as their stored branch; prefills keep the recipe's branch.
+        val newTest = entry && draft.branch == PlanBranch.RUN
+        if (branch == PlanBranch.BOTH && !draft.sprintCardio && !newTest) add(SetupStep.ORDER)
+        if ((branch == PlanBranch.LIFT || branch == PlanBranch.BOTH) && !newTest) add(SetupStep.SUB_GOAL)
         if (!entry && branch != PlanBranch.LIFT) add(SetupStep.RUN_GOAL)
         if (offersTests(draft)) add(SetupStep.TEST)
         addAll(listOf(SetupStep.WEEK, SetupStep.EQUIPMENT, SetupStep.ABOUT))
-        val blocksOnly = entry && branch == PlanBranch.BOTH && draft.cardioFirst &&
+        val blocksOnly = newTest && branch == PlanBranch.BOTH && draft.cardioFirst &&
             answers(draft).together() == BothAnswers.Together.SAME_VISIT && draft.testLifts.isEmpty()
         if (branch != PlanBranch.RUN && !blocksOnly) {
             if (branch != PlanBranch.SPRINT && draft.goal != LiftGoal.GENERAL && mainChoices(draft).any { it.isNotEmpty() }) add(SetupStep.LIFTS)
@@ -208,7 +209,7 @@ object SetupFlowStateBuilder {
                 else draft.longestSeconds?.takeIf { it > 0 }?.let { Measure.Time(it) },
             marathonBestSeconds = draft.marathonBestSeconds?.takeIf { draft.runGoal == RunGoal.ULTRA && it in 1..86_400 },
             activity = runActivity(draft), runningInjury = draft.runningInjury,
-            strengthBlocks = draft.strengthBlocks.coerceIn(0, 2))
+            strengthBlocks = if (branch(draft) == PlanBranch.RUN) draft.strengthBlocks.coerceIn(0, 2) else 2)
     }
 
     fun preset(equipment: Set<Equipment>): EquipmentPreset? = EquipmentPreset.entries.firstOrNull { it.equipment == equipment }
@@ -246,14 +247,16 @@ object SetupFlowStateBuilder {
             longestSeconds = (answers.run.longest as? Measure.Time)?.seconds,
             longestMetres = (answers.run.longest as? Measure.Distance)?.metres, activity = answers.run.activity,
             marathonBestSeconds = answers.run.marathonBestSeconds, runningInjury = answers.run.runningInjury,
-            strengthBlocks = answers.run.strengthBlocks, cardioFirst = answers.both.cardioFirst, together = if (answers.branch == PlanBranch.BOTH && !answers.both.sprint) answers.both.together ?: answers.together() else answers.both.together,
+            strengthBlocks = answers.run.strengthBlocks, cardioFirst = answers.both.cardioFirst,
+            together = if (answers.branch == PlanBranch.BOTH && !answers.both.sprint &&
+                (runTest || answers.tests.isNotEmpty())) answers.both.together ?: answers.together() else answers.both.together,
             sprintEvent = answers.sprint.event, sprintCardio = answers.both.sprint,
             sprintedRecently = answers.sprint.sprintedRecently, hamstringStrain = answers.sprint.hamstringStrain,
             fortyOrOlder = answers.sprint.fortyOrOlder,
             tests = answers.tests.map { answer -> TestDraft(answer.goal.ref.eventId, answer.goal.required,
                 answer.lastResult, answer.goal.ref.windowSeconds.takeIf { TestEvents.find(answer.goal.ref.eventId)?.custom == true }) },
             testDate = if (entry) answers.run.dateEpochDay ?: answers.testDateEpochDay else answers.testDateEpochDay,
-            fitnessTest = entry, testRun = runTest, excluded = answers.excluded, goalsLb = settings.goalsLb,
+            fitnessTest = entry, testRun = runTest, excluded = answers.excluded,
             testLifts = lifts.map { LiftTestDraft(it.exerciseId, it.reps, settings.goalsLb[it.exerciseId]) })
     }
 

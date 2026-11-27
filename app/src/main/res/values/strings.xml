@@ -1554,10 +1554,10 @@
     <string name="setup_flow_test_in_window">In a window</string>
     <string name="setup_flow_test_unbroken">Max unbroken</string>
     <string name="setup_flow_test_hold">Max hold</string>
-    <string name="setup_flow_test_heaviest">Heaviest for N reps</string>
+    <string name="setup_flow_test_heaviest">Heaviest for %1$d reps</string>
     <string name="setup_flow_test_weight">Required weight (%1$s)</string>
     <string name="setup_flow_test_required_time">Required time</string>
-    <string name="setup_flow_test_none_yet">none yet</string>
+    <string name="setup_flow_test_none_yet">None yet</string>
     <string name="setup_flow_test_remove">Remove %1$s</string>
     <string name="setup_flow_test_score_run">run</string>
     <string name="setup_flow_test_score_hold">hold</string>
@@ -1575,6 +1575,8 @@
     <string name="test_training_one_day">not trained at one day a week: the strength block holds the squat</string>
     <string name="test_training_same_visit">not trained on Same visit: the strength blocks hold the squat and the hinge</string>
     <string name="test_training_missing">not trained in this plan</string>
+    <string name="test_training_session_length">not trained within this session length</string>
+    <string name="setup_flow_test_run_entry">Runs are added from the Fitness test goal</string>
     <string name="test_training_sets">%1$d × %2$s</string>
     <string name="test_training_window">%1$d × %2$d in %3$s</string>
     <string name="test_training_day">%1$s on day %2$s</string>
@@ -1587,7 +1589,13 @@
     <string name="setup_flow_why_fitness_goal">Pick the events your test scores. Each is trained the way the evidence supports: the run gets intervals a little faster than goal pace, tempo and easy runs (interval training improves field-test performance: moderate, military data; the 95 percent factor is practice); push-ups, pull-ups and planks get the test movement itself, submaximal (in one small four-week trial, practicing push-ups beat bench pressing for push-up performance, Kotarsky 2018, moderate-to-weak; no trial covers planks or pull-ups); a lift uses the Strength rules. Point tables are not built in; type the number your test requires.</string>
     <string name="setup_flow_why_test_together">The run leads because its ladder plus four event weeks needs the longest build (practice). On Same visit, strength blocks hold the squat and the hinge; a press or pull pick is not trained. Separate days trains those picks but leaves no interval day at two to four days. At five or six days, Separate days keeps the interval day. At one day, the strength block holds the squat. A New runner has at most three ladder days plus rest; there is no tempo day on the ladder.</string>
     <string name="test_training_equipment_list">%1$s and %2$s</string>
-    <string name="test_training_run_intervals">intervals on day %1$s</string>
-    <string name="test_training_run_tempo">tempo on day %1$s</string>
+    <plurals name="test_training_run_intervals">
+        <item quantity="one">intervals on day %1$s</item>
+        <item quantity="other">intervals on days %1$s</item>
+    </plurals>
+    <plurals name="test_training_run_tempo">
+        <item quantity="one">tempo on day %1$s</item>
+        <item quantity="other">tempo on days %1$s</item>
+    </plurals>
     <string name="test_training_run_ladder">run/walk ladder on %1$s</string>
 </resources>

@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.data.serialization.TestGoalJson
 import cloud.trotter.log.strength.data.mapping.toDomain
 import cloud.trotter.log.strength.data.serialization.PlanGoalJson
@@ -84,9 +85,7 @@ class PlanViewModel @Inject constructor(
     val uiState: StateFlow<PlanUiState> = combine(programState, dialogState, goal, goalDraft, cardioDialogs) { program, draft, goalId, goalLb, cardio ->
         program.copy(
             goalDraft = cardio.first, shuttleEntry = cardio.second, sprintGoalDraft = cardio.third,
-            goalDialog = program.goals.firstOrNull { it.exerciseId == goalId }?.let { row ->
-                PlanGoalDialog(row.exerciseId, row.name, row.perHand, goalLb, hasGoal = row.goalLb != null)
-            },
+            goalDialog = goalId?.let { program.liftGoalDialog(it)?.copy(draftLb = goalLb) },
             menuDayId = draft.menuDayId, dialog = draft.dialog,
             dialogDayId = draft.dialogDayId, dayTitleDraft = draft.dayTitleDraft,
         )
@@ -187,12 +186,21 @@ class PlanViewModel @Inject constructor(
 
     fun dismissShuttleEntry() { savedState[SHUTTLE_ENTRY] = null }
 
+    private fun PlanUiState.liftGoalDialog(id: String): PlanGoalDialog? {
+        goals.firstOrNull { it.exerciseId == id }?.let {
+            return PlanGoalDialog(id, it.name, it.perHand, it.goalLb, hasGoal = it.goalLb != null)
+        }
+        return testLifts.firstOrNull { it.exerciseId == id }?.let {
+            PlanGoalDialog(id, it.name, ExerciseLibrary.get(id).perHand, it.goalLb, hasGoal = it.goalLb != null)
+        }
+    }
+
     fun openGoal(exerciseId: String) {
-        val row = uiState.value.goals.firstOrNull { it.exerciseId == exerciseId } ?: return
+        val row = uiState.value.liftGoalDialog(exerciseId) ?: return
         savedState[SPRINT_GOAL_DRAFT] = null
         savedState[CARDIO_GOAL_DRAFT] = null
         savedState[GOAL] = exerciseId
-        savedState[GOAL_DRAFT] = row.goalLb
+        savedState[GOAL_DRAFT] = row.draftLb
     }
 
     fun setGoalDraft(lb: Double?) { savedState[GOAL_DRAFT] = lb }

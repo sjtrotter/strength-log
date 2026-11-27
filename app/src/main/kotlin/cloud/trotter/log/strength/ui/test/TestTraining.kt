@@ -5,6 +5,7 @@ import cloud.trotter.log.strength.domain.progression.RunSession
 import cloud.trotter.log.strength.domain.model.Equipment
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.domain.library.availableWith
@@ -15,6 +16,7 @@ import cloud.trotter.log.strength.domain.planner.BothAnswers
 import cloud.trotter.log.strength.domain.planner.FitnessTest
 import cloud.trotter.log.strength.domain.planner.PlanBranch
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
+import cloud.trotter.log.strength.domain.planner.mainRow
 import cloud.trotter.log.strength.domain.standards.TestEvents
 import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.ui.wizard.testLabel
@@ -41,7 +43,9 @@ object TestTraining {
             slots.isNotEmpty() -> null
             !entry.availableWith(answers.equipment, answers.excluded) -> R.string.test_training_equipment
             answers.days == 1 && answers.branch == PlanBranch.BOTH -> R.string.test_training_one_day
-            answers.branch == PlanBranch.BOTH && answers.together() == BothAnswers.Together.SAME_VISIT -> R.string.test_training_same_visit
+            answers.branch == PlanBranch.BOTH && answers.together() == BothAnswers.Together.SAME_VISIT ->
+                if (eventId == null && mainRow(entry.pattern) in 0..1) R.string.test_training_session_length
+                else R.string.test_training_same_visit
             else -> R.string.test_training_missing
         }
         return TestTrainingUi(entry.name, slots, reason, entry.equipment)
@@ -89,12 +93,12 @@ fun testRunTrainingText(test: FitnessTest, program: Program): String {
     val ladder = runs.filter { it.cardioRule?.session == RunSession.LADDER }.map { it.id }
     val tempo = runs.filter { it.cardioRule?.session == RunSession.TEMPO }.map { it.id }
     val easy = runs.filter { it.id !in intervals + ladder + tempo }.map { it.id }
-    val lines = buildList {
-        if (intervals.isNotEmpty()) add(R.string.test_training_run_intervals to intervals)
-        if (tempo.isNotEmpty()) add(R.string.test_training_run_tempo to tempo)
-        if (ladder.isNotEmpty()) add(R.string.test_training_run_ladder to ladder)
-        if (easy.isNotEmpty()) add(R.string.test_training_run_easy to easy)
-    }.map { (resource, days) -> stringResource(resource, testList(days)) }
+    val lines = listOfNotNull(
+        if (intervals.isNotEmpty()) pluralStringResource(R.plurals.test_training_run_intervals, intervals.size, testList(intervals)) else null,
+        if (tempo.isNotEmpty()) pluralStringResource(R.plurals.test_training_run_tempo, tempo.size, testList(tempo)) else null,
+        if (ladder.isNotEmpty()) stringResource(R.string.test_training_run_ladder, testList(ladder)) else null,
+        if (easy.isNotEmpty()) stringResource(R.string.test_training_run_easy, testList(easy)) else null,
+    )
     return stringResource(R.string.test_training_line, name, lines.joinToString(", "))
 }
 

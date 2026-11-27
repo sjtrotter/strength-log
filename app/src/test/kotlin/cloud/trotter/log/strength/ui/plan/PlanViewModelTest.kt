@@ -141,6 +141,7 @@ class PlanViewModelTest {
         val id = repo.plans.createPlannedPlan("Test", original, mapOf("incline_db" to 100.0))
         val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to id.toString())))
         advanceUntilIdle()
+        assertFalse(vm.uiState.value.goals.any { it.exerciseId == "incline_db" })
         vm.openGoal("incline_db"); advanceUntilIdle()
         assertEquals(100.0, vm.uiState.value.goalDialog?.draftLb)
         vm.setGoalDraft(110.0); vm.saveGoal(); advanceUntilIdle()

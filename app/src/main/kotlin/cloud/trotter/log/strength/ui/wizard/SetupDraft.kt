@@ -74,7 +74,6 @@ data class SetupDraft(
     val testRun: Boolean = false,
     val testLifts: List<LiftTestDraft> = emptyList(),
     val excluded: Set<String> = emptySet(),
-    val goalsLb: Map<String, Double> = emptyMap(),
 ) {
     val isSprint: Boolean get() = branch == PlanBranch.SPRINT || branch == PlanBranch.BOTH && sprintCardio
 
@@ -102,7 +101,7 @@ object SetupDraftJson {
         val run = draft.runGoal == RunGoal.FITNESS_TEST &&
             (draft.branch == PlanBranch.RUN || draft.branch == PlanBranch.BOTH && !draft.isSprint)
         val entry = run || draft.branch == PlanBranch.LIFT && tests.isNotEmpty()
-        val together = if (draft.branch == PlanBranch.BOTH && !draft.isSprint) {
+        val together = if (draft.branch == PlanBranch.BOTH && !draft.isSprint && (run || tests.isNotEmpty())) {
             draft.together ?: SetupFlowStateBuilder.answers(draft.copy(fitnessTest = false)).together()
         } else draft.together
         return draft.copy(fitnessTest = entry, testRun = run, tests = tests, together = together,

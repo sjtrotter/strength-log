@@ -413,7 +413,7 @@ class PlanScreenBuilderTest {
         val slot = row.training.slots.single { it.first == "B" }.second
         assertEquals(2, slot.targetSets)
         assertEquals(SlotRole.SECONDARY, slot.rule?.role)
-        assertTrue(ui.goals.any { it.exerciseId == "trap_dl" && it.goalLb == 340.0 })
+        assertFalse(ui.goals.any { it.exerciseId == "trap_dl" })
     }
 
     @Test fun `case 61 the card shows the lift row from the recipe and the log`() {
@@ -440,6 +440,9 @@ class PlanScreenBuilderTest {
         assertEquals(225.0, missing.goalLb)
         assertEquals(cloud.trotter.log.strength.R.string.test_training_equipment, missing.training.reason)
         assertTrue(missing.training.slots.isEmpty())
+        val ui = PlanScreenBuilder.buildUiState(plan, Planner.plan(answers).program, catalog, WeightUnit.LB, todayEpochDay = 0)
+        assertFalse(ui.goals.any { it.exerciseId == "bb_bench" })
+        assertTrue(ui.goals.any { it.exerciseId == "bb_back_squat" })
     }
 
 }

@@ -101,6 +101,21 @@ class SetupDraftJsonTest {
         assertEquals(BothAnswers.Together.SEPARATE_DAYS, SetupFlowStateBuilder.answers(restored).both.together)
     }
 
+    @Test fun `a legacy Both race without tests keeps Together derived on day changes`() {
+        val restored = requireNotNull(SetupDraftJson.decode("""{"v":1,"branch":"BOTH","days":3,
+            "runGoal":"FIRST_5K","cardioFirst":true}"""))
+        assertNull(restored.together)
+        assertEquals(BothAnswers.Together.SAME_VISIT, SetupFlowStateBuilder.answers(restored).together())
+        assertEquals(BothAnswers.Together.SEPARATE_DAYS, SetupFlowStateBuilder.answers(restored.copy(days = 4)).together())
+    }
+
+    @Test fun `legacy Both race with tests keeps its resolved Together on day changes`() {
+        val restored = requireNotNull(SetupDraftJson.decode("""{"v":1,"branch":"BOTH","days":3,
+            "runGoal":"FIRST_5K","cardioFirst":true,"tests":[{"eventId":"aft_hrp","required":40}]}"""))
+        assertEquals(BothAnswers.Together.SAME_VISIT, restored.together)
+        assertEquals(BothAnswers.Together.SAME_VISIT, SetupFlowStateBuilder.answers(restored.copy(days = 4)).together())
+    }
+
     @Test fun `a new draft with its run removed does not synthesize it on restoration`() {
         val draft = SetupDraft().chooseFitnessTest().copy(testRun = false, tests = listOf(TestDraft("aft_hrp", 40)))
         val restored = requireNotNull(SetupDraftJson.decode(SetupDraftJson.encode(draft)))

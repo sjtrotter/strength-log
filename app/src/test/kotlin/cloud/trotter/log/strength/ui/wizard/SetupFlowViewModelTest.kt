@@ -207,6 +207,12 @@ class SetupFlowViewModelTest {
         assertEquals(SetupStep.PLAN, vm.uiState.value.step)
     }
     private fun TestScope.start(vm: SetupFlowViewModel) { plan(vm); vm.onNext(); advanceUntilIdle() }
+    private fun TestScope.backToGoal(vm: SetupFlowViewModel) {
+        repeat(SetupFlowStateBuilder.steps(vm.uiState.value.draft).size) {
+            if (vm.uiState.value.step != SetupStep.GOAL) { vm.onBack(); advanceUntilIdle() }
+        }
+        assertEquals(SetupStep.GOAL, vm.uiState.value.step)
+    }
     private fun ready(vm: SetupFlowViewModel) = vm.uiState.value.plan as PlanPreviewUi.Ready
     private fun copyHandle(handle: SavedStateHandle) = SavedStateHandle(handle.keys().associateWith { handle.get<Any>(it) })
 
@@ -910,7 +916,7 @@ class SetupFlowViewModelTest {
             experience = LiftExperience.A_YEAR_OR_MORE, mains = Planner.defaultMains(EquipmentPreset.FULL_GYM.equipment),
             recent = mapOf("bb_bench" to RecentNumber(185.0, 5, Effort.GOOD)),
             run = RunAnswers(goal = RunGoal.FITNESS_TEST,
-                experience = RunExperience.SOME, goalSeconds = 960, longest = Measure.Time(1500), strengthBlocks = 1),
+                experience = RunExperience.SOME, goalSeconds = 960, longest = Measure.Time(1500)),
             both = BothAnswers(cardioFirst = false))
         val id = repo.plans.createPlannedPlan("Both test", original)
         val before = repo.plans.programFor(id).first()
@@ -986,6 +992,131 @@ class SetupFlowViewModelTest {
         assertTrue(vm.uiState.value.draft.testLifts.isEmpty())
         assertFalse(vm.uiState.value.draft.testRun)
         assertEquals(RunGoal.CARDIO_FITNESS, vm.uiState.value.draft.runGoal)
+    }
+
+    @Test fun `switching from Run with zero strength blocks to Both keeps lifting`() = runVmTest {
+        val vm = newViewModel(); advanceUntilIdle()
+        vm.setBranch(PlanBranch.RUN); advanceUntilIdle()
+        plan(vm)
+        vm.setStrengthBlocks(0); advanceUntilIdle()
+        assertEquals(0, answers(vm).run.strengthBlocks)
+        backToGoal(vm)
+        vm.setBranch(PlanBranch.BOTH); vm.setCardioFirst(true)
+        vm.setTogether(BothAnswers.Together.SAME_VISIT); advanceUntilIdle()
+        plan(vm)
+        assertEquals(2, answers(vm).run.strengthBlocks)
+        assertTrue(ready(vm).rows.any { it.lifts > 0 })
+        vm.onNext(); advanceUntilIdle()
+        val saved = db.planDao().allPlans().single()
+        assertTrue(repo.plans.programFor(saved.id).first().days.any { it.exercises.isNotEmpty() })
+    }
+
+    @Test fun `reselecting Fitness test after Review answers keeps every Army answer`() = runVmTest {
+        val original = SetupAnswers(branch = PlanBranch.BOTH, goal = LiftGoal.MUSCLE,
+            run = RunAnswers(goal = RunGoal.FITNESS_TEST, goalSeconds = 960, dateEpochDay = 21000),
+            tests = listOf(TestAnswer(TestEventGoal(TestRef("aft_hrp", 1, 120), 40), 31),
+                TestAnswer(TestEventGoal(TestRef("aft_plank", 1), 220), 110)),
+            testDateEpochDay = 21000, both = BothAnswers(cardioFirst = false),
+            lifts = listOf(LiftTest("trap_dl", 3)))
+        val id = repo.plans.createPlannedPlan("Army", original, mapOf("trap_dl" to 340.0))
+        repo.plans.publishPlannedPlan(id); settings.setWizardComplete(true)
+        val vm = newViewModel(); advanceUntilIdle()
+        plan(vm); vm.reviewAnswers(); advanceUntilIdle()
+        backToGoal(vm)
+        val before = vm.uiState.value.draft
+        vm.chooseFitnessTest(); advanceUntilIdle()
+        assertEquals(before, vm.uiState.value.draft)
+        repeat(3) { vm.onNext() }; advanceUntilIdle()
+        assertEquals(before.copy(step = SetupStep.TEST), vm.uiState.value.draft)
+    }
+
+    @Test fun `reselecting Both keeps a race and push ups`() = runVmTest {
+        val draft = SetupFlowFixtures.both.copy(runGoal = RunGoal.FIRST_5K, eventDate = 21000,
+            tests = listOf(TestDraft("aft_hrp", 40, 31)), testDate = 21000)
+        val vm = newViewModel(SavedStateHandle(mapOf("setup_initialized" to true,
+            "setup_draft" to SetupDraftJson.encode(draft)))); advanceUntilIdle()
+        val before = vm.uiState.value.draft
+        vm.setBranch(PlanBranch.BOTH); advanceUntilIdle()
+        assertEquals(before, vm.uiState.value.draft)
+        assertEquals(1, answers(vm).tests.size)
+        assertEquals(RunGoal.FIRST_5K, answers(vm).run.goal)
+    }
+
+    @Test fun `legacy Sub goal and Order stay visible after changing their answers`() = runVmTest {
+        val lift = SetupAnswers(goal = LiftGoal.MUSCLE,
+            tests = listOf(TestAnswer(TestEventGoal(TestRef("aft_hrp", 1, 120), 40))))
+        for (original in listOf(lift, lift.copy(branch = PlanBranch.BOTH,
+            run = RunAnswers(goal = RunGoal.FITNESS_TEST, goalSeconds = 960), both = BothAnswers(cardioFirst = false)))) {
+            val draft = SetupFlowStateBuilder.draftFrom(original).copy(step = SetupStep.PLAN)
+            val vm = newViewModel(SavedStateHandle(mapOf("setup_initialized" to true,
+                "setup_draft" to SetupDraftJson.encode(draft)))); advanceUntilIdle()
+            vm.reviewAnswers(); advanceUntilIdle()
+            vm.onBack(); advanceUntilIdle()
+            assertEquals(SetupStep.SUB_GOAL, vm.uiState.value.step)
+            vm.setSubGoal(LiftGoal.GENERAL); advanceUntilIdle()
+            assertEquals(SetupStep.SUB_GOAL, vm.uiState.value.step)
+            vm.setSubGoal(LiftGoal.MUSCLE); advanceUntilIdle()
+            assertEquals(LiftGoal.MUSCLE, answers(vm).goal)
+            if (original.branch == PlanBranch.BOTH) {
+                vm.onBack(); advanceUntilIdle()
+                assertEquals(SetupStep.ORDER, vm.uiState.value.step)
+                vm.setCardioFirst(true); advanceUntilIdle()
+                assertEquals(SetupStep.ORDER, vm.uiState.value.step)
+                vm.setCardioFirst(false); advanceUntilIdle()
+                assertFalse(answers(vm).both.cardioFirst)
+            }
+        }
+    }
+
+    @Test fun `Review answers keeps lifts and recent on legacy Muscle Same visit tests`() = runVmTest {
+        val original = SetupAnswers(branch = PlanBranch.BOTH, goal = LiftGoal.MUSCLE,
+            experience = LiftExperience.A_YEAR_OR_MORE, mains = Planner.defaultMains(EquipmentPreset.FULL_GYM.equipment),
+            recent = mapOf("bb_bench" to RecentNumber(185.0, 5, Effort.GOOD)),
+            run = RunAnswers(goal = RunGoal.FITNESS_TEST, goalSeconds = 960),
+            both = BothAnswers(cardioFirst = true, together = BothAnswers.Together.SAME_VISIT))
+        val id = repo.plans.createPlannedPlan("Both test", original)
+        val before = repo.plans.programFor(id).first()
+        repo.plans.publishPlannedPlan(id); settings.setWizardComplete(true)
+        val vm = newViewModel(); advanceUntilIdle()
+        plan(vm); vm.reviewAnswers(); advanceUntilIdle()
+        assertTrue(SetupStep.LIFTS in SetupFlowStateBuilder.steps(vm.uiState.value.draft))
+        assertTrue(SetupStep.RECENT in SetupFlowStateBuilder.steps(vm.uiState.value.draft))
+        assertEquals(original, answers(vm))
+        plan(vm); vm.onNext(); advanceUntilIdle()
+        val saved = db.planDao().allPlans().last()
+        assertEquals(original, saved.setupAnswers(WeightUnit.LB))
+        assertEquals(before, repo.plans.programFor(saved.id).first())
+    }
+
+    @Test fun `Review answers keeps an excluded test lift without copying other goals`() = runVmTest {
+        val original = SetupAnswers(branch = PlanBranch.BOTH, goal = LiftGoal.MUSCLE, days = 4,
+            excluded = setOf("trap_dl"), lifts = listOf(LiftTest("trap_dl", 3)),
+            run = RunAnswers(goal = RunGoal.FITNESS_TEST, goalSeconds = 960))
+        val id = repo.plans.createPlannedPlan("Both test", original, mapOf("trap_dl" to 340.0, "bb_bench" to 225.0))
+        repo.plans.publishPlannedPlan(id); settings.setWizardComplete(true)
+        val vm = newViewModel(); advanceUntilIdle()
+        plan(vm); vm.reviewAnswers(); advanceUntilIdle()
+        assertEquals(setOf("trap_dl"), answers(vm).excluded)
+        plan(vm)
+        assertEquals(cloud.trotter.log.strength.R.string.test_training_equipment,
+            ready(vm).testTraining.single().reason)
+        vm.onNext(); advanceUntilIdle()
+        val saved = db.planDao().allPlans().last()
+        assertEquals(setOf("trap_dl"), assertNotNull(saved.setupAnswers(WeightUnit.LB)).excluded)
+        assertEquals(mapOf("trap_dl" to 340.0), saved.planSettings.goalsLb)
+    }
+
+    @Test fun `removing a test lift drops its Required weight from the saved plan`() = runVmTest {
+        val original = SetupAnswers(goal = LiftGoal.STRENGTH, lifts = listOf(LiftTest("bb_bench", 5)),
+            tests = listOf(TestAnswer(TestEventGoal(TestRef("aft_hrp", 1, 120), 40))))
+        val id = repo.plans.createPlannedPlan("Test", original, mapOf("bb_bench" to 225.0))
+        repo.plans.publishPlannedPlan(id); settings.setWizardComplete(true)
+        val vm = newViewModel(); advanceUntilIdle()
+        plan(vm); vm.reviewAnswers(); vm.removeTestPick("bb_bench"); advanceUntilIdle()
+        plan(vm); vm.onNext(); advanceUntilIdle()
+        val saved = db.planDao().allPlans().last()
+        assertTrue(assertNotNull(saved.setupAnswers(WeightUnit.LB)).lifts.isEmpty())
+        assertTrue(saved.planSettings.goalsLb.isEmpty())
     }
 
 }

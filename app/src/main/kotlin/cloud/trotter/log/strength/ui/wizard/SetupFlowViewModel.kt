@@ -198,7 +198,7 @@ class SetupFlowViewModel @Inject constructor(
     fun reviewAnswers() = update {
         it.copy(step = if (it.fitnessTest == true) SetupStep.TEST else if (it.isSprint && SetupStep.LIFTS in SetupFlowStateBuilder.steps(it)) SetupStep.LIFTS else SetupStep.EQUIPMENT)
     }
-    fun setBranch(value: PlanBranch) = update { it.copy(branch = value, step = SetupStep.GOAL,
+    fun setBranch(value: PlanBranch) = update { if (value == it.branch && it.fitnessTest != true) it else it.copy(branch = value, step = SetupStep.GOAL,
         fitnessTest = false, tests = emptyList(), testDate = null, testRun = false, testLifts = emptyList(),
         runGoal = if (it.runGoal == RunGoal.FITNESS_TEST) RunGoal.CARDIO_FITNESS else it.runGoal) }
     fun chooseFitnessTest() = update { it.chooseFitnessTest() }
@@ -299,7 +299,7 @@ class SetupFlowViewModel @Inject constructor(
     private fun start() {
         val draft = current()
         val answers = SetupFlowStateBuilder.answers(draft)
-        val goals = draft.goalsLb + draft.testLifts.mapNotNull { lift -> lift.goalLb?.let { lift.exerciseId to it } }.toMap()
+        val goals = draft.testLifts.mapNotNull { lift -> lift.goalLb?.let { lift.exerciseId to it } }.toMap()
         if (blocked() || complete.value || SetupFlowStateBuilder.currentStep(draft) != SetupStep.PLAN ||
             preview.value !is PlanPreviewUi.Ready || previewAnswers != answers) return
         finish.value = FinishProgress(inFlight = true)

@@ -111,12 +111,8 @@ object PlanScreenBuilder {
             offerStrengthIncreases = plan?.offerStrengthIncreases ?: true,
             offerCardioIncreases = plan?.offerCardioIncreases ?: false,
             days = days,
-            goals = ((if (generated) liftGoals(program, catalog, planSettings.goalsLb, unit, planSettings.legacyMains) else emptyList()) +
-                testLifts.map { lift ->
-                    val entry = ExerciseLibrary.get(lift.exerciseId)
-                    PlanLiftGoal(lift.exerciseId, lift.name, entry.perHand, lift.goalLb,
-                        lift.goalLb?.let { GoalFormatter.label(GoalTarget(it, entry.perHand), unit) })
-                }).distinctBy { it.exerciseId },
+            goals = if (generated) liftGoals(program, catalog, planSettings.goalsLb, unit, planSettings.legacyMains)
+                .filterNot { row -> testLifts.any { it.exerciseId == row.exerciseId } } else emptyList(),
         )
     }
 

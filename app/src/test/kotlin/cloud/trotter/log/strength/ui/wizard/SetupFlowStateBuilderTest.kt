@@ -589,6 +589,12 @@ class SetupFlowStateBuilderTest {
         assertTrue(training.slots.isEmpty())
         val army = SetupDraft(tests = listOf(TestDraft("aft_hrp", 40, 31)))
         assertEquals(army, army.testFormat("hand_release_pushup", TestFormat.REPS_IN_WINDOW))
+        val window = draft.testFormat("pullup", TestFormat.REPS_IN_WINDOW)
+        assertEquals(60, window.tests.single().windowSeconds)
+        assertEquals(20, window.tests.single().required)
+        assertEquals(8, window.tests.single().lastResult)
+        assertEquals(TestRef("pullup:REPS_IN_WINDOW", 1, 60), builder.answers(window).tests.single().goal.ref)
+        assertTrue(builder.canAdvance(window))
     }
 
     @Test fun `case 60 a required or last hold above the cap does not advance`() {
@@ -686,6 +692,34 @@ class SetupFlowStateBuilderTest {
         val why = (builder.planPreview(draft, answers) as PlanPreviewUi.Ready).why
         assertFalse(PlanWhy.Floor("A", 60) in why)
         assertEquals(1, why.count { it == PlanWhy.Trimmed("A", 60) })
+    }
+
+    @Test fun `a Both race without tests keeps Together derived after prefill`() {
+        val original = SetupAnswers(branch = PlanBranch.BOTH, days = 3,
+            run = RunAnswers(goal = RunGoal.FIRST_5K), both = BothAnswers(cardioFirst = true))
+        val restored = builder.draftFrom(original)
+        assertNull(restored.together)
+        assertEquals(original, builder.answers(restored))
+        assertEquals(BothAnswers.Together.SEPARATE_DAYS, builder.answers(restored.copy(days = 4)).together())
+        val withTests = original.copy(tests = listOf(TestAnswer(TestEventGoal(TestRef("aft_hrp", 1, 120), 40))))
+        val testDraft = builder.draftFrom(withTests)
+        assertEquals(BothAnswers.Together.SAME_VISIT, testDraft.together)
+        assertEquals(BothAnswers.Together.SAME_VISIT, builder.answers(testDraft.copy(days = 4)).together())
+    }
+
+    @Test fun `a hinge removed at dose step two has a session length reason`() {
+        val draft = SetupDraft().chooseFitnessTest().pick(TestPick.Run(FitnessTest.TWO_MILE))
+            .pick(TestPick.Library(ExerciseLibrary.get("trap_dl"))).copy(minutes = 45,
+                runExperience = RunExperience.SOME, longestSeconds = 1500, goalSeconds = 960,
+                tests = listOf(TestDraft("custom_pushup_window", 30, windowSeconds = 120),
+                    TestDraft("custom_situp_window", 40, windowSeconds = 90)))
+        val answers = builder.answers(draft)
+        val planned = Planner.plan(answers)
+        assertTrue(PlanReason.ShortSession("B", 2) in planned.reasons)
+        val training = (builder.planPreview(planned, answers) as PlanPreviewUi.Ready).testTraining
+            .single { it.name == ExerciseLibrary.get("trap_dl").name }
+        assertTrue(training.slots.isEmpty())
+        assertEquals(R.string.test_training_session_length, training.reason)
     }
 
 }

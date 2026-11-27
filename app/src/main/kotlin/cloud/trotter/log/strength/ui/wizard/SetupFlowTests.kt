@@ -21,9 +21,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -104,7 +106,7 @@ internal fun TestStep(state: SetupFlowUiState, actions: SetupFlowActions) {
         TestPickHeading(ExerciseLibrary.get(lift.exerciseId).name) { actions.onTestRemove(lift.exerciseId) }
         NumberField(value = lift.reps.toDouble(), onValueChange = { actions.onLiftReps(lift.exerciseId, it.toInt()) },
             onDraftChange = { actions.onLiftReps(lift.exerciseId, it?.toInt() ?: 0) },
-            label = stringResource(R.string.setup_flow_test_heaviest), minValue = 1.0, maxValue = 10.0)
+            label = stringResource(R.string.setup_flow_test_heaviest, lift.reps), minValue = 1.0, maxValue = 10.0)
         val unit = draft.unit
         if (ExerciseLibrary.get(lift.exerciseId).perHand) Text(stringResource(R.string.setup_flow_per_hand),
             style = MaterialTheme.typography.bodySmall)
@@ -116,7 +118,8 @@ internal fun TestStep(state: SetupFlowUiState, actions: SetupFlowActions) {
         Text(stringResource(R.string.setup_flow_test_lift_rules), style = MaterialTheme.typography.bodySmall)
     } }
     OutlinedButton(onClick = { picker = true }) { Text(stringResource(R.string.setup_flow_test_add)) }
-    if (draft.tests.isNotEmpty() || draft.testLifts.isNotEmpty() || draft.testRun && draft.test != FitnessTest.COOPER) {
+    if (draft.tests.isNotEmpty() || draft.testRun && draft.test != FitnessTest.COOPER &&
+        (draft.test.metres != null || draft.testScore?.let { it in 1..999 } == true)) {
         SetupEventDate(draft.testDate, actions.onTestDate)
     }
     if (picker) TestPickSheet(draft, onDismiss = { picker = false }, onPick = {
@@ -153,7 +156,7 @@ private fun testFormatLabel(format: TestFormat): Int = when (format) {
     TestFormat.REPS_IN_WINDOW -> R.string.setup_flow_test_in_window
     TestFormat.REPS_CONTINUOUS -> R.string.setup_flow_test_unbroken
     TestFormat.MAX_HOLD -> R.string.setup_flow_test_hold
-    TestFormat.HEAVIEST_FOR_REPS -> R.string.setup_flow_test_heaviest
+    TestFormat.HEAVIEST_FOR_REPS -> R.string.setup_flow_test_score_weight
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -164,10 +167,11 @@ internal fun TestPickSheet(draft: SetupDraft, onDismiss: () -> Unit, onPick: (Te
     val context = LocalContext.current
     val focus = LocalFocusManager.current
     val rows = TestPickSearch.filter(query, filter) { context.getString(testLabel(it)) }
+    val searchLabel: @Composable () -> Unit = { Text(stringResource(R.string.setup_flow_test_search)) }
     AppModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         title = { Text(stringResource(R.string.setup_flow_test_add), style = MaterialTheme.typography.titleLarge) }, body = {
-            OutlinedTextField(value = query, onValueChange = { query = it }, singleLine = true,
-                label = { Text(stringResource(R.string.setup_flow_test_search)) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = query, onValueChange = { value: String -> query = value }, singleLine = true,
+                label = searchLabel, modifier = Modifier.fillMaxWidth())
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TestPickFilter.entries.forEach { item ->
                     SetupChip(item == filter, { focus.clearFocus(); filter = item }) { Text(stringResource(when (item) {

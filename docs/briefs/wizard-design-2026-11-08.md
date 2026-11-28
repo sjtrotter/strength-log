@@ -2277,3 +2277,32 @@ the dated ladder plan's Why sheet, each at 1x and 2x. Existing s43 and s44 defin
 
 P8 derives 123 s per 400 m rep (`779 × 400 / 2414 × 0.95`, rounded) and a 1,440 s D end
 (`RunCap.limit(1320, 60)`). Neither differs from the build spec. The invariant and progression grids stay unchanged.
+
+
+## 67. Revision 58 (one fitness-test picker, 2026-11-27)
+
+The [revision 5 fitness-test brief](fitness-test-goal-2026-11-27.md), including its final ledgers, governs this
+entry. Fitness test is the fifth Goal row. Your test searches eligible library movements and the five runs in
+one sheet with All, Strength, Cardio and Holds filters. Requirements start blank; each movement has its eligible
+format and an optional Army edition. One run, one weighted pick per main row, one shared date. Cadence tests,
+shuttle audio, Cooper's distance goal, other run distances, sprint-drag-carry and custom test exercises remain
+unsupported and are named in the sheet and Why copy.
+
+The draft flag maps picks to the existing Lift, Run and Both shapes. New test picks set the lifting goal and
+run order; they never write Together. An unset choice resolves to Same visit, except at five or six days with
+a press or pull test lift. Legacy Both drafts and recipes resolve their old null Together once when restored,
+so Review answers and a save preserve the schedule. Existing mixed-goal tests keep their events step. New Lift
+and Both flows skip that step, and the retired Fitness test row leaves Run goal. Draft v1, recipe v2, Room and
+backup v35 stay unchanged.
+
+Weighted picks bind their available main row. Your plan and the Fitness test card show actual stored doses or
+why a pick is not trained. The card reads the recipe's N and the live required weight from plan settings; its
+verdict uses LiftTestProgress over raw non-ramp sets. Both date editors use setGoalDate. Why sheets grade the
+practice, evidence and safety rules, including capped pressure-caution holds and easier movements for none yet.
+
+PR B also folds in PR A's review follow-ups: balancing reserves the net time added by prep replacement while
+counting the replaced slot's ordinary credit; a trimmed day has one ShortSession Why line; a derived hold
+without a ceiling uses ceiling-less clock copy. Cases 1 through 61 retain their pinned numbers. Added builder,
+restoration, editor and screen tests cover cases 55 and 59 through 61, legacy schedules, live required weights,
+and the picker. Preview definitions cover Goal, Your test and the picker at normal and large font sizes; pilots
+use the new flow. No compilation, builds, Gradle or tests were run locally; CI verification remains pending.

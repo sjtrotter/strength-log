@@ -28,11 +28,6 @@
       }
     },
     {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
       "expect": {
         "text": "Your plan"
       }

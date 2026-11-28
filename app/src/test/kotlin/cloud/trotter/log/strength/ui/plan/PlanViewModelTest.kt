@@ -1,5 +1,7 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.domain.planner.LiftTest
+import cloud.trotter.log.strength.domain.planner.TestAnswer
 import cloud.trotter.log.strength.data.serialization.TestGoalJson
 import cloud.trotter.log.strength.domain.model.TestGoal
 import cloud.trotter.log.strength.domain.model.TestEventGoal
@@ -65,6 +67,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
@@ -114,6 +117,37 @@ class PlanViewModelTest {
         assertNull(db.planDao().plan(viewed)!!.testGoalJson)
         assertNull(vm.uiState.value.testGoalDraft)
         assertNull(vm.uiState.value.testGoal)
+    }
+
+    @Test fun `both goal editors save the shared fitness test date`() = runTest(dispatcher) {
+        val original = SetupAnswers(branch = PlanBranch.BOTH, run = RunAnswers(goal = RunGoal.FITNESS_TEST, goalSeconds = 960),
+            tests = listOf(TestAnswer(TestEventGoal(TestRef("aft_hrp", 1, 120), 40))))
+        val id = repo.plans.createPlannedPlan("Test", original)
+        val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to id.toString())))
+        advanceUntilIdle()
+        vm.openTestGoal()
+        vm.changeTestGoalDraft(TestGoalDraft(mapOf("aft_hrp" to "45"), 21000))
+        vm.saveTestGoal(); advanceUntilIdle()
+        assertEquals(21000L, PlanGoalJson.decode(db.planDao().plan(id)!!.goalJson)?.byEpochDay)
+        assertEquals(21000L, TestGoalJson.decode(db.planDao().plan(id)!!.testGoalJson)?.byEpochDay)
+        vm.openGoal(); advanceUntilIdle()
+        vm.changeGoalDraft(requireNotNull(vm.uiState.value.goalDraft).copy(byEpochDay = 21100))
+        vm.saveGoal(); advanceUntilIdle()
+        assertEquals(21100L, PlanGoalJson.decode(db.planDao().plan(id)!!.goalJson)?.byEpochDay)
+        assertEquals(21100L, TestGoalJson.decode(db.planDao().plan(id)!!.testGoalJson)?.byEpochDay)
+    }
+
+    @Test fun `a lift only test card edits its required weight through plan settings`() = runTest(dispatcher) {
+        val original = SetupAnswers(lifts = listOf(LiftTest("incline_db", 5)))
+        val id = repo.plans.createPlannedPlan("Test", original, mapOf("incline_db" to 100.0))
+        val vm = viewModel(SavedStateHandle(mapOf(Routes.PLAN_ID_ARG to id.toString())))
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.goals.any { it.exerciseId == "incline_db" })
+        vm.openGoal("incline_db"); advanceUntilIdle()
+        assertEquals(100.0, vm.uiState.value.goalDialog?.draftLb)
+        vm.setGoalDraft(110.0); vm.saveGoal(); advanceUntilIdle()
+        assertEquals(110.0, vm.uiState.value.testLifts.single().goalLb)
+        assertEquals(5, vm.uiState.value.testLifts.single().reps)
     }
 
     @Test fun `the test draft survives parcel recreation and rejects invalid values without closing`() = runTest(dispatcher) {

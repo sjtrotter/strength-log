@@ -1,5 +1,12 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.domain.planner.EquipmentPreset
+import cloud.trotter.log.strength.domain.records.LiftSetRow
+import cloud.trotter.log.strength.domain.model.SetKind
+import cloud.trotter.log.strength.domain.planner.LiftTest
+import cloud.trotter.log.strength.domain.planner.TestAnswer
+import cloud.trotter.log.strength.domain.planner.BothAnswers
+import cloud.trotter.log.strength.domain.planner.LiftExperience
 import cloud.trotter.log.strength.data.OldWizardPlan
 import cloud.trotter.log.strength.data.OldWizardPlans
 import cloud.trotter.log.strength.data.serialization.PlanSettingsJson
@@ -382,6 +389,60 @@ class PlanScreenBuilderTest {
             assertEquals(phase, state.runPhase)
             assertEquals(phase != RunPhase.LADDER, state.taper)
         }
+    }
+
+    @Test fun `case 55 the test card shows the deadlift row from the typed goal`() {
+        val answers = SetupAnswers(branch = PlanBranch.BOTH, goal = LiftGoal.STRENGTH, days = 4,
+            experience = LiftExperience.A_YEAR_OR_MORE,
+            run = RunAnswers(goal = RunGoal.FITNESS_TEST, goalSeconds = 960),
+            both = BothAnswers(true,
+                BothAnswers.Together.SAME_VISIT),
+            tests = listOf(TestAnswer(TestEventGoal(TestRef("aft_hrp", 1, 120), 40), 31),
+                TestAnswer(TestEventGoal(TestRef("aft_plank", 1), 220))),
+            lifts = listOf(LiftTest("trap_dl", 3)))
+        val plan = PlanEntity(1, "Fitness test", PlanOrigin.GENERATED.name, 0, 0,
+            recipeJson = SetupRecipeJson.encode(answers), testGoalJson = TestGoalJson.encode(requireNotNull(answers.testGoal)),
+            settingsJson = PlanSettingsJson.encode(PlanSettings(equipment = answers.equipment, goalsLb = mapOf("trap_dl" to 340.0))))
+        val ui = PlanScreenBuilder.buildUiState(plan, Planner.plan(answers).program, catalog, WeightUnit.LB, todayEpochDay = 0)
+        val row = ui.testLifts.single()
+        assertEquals("trap_dl", row.exerciseId)
+        assertEquals(3, row.reps)
+        assertEquals(340.0, row.goalLb)
+        assertNull(row.bestLb)
+        assertFalse(row.met)
+        val slot = row.training.slots.single { it.first == "B" }.second
+        assertEquals(2, slot.targetSets)
+        assertEquals(SlotRole.SECONDARY, slot.rule?.role)
+        assertFalse(ui.goals.any { it.exerciseId == "trap_dl" })
+    }
+
+    @Test fun `case 61 the card shows the lift row from the recipe and the log`() {
+        val answers = SetupAnswers(goal = LiftGoal.STRENGTH,
+            experience = LiftExperience.UNDER_A_YEAR,
+            lifts = listOf(LiftTest("bb_bench", 5)))
+        val plan = PlanEntity(1, "Fitness test", PlanOrigin.GENERATED.name, 0, 0,
+            recipeJson = SetupRecipeJson.encode(answers),
+            settingsJson = PlanSettingsJson.encode(PlanSettings(goalsLb = mapOf("bb_bench" to 225.0))))
+        fun set(weight: Double, reps: Int, kind: SetKind = SetKind.WORK) =
+            LiftSetRow(1, 10, "bb_bench", weight, reps, kind, true)
+        fun row(sets: List<LiftSetRow>, value: SetupAnswers = answers): PlanTestLiftUi =
+            PlanScreenBuilder.buildUiState(plan.copy(recipeJson = SetupRecipeJson.encode(value), settingsJson = PlanSettingsJson.encode(
+                PlanSettings(equipment = value.equipment, goalsLb = mapOf("bb_bench" to 225.0)))),
+                Planner.plan(value).program, catalog, WeightUnit.LB, todayEpochDay = 0, liftSets = sets).testLifts.single()
+        val sets = listOf(set(205.0, 5), set(225.0, 4), set(215.0, 6))
+        assertEquals(215.0, row(sets).bestLb)
+        assertFalse(row(sets).met)
+        assertTrue(row(sets + set(225.0, 5)).met)
+        assertTrue(row(listOf(set(230.0, 1, SetKind.TOP),
+            set(225.0, 5, SetKind.BACKOFF))).met)
+        assertNull(row(listOf(set(240.0, 3, SetKind.RAMP))).bestLb)
+        val missing = row(sets, answers.copy(equipment = EquipmentPreset.DUMBBELLS.equipment))
+        assertEquals(225.0, missing.goalLb)
+        assertEquals(cloud.trotter.log.strength.R.string.test_training_equipment, missing.training.reason)
+        assertTrue(missing.training.slots.isEmpty())
+        val ui = PlanScreenBuilder.buildUiState(plan, Planner.plan(answers).program, catalog, WeightUnit.LB, todayEpochDay = 0)
+        assertFalse(ui.goals.any { it.exerciseId == "bb_bench" })
+        assertTrue(ui.goals.any { it.exerciseId == "bb_back_squat" })
     }
 
 }

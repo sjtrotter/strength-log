@@ -1,5 +1,8 @@
 package cloud.trotter.log.strength.ui.plan
 
+import cloud.trotter.log.strength.ui.test.testTrainingText
+import cloud.trotter.log.strength.domain.standards.SetFormatter
+import cloud.trotter.log.strength.domain.units.WeightUnit
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,13 +31,15 @@ import cloud.trotter.log.strength.domain.units.ClockText
 import cloud.trotter.log.strength.ui.components.AppAlertDialog
 
 @Composable
-internal fun PlanTestGoal(ui: PlanTestGoalUi, actions: PlanActions) {
+internal fun PlanTestGoal(ui: PlanTestGoalUi?, actions: PlanActions,
+    lifts: List<PlanTestLiftUi> = emptyList(), unit: WeightUnit = WeightUnit.LB) {
+    val rows = ui?.rows.orEmpty()
     Column {
-        ui.rows.forEachIndexed { index, row ->
+        rows.forEachIndexed { index, row ->
             fun value(number: Int): String = if (row.timed) ClockText.duration(number) else number.toString()
             ListItem(
                 modifier = Modifier.clickable(onClick = actions.onOpenTestGoal),
-                overlineContent = if (index == 0) { { Text(stringResource(R.string.plan_test_goal)) } } else null,
+                overlineContent = { if (index == 0) Text(stringResource(R.string.plan_test_goal)) },
                 headlineContent = {
                     val window = row.event.ref.windowSeconds
                     Text(if (window != null && TestEvents.find(row.event.ref.eventId)?.custom == true)
@@ -47,12 +52,30 @@ internal fun PlanTestGoal(ui: PlanTestGoalUi, actions: PlanActions) {
                         val required = if (row.met) stringResource(R.string.plan_goal_met)
                             else stringResource(R.string.plan_test_required, value(row.event.required))
                         Text(stringResource(R.string.plan_goal_progress, best, required))
-                        if (index == ui.rows.lastIndex) ui.goal.byEpochDay?.let {
+                        row.training?.let { Text(testTrainingText(it)) }
+                        if (index == rows.lastIndex) ui?.goal?.byEpochDay?.let {
                             Text(stringResource(R.string.plan_goal_by, goalDate(it)))
                         }
                     }
                 },
             )
+        }
+        lifts.forEachIndexed { index, row ->
+            ListItem(modifier = Modifier.clickable { actions.onOpenGoal(row.exerciseId) },
+                overlineContent = { if (ui == null && index == 0) Text(stringResource(R.string.plan_test_goal)) },
+                headlineContent = { Text(stringResource(R.string.plan_test_lift, row.name, row.reps)) },
+                supportingContent = {
+                    Column {
+                        fun weight(lb: Double): String = SetFormatter.weight(lb, unit)
+                        val best = row.bestLb?.let { stringResource(R.string.plan_goal_best, weight(it)) }
+                            ?: stringResource(R.string.plan_goal_no_attempt)
+                        val required = if (row.met) stringResource(R.string.plan_goal_met) else row.goalLb?.let {
+                            stringResource(R.string.plan_test_required, weight(it))
+                        } ?: stringResource(R.string.plan_add_goal)
+                        Text(stringResource(R.string.plan_goal_progress, best, required))
+                        Text(testTrainingText(row.training))
+                    }
+                })
         }
     }
 }
@@ -61,7 +84,7 @@ internal fun PlanTestGoal(ui: PlanTestGoalUi, actions: PlanActions) {
 internal fun PlanTestGoalEditor(ui: PlanTestGoalUi, draft: TestGoalDraft, actions: PlanActions) {
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
     var confirmRemoval by rememberSaveable { mutableStateOf(false) }
-    val date = draft.byEpochDay?.takeIf(PlanGoalDate::isValid)
+    val date = draft.byEpochDay?.takeIf { PlanGoalDate.isValid(it) }
     if (confirmRemoval) {
         AppAlertDialog(
             onDismissRequest = { confirmRemoval = false },
@@ -94,17 +117,18 @@ internal fun PlanTestGoalEditor(ui: PlanTestGoalUi, draft: TestGoalDraft, action
                         onValueChange = { actions.onTestGoalDraft(draft.copy(required = draft.required + (id to it))) },
                         label = { Text(row.name) },
                         isError = invalid,
-                        supportingText = if (invalid) { {
-                            Text(if (row.timed) stringResource(R.string.form_time_range, "0:01", "60:00")
+                        supportingText = { if (invalid) {
+                            Text(if (row.timed) stringResource(R.string.form_time_range, "0:01",
+                                ClockText.minutesSeconds(TestEvents.find(id)?.let { TestEvents.requiredLimit(it) } ?: 3600))
                                 else stringResource(R.string.form_number_range, "1", "3600"))
-                        } } else null,
+                        } },
                         keyboardOptions = KeyboardOptions(keyboardType = if (row.timed) KeyboardType.Ascii else KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(), singleLine = true,
                     )
                 }
                 Row {
                     TextButton(onClick = { showDatePicker = true }) {
-                        Text(date?.let(::goalDate) ?: stringResource(R.string.plan_goal_add_date))
+                        Text(date?.let { goalDate(it) } ?: stringResource(R.string.plan_goal_add_date))
                     }
                     if (draft.byEpochDay != null) TextButton(onClick = { actions.onTestGoalDraft(draft.copy(byEpochDay = null)) }) {
                         Text(stringResource(R.string.plan_goal_remove_date))

@@ -56,13 +56,15 @@ internal fun ChoiceRow(title: String, body: String, selected: Boolean, onClick: 
 internal fun GoalStep(state: SetupFlowUiState, actions: SetupFlowActions) {
     Column(Modifier.selectableGroup()) {
         ChoiceRow(stringResource(R.string.setup_flow_goal_lift), stringResource(R.string.setup_flow_goal_lift_body),
-            state.draft.branch == PlanBranch.LIFT) { actions.onBranch(PlanBranch.LIFT) }
+            state.draft.fitnessTest != true && state.draft.branch == PlanBranch.LIFT) { actions.onBranch(PlanBranch.LIFT) }
         ChoiceRow(stringResource(R.string.setup_flow_goal_run), stringResource(R.string.setup_flow_goal_run_body),
-            state.draft.branch == PlanBranch.RUN) { actions.onBranch(PlanBranch.RUN) }
+            state.draft.fitnessTest != true && state.draft.branch == PlanBranch.RUN) { actions.onBranch(PlanBranch.RUN) }
         ChoiceRow(stringResource(R.string.setup_flow_goal_sprint), stringResource(R.string.setup_flow_goal_sprint_body),
-            state.draft.branch == PlanBranch.SPRINT) { actions.onBranch(PlanBranch.SPRINT) }
+            state.draft.fitnessTest != true && state.draft.branch == PlanBranch.SPRINT) { actions.onBranch(PlanBranch.SPRINT) }
         ChoiceRow(stringResource(R.string.setup_flow_goal_both), stringResource(R.string.setup_flow_goal_both_body),
-            state.draft.branch == PlanBranch.BOTH) { actions.onBranch(PlanBranch.BOTH) }
+            state.draft.fitnessTest != true && state.draft.branch == PlanBranch.BOTH) { actions.onBranch(PlanBranch.BOTH) }
+        ChoiceRow(stringResource(R.string.setup_flow_run_test), stringResource(R.string.setup_flow_goal_test_body),
+            state.draft.fitnessTest == true, actions.onFitnessTest)
     }
     if (state.restore.offered) {
         OutlinedButton(onClick = actions.onRestoreFromBackup, enabled = !state.restore.inFlight && !state.finishInFlight,
@@ -177,7 +179,7 @@ internal fun AboutStep(state: SetupFlowUiState, actions: SetupFlowActions) {
             }
         }
     }
-    if (state.draft.branch != PlanBranch.LIFT && !state.draft.isSprint) {
+    if (SetupFlowStateBuilder.branch(state.draft) != PlanBranch.LIFT && !state.draft.isSprint) {
         SetupLabel(stringResource(R.string.setup_flow_running_label))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             RunExperience.entries.forEach { experience ->
@@ -215,7 +217,7 @@ private fun presetLabel(preset: EquipmentPreset): Int = when (preset) {
     EquipmentPreset.BODYWEIGHT -> R.string.setup_flow_preset_bodyweight
 }
 
-private fun equipmentLabel(equipment: Equipment): Int = when (equipment) {
+internal fun equipmentLabel(equipment: Equipment): Int = when (equipment) {
     Equipment.BARBELL -> R.string.setup_flow_equipment_barbell
     Equipment.TRAP_BAR -> R.string.setup_flow_equipment_trap_bar
     Equipment.DUMBBELL -> R.string.setup_flow_equipment_dumbbell

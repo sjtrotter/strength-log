@@ -86,6 +86,20 @@ class PlanTestGoalScreenTest {
         assertEquals(mapOf("aft_hrp" to "45", "aft_plank" to "3:30"), saved?.required)
     }
 
+    @Test fun `a lift only card shows its weight requirement and opens the weight editor`() {
+        var opened: String? = null
+        val answers = cloud.trotter.log.strength.domain.planner.SetupAnswers()
+        val training = cloud.trotter.log.strength.ui.test.TestTraining.lift(
+            cloud.trotter.log.strength.domain.planner.Planner.plan(answers).program, answers, "bb_bench")
+        val state = testGoalPlanFixture().copy(testGoal = null,
+            testLifts = listOf(PlanTestLiftUi("bb_bench", "Barbell Bench Press", 5, 225.0, 215.0, false, training)))
+        rule.setContent { AppTheme { PlanScreen(state, actions().copy(onOpenGoal = { opened = it })) } }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Best 215 lb · Required 225 lb"))
+        rule.onNodeWithText("Barbell Bench Press, heaviest for 5").assertIsDisplayed()
+        rule.onNodeWithText("Best 215 lb · Required 225 lb").performClick()
+        assertEquals("bb_bench", opened)
+    }
+
     @Test fun `invalid required numbers show field errors and prevent Save`() {
         val state = mutableStateOf(draft)
         val ui = requireNotNull(testGoalPlanFixture().testGoal)

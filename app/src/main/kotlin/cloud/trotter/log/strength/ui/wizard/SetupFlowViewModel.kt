@@ -15,7 +15,6 @@ import cloud.trotter.log.strength.domain.model.CardioActivity
 import cloud.trotter.log.strength.domain.planner.SprintEvent
 import cloud.trotter.log.strength.domain.units.DistanceUnit
 import cloud.trotter.log.strength.domain.planner.BothAnswers
-import cloud.trotter.log.strength.domain.planner.FitnessTest
 import cloud.trotter.log.strength.domain.planner.PlanBranch
 import cloud.trotter.log.strength.domain.planner.RunEvent
 import cloud.trotter.log.strength.domain.planner.RunExperience
@@ -27,7 +26,12 @@ import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.domain.planner.SetupAnswers
 import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.progression.LiftGoal
-import cloud.trotter.log.strength.domain.standards.TestEvents
+import cloud.trotter.log.strength.domain.standards.TestPick
+import cloud.trotter.log.strength.domain.standards.TestFormat
+import cloud.trotter.log.strength.data.serialization.PlanGoalJson
+import cloud.trotter.log.strength.data.serialization.TestGoalJson
+import cloud.trotter.log.strength.domain.model.PlanGoal
+import cloud.trotter.log.strength.data.serialization.planSettings
 import cloud.trotter.log.strength.domain.units.WeightUnit
 import cloud.trotter.log.strength.transfer.backup.BackupError
 import cloud.trotter.log.strength.transfer.backup.BackupService
@@ -162,7 +166,18 @@ class SetupFlowViewModel @Inject constructor(
 
     private suspend fun prefill(): SetupDraft {
         val unit = settings.unitFlow.first()
-        return repo.selectedPlanFlow.first()?.setupAnswers(unit)?.let(SetupFlowStateBuilder::draftFrom) ?: SetupDraft(unit = unit)
+        val plan = repo.selectedPlanFlow.first() ?: return SetupDraft(unit = unit)
+        val answers = plan.setupAnswers(unit) ?: return SetupDraft(unit = unit)
+        val run = if (answers.run.goal == RunGoal.FITNESS_TEST) when (val goal = PlanGoalJson.decode(plan.goalJson)) {
+            is PlanGoal.Timed -> answers.run.copy(goalSeconds = goal.underSeconds, dateEpochDay = goal.byEpochDay)
+            is PlanGoal.Shuttle -> answers.run.copy(testScore = goal.targetShuttles, dateEpochDay = goal.byEpochDay)
+            else -> answers.run
+        } else answers.run
+        val testGoal = TestGoalJson.decode(plan.testGoalJson)
+        val live = answers.copy(run = run, tests = answers.tests.map { answer ->
+            testGoal?.events?.firstOrNull { it.ref == answer.goal.ref }?.let { answer.copy(goal = it) } ?: answer
+        }, testDateEpochDay = if (testGoal != null) testGoal.byEpochDay else answers.testDateEpochDay)
+        return SetupFlowStateBuilder.draftFrom(live, plan.recipeJson, plan.planSettings, unit)
     }
 
     fun onNext() {
@@ -181,9 +196,22 @@ class SetupFlowViewModel @Inject constructor(
         it.copy(step = steps[(steps.indexOf(SetupFlowStateBuilder.currentStep(it)) - 1).coerceAtLeast(0)])
     }
     fun reviewAnswers() = update {
-        it.copy(step = if (it.isSprint && SetupStep.LIFTS in SetupFlowStateBuilder.steps(it)) SetupStep.LIFTS else SetupStep.EQUIPMENT)
+        it.copy(step = if (it.fitnessTest == true) SetupStep.TEST else if (it.isSprint && SetupStep.LIFTS in SetupFlowStateBuilder.steps(it)) SetupStep.LIFTS else SetupStep.EQUIPMENT)
     }
-    fun setBranch(value: PlanBranch) = update { it.copy(branch = value, step = SetupStep.GOAL) }
+    fun setBranch(value: PlanBranch) = update { if (value == it.branch && it.fitnessTest != true) it else it.copy(branch = value, step = SetupStep.GOAL,
+        fitnessTest = false, tests = emptyList(), testDate = null, testRun = false, testLifts = emptyList(),
+        runGoal = if (it.runGoal == RunGoal.FITNESS_TEST) RunGoal.CARDIO_FITNESS else it.runGoal) }
+    fun chooseFitnessTest() = update { it.chooseFitnessTest() }
+    fun pickTest(value: TestPick) = update { it.pick(value) }
+    fun removeTestPick(id: String) = update { it.removeTestPick(id) }
+    fun setTestFormat(id: String, format: TestFormat) = update { it.testFormat(id, format) }
+    fun setTestEdition(id: String, edition: String?) = update { it.testEdition(id, edition) }
+    fun setLiftReps(id: String, value: Int) = update { draft -> draft.copy(testLifts = draft.testLifts.map {
+        if (it.exerciseId == id) it.copy(reps = value.coerceAtLeast(0)) else it
+    }) }
+    fun setLiftGoal(id: String, value: Double?) = update { draft -> draft.copy(testLifts = draft.testLifts.map {
+        if (it.exerciseId == id) it.copy(goalLb = value) else it
+    }) }
     fun setCardioFirst(value: Boolean) = update { it.copy(cardioFirst = value) }
     fun setRunGoal(value: RunGoal) = update {
         it.copy(runGoal = value, sprintCardio = false, goalSeconds = if ((it.runGoal == RunGoal.FITNESS_TEST) !=
@@ -198,7 +226,6 @@ class SetupFlowViewModel @Inject constructor(
     fun setRunEvent(value: RunEvent) = update { it.copy(runEvent = value) }
     fun setEventDate(value: Long?) = update { it.copy(eventDate = value) }
     fun setGoalSeconds(value: Int?) = update { it.copy(goalSeconds = value) }
-    fun setTest(value: FitnessTest) = update { it.copy(test = value) }
     fun setTestScore(value: Int?) = update { it.copy(testScore = value) }
     fun setRecent(metres: Int?, seconds: Int?) = update { it.copy(recentMetres = metres, recentSeconds = seconds) }
     fun setLongestByDistance(value: Boolean) = update { it.copy(longestByDistance = value) }
@@ -228,7 +255,7 @@ class SetupFlowViewModel @Inject constructor(
     fun setExperience(value: LiftExperience) = update { it.copy(experience = value) }
     fun setOlderAdult(value: Boolean) = update { it.copy(olderAdult = value) }
     fun setMain(row: Int, id: String) = update {
-        val choices = Planner.mainChoices(it.equipment).getOrNull(row).orEmpty()
+        val choices = SetupFlowStateBuilder.mainChoices(it).getOrNull(row).orEmpty()
         if (id !in choices) it else it.copy(mains = SetupFlowStateBuilder.currentMains(it).filterNot(choices::contains) + id)
     }
     fun setRecentWeight(id: String, lb: Double?) = update {
@@ -240,10 +267,6 @@ class SetupFlowViewModel @Inject constructor(
     fun setRecentEffort(id: String, effort: Effort) = update {
         it.copy(recent = it.recent + (id to (it.recent[id] ?: RecentDraft()).copy(effort = effort)))
     }
-    fun setTestEvent(id: String, on: Boolean) = update {
-        val rest = it.tests.filterNot { test -> test.eventId == id }
-        it.copy(tests = if (on && TestEvents.find(id) != null) rest + TestDraft(id) else rest)
-    }
     fun setTestRequired(id: String, value: Int?) = update {
         it.copy(tests = it.tests.map { test -> if (test.eventId == id) test.copy(required = value) else test })
     }
@@ -253,11 +276,11 @@ class SetupFlowViewModel @Inject constructor(
     fun setTestWindow(id: String, value: Int?) = update {
         it.copy(tests = it.tests.map { test -> if (test.eventId == id) test.copy(windowSeconds = value) else test })
     }
-    fun setTestDate(value: Long?) = update { it.copy(testDate = value) }
+    fun setTestDate(value: Long?) = update { it.copy(testDate = value, eventDate = if (it.fitnessTest == true) value else it.eventDate) }
     fun setBalanceDays(value: Boolean) = update { it.copy(balanceDays = value) }
     fun dropLift(id: String) = update {
         val mains = SetupFlowStateBuilder.currentMains(it)
-        if (mains.size < 2 || id !in mains ||
+        if (mains.size < 2 || id !in mains || it.testLifts.any { lift -> lift.exerciseId == id } ||
             Planner.sprintLowerMainMissing(SetupFlowStateBuilder.answers(it.copy(mains = mains - id))) != null) it
         else it.copy(mains = mains - id)
     }
@@ -276,6 +299,7 @@ class SetupFlowViewModel @Inject constructor(
     private fun start() {
         val draft = current()
         val answers = SetupFlowStateBuilder.answers(draft)
+        val goals = draft.testLifts.mapNotNull { lift -> lift.goalLb?.let { lift.exerciseId to it } }.toMap()
         if (blocked() || complete.value || SetupFlowStateBuilder.currentStep(draft) != SetupStep.PLAN ||
             preview.value !is PlanPreviewUi.Ready || previewAnswers != answers) return
         finish.value = FinishProgress(inFlight = true)
@@ -286,11 +310,11 @@ class SetupFlowViewModel @Inject constructor(
                     val remembered = savedState.get<Long>(Keys.CREATED_PLAN_ID)
                     val rememberedPlan = repo.plansFlow.first().firstOrNull { it.id == remembered }
                     // The decoder takes its unit from the caller; plan settings store only steps in lb.
-                    val matches = rememberedPlan?.setupAnswers(answers.unit) == answers &&
+                    val matches = rememberedPlan != null && rememberedPlan.setupAnswers(answers.unit) == answers && rememberedPlan.planSettings.goalsLb == goals &&
                         savedState.get<String>(Keys.CREATED_PLAN_UNIT) == answers.unit.name
                     val id = if (rememberedPlan != null && matches &&
                         repo.planHasDays(rememberedPlan.id)) rememberedPlan.id else {
-                        repo.createPlannedPlan(planName(answers), answers).also {
+                        repo.createPlannedPlan(planName(answers), answers, goals).also {
                             savedState[Keys.CREATED_PLAN_UNIT] = answers.unit.name
                             savedState[Keys.CREATED_PLAN_ID] = it
                         }
@@ -316,7 +340,7 @@ class SetupFlowViewModel @Inject constructor(
         val label = when {
             answers.branch == PlanBranch.SPRINT -> distance
             sprintPlan -> context.getString(R.string.setup_flow_sprint_label, distance)
-            answers.branch == PlanBranch.LIFT -> context.getString(subGoalLabel(answers.goal))
+            answers.branch == PlanBranch.LIFT -> context.getString(if (current().fitnessTest == true) R.string.setup_flow_run_test else subGoalLabel(answers.goal))
             else -> context.getString(runGoalLabel(answers.run.goal))
         }
         return context.resources.getQuantityString(when (answers.branch) {

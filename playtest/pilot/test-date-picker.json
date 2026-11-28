@@ -8,16 +8,6 @@
   },
   "steps": [
     {
-      "tap": {
-        "text": "Run"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
       "scrollTo": {
         "text": "Fitness test"
       }
@@ -33,28 +23,18 @@
       }
     },
     {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
-      "tap": {
-        "text": "Some"
-      }
-    },
-    {
-      "tap": {
-        "text": "Next"
-      }
-    },
-    {
       "expect": {
-        "text": "Your event"
+        "text": "Your test"
+      }
+    },
+    {
+      "tap": {
+        "text": "Add an event"
+      }
+    },
+    {
+      "tap": {
+        "text": "Cardio"
       }
     },
     {
@@ -64,7 +44,7 @@
     },
     {
       "type": {
-        "text": "Target time",
+        "text": "Required time",
         "value": "12:59",
         "ime": "done"
       }
@@ -101,6 +81,26 @@
     {
       "expect": {
         "text": "Dec 12, 2026"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Next"
+      }
+    },
+    {
+      "tap": {
+        "text": "Some"
       }
     },
     {

@@ -8,8 +8,13 @@
   },
   "steps": [
     {
+      "scrollTo": {
+        "text": "Fitness test"
+      }
+    },
+    {
       "tap": {
-        "text": "Next"
+        "text": "Fitness test"
       }
     },
     {
@@ -18,8 +23,25 @@
       }
     },
     {
+      "expect": {
+        "text": "Your test"
+      }
+    },
+    {
       "tap": {
-        "text": "Timed push-ups"
+        "text": "Add an event"
+      }
+    },
+    {
+      "type": {
+        "text": "Search",
+        "value": "push",
+        "ime": "done"
+      }
+    },
+    {
+      "tap": {
+        "text": "Push-Up"
       }
     },
     {
@@ -203,7 +225,7 @@
     },
     {
       "tap": {
-        "text": "General fitness, 3 days"
+        "text": "Fitness test, 3 days"
       }
     },
     {

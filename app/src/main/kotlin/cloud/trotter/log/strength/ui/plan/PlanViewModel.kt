@@ -17,6 +17,7 @@ import cloud.trotter.log.strength.data.TrackerRepository
 import cloud.trotter.log.strength.data.CatalogRepository
 import cloud.trotter.log.strength.data.HistoryRepository
 import cloud.trotter.log.strength.domain.model.CardioActivity
+import cloud.trotter.log.strength.domain.library.ExerciseLibrary
 import cloud.trotter.log.strength.data.serialization.TestGoalJson
 import cloud.trotter.log.strength.data.mapping.toDomain
 import cloud.trotter.log.strength.data.serialization.PlanGoalJson
@@ -66,7 +67,7 @@ class PlanViewModel @Inject constructor(
     private val sprintGoalDraft = savedState.getStateFlow<SprintGoalDraft?>(SPRINT_GOAL_DRAFT, null)
     private val testGoalDraft = savedState.getStateFlow<TestGoalDraft?>(TEST_GOAL_DRAFT, null)
     private val testHistory = historyRepository.testResultsFlow.map { results -> results.mapNotNull { it.toDomain() } }
-    private val testContext = combine(today, testHistory) { day, results -> day to results }
+    private val testContext = combine(today, testHistory, historyRepository.liftSetsFlow) { day, results, lifts -> Triple(day, results, lifts) }
     private val shuttleEntry = savedState.getStateFlow<String?>(SHUTTLE_ENTRY, null)
     private val cardioDialogs = combine(cardioGoalDraft, shuttleEntry, sprintGoalDraft) { draft, entry, sprint -> Triple(draft, entry, sprint) }
     private val cardioHistory = combine(historyRepository.cardioSessionsFlow, historyRepository.cardioSetResultsFlow) { sessions, sets ->
@@ -78,15 +79,13 @@ class PlanViewModel @Inject constructor(
     private val programState = plans.plansFlow.map { plans -> plans.firstOrNull { it.id == planId } }
         .flatMapLatest { plan -> combine(
             plans.programFor(planId), catalog.catalogFlow, settings.unitFlow, cardioHistory, testContext,
-        ) { program, catalog, unit, cardio, (day, results) ->
-            PlanScreenBuilder.buildUiState(plan, program, catalog, unit, cardio, day.toEpochDay(), results)
+        ) { program, catalog, unit, cardio, (day, results, lifts) ->
+            PlanScreenBuilder.buildUiState(plan, program, catalog, unit, cardio, day.toEpochDay(), results, lifts)
         } }
     val uiState: StateFlow<PlanUiState> = combine(programState, dialogState, goal, goalDraft, cardioDialogs) { program, draft, goalId, goalLb, cardio ->
         program.copy(
             goalDraft = cardio.first, shuttleEntry = cardio.second, sprintGoalDraft = cardio.third,
-            goalDialog = program.goals.firstOrNull { it.exerciseId == goalId }?.let { row ->
-                PlanGoalDialog(row.exerciseId, row.name, row.perHand, goalLb, hasGoal = row.goalLb != null)
-            },
+            goalDialog = goalId?.let { program.liftGoalDialog(it)?.copy(draftLb = goalLb) },
             menuDayId = draft.menuDayId, dialog = draft.dialog,
             dialogDayId = draft.dialogDayId, dayTitleDraft = draft.dayTitleDraft,
         )
@@ -112,6 +111,7 @@ class PlanViewModel @Inject constructor(
                 val rows = uiState.value.testGoal?.rows ?: return@withLock
                 val goal = draft.goal(stored, rows) ?: return@withLock
                 plans.setTestGoal(planId, goal)
+                plans.setGoalDate(planId, goal.byEpochDay)
                 dismissTestGoal()
             }
         }
@@ -186,12 +186,21 @@ class PlanViewModel @Inject constructor(
 
     fun dismissShuttleEntry() { savedState[SHUTTLE_ENTRY] = null }
 
+    private fun PlanUiState.liftGoalDialog(id: String): PlanGoalDialog? {
+        goals.firstOrNull { it.exerciseId == id }?.let {
+            return PlanGoalDialog(id, it.name, it.perHand, it.goalLb, hasGoal = it.goalLb != null)
+        }
+        return testLifts.firstOrNull { it.exerciseId == id }?.let {
+            PlanGoalDialog(id, it.name, ExerciseLibrary.get(id).perHand, it.goalLb, hasGoal = it.goalLb != null)
+        }
+    }
+
     fun openGoal(exerciseId: String) {
-        val row = uiState.value.goals.firstOrNull { it.exerciseId == exerciseId } ?: return
+        val row = uiState.value.liftGoalDialog(exerciseId) ?: return
         savedState[SPRINT_GOAL_DRAFT] = null
         savedState[CARDIO_GOAL_DRAFT] = null
         savedState[GOAL] = exerciseId
-        savedState[GOAL_DRAFT] = row.goalLb
+        savedState[GOAL_DRAFT] = row.draftLb
     }
 
     fun setGoalDraft(lb: Double?) { savedState[GOAL_DRAFT] = lb }
@@ -204,6 +213,7 @@ class PlanViewModel @Inject constructor(
                 mutationLock.withLock {
                     if (PlanGoalJson.decode(plans.plansFlow.first().firstOrNull { it.id == planId }?.goalJson) is PlanGoal.Sprint) return@withLock
                     plans.setGoal(planId, next)
+                    if (uiState.value.testRun != null) plans.setGoalDate(planId, next.byEpochDay)
                     dismissGoal()
                 }
             }

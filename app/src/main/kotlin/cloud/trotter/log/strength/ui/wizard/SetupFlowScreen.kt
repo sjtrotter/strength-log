@@ -122,7 +122,13 @@ fun SetupFlowScreen(state: SetupFlowUiState, actions: SetupFlowActions) {
     if (whyOpen) AppModalBottomSheet(onDismissRequest = { whyOpen = false }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         title = { Text(whyTitle, style = MaterialTheme.typography.titleLarge) }, body = {
             if (state.step == SetupStep.PLAN) PlanWhyLines((state.plan as? PlanPreviewUi.Ready)?.why.orEmpty())
-            else Text(stringResource(whyCopy(state)), style = MaterialTheme.typography.bodyMedium)
+            else {
+                Text(stringResource(whyCopy(state)), style = MaterialTheme.typography.bodyMedium)
+                if (state.step == SetupStep.GOAL) Text(stringResource(R.string.setup_flow_why_fitness_goal))
+                if (state.step == SetupStep.TEST) Text(stringResource(R.string.setup_flow_test_unsupported))
+                if (state.step == SetupStep.TOGETHER && state.draft.fitnessTest == true)
+                    Text(stringResource(R.string.setup_flow_why_test_together))
+            }
         })
 }
 
@@ -157,7 +163,7 @@ private fun whyCopy(state: SetupFlowUiState): Int = when (state.step) {
     SetupStep.SUB_GOAL -> R.string.setup_flow_why_sub_goal
     SetupStep.WEEK -> R.string.setup_flow_why_week
     SetupStep.EQUIPMENT -> R.string.setup_flow_why_equipment
-    SetupStep.ABOUT -> if (state.draft.isSprint) R.string.setup_flow_why_about_sprint else if (state.draft.branch == PlanBranch.LIFT) R.string.setup_flow_why_about else R.string.setup_flow_why_about_run
+    SetupStep.ABOUT -> if (state.draft.isSprint) R.string.setup_flow_why_about_sprint else if (SetupFlowStateBuilder.branch(state.draft) == PlanBranch.LIFT) R.string.setup_flow_why_about else R.string.setup_flow_why_about_run
     SetupStep.LIFTS -> R.string.setup_flow_why_lifts
     SetupStep.RECENT -> R.string.setup_flow_why_recent
     SetupStep.PLAN -> R.string.setup_flow_why_minutes

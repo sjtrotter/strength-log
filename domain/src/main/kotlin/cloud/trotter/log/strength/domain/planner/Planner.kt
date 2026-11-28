@@ -154,7 +154,7 @@ private val mainPatterns = listOf(
     listOf(MovementPattern.V_PUSH), listOf(MovementPattern.H_PULL, MovementPattern.V_PULL),
 )
 
-internal fun mainRow(pattern: MovementPattern): Int = mainPatterns.indexOfFirst { pattern in it }
+fun mainRow(pattern: MovementPattern): Int = mainPatterns.indexOfFirst { pattern in it }
 
 internal fun liftDraft(
     answers: SetupAnswers,
@@ -163,7 +163,7 @@ internal fun liftDraft(
 ): PlanDraft {
     val mains = resolveMains(answers)
     val reasons = mutableListOf<PlanReason>()
-    // Prep reserves time but supplies no weekly credit, even when it replaces an ordinary slot.
+    // Balancing counts the replaced slot's credit; prep reserves only its added time.
     val fittedDays = layout(answers, mains).map { day ->
         if (day.kind != ProgramDayKind.STRENGTH) day else {
             val (fitted, dayReasons) = fitDay(day, answers, budgetSeconds)
@@ -172,8 +172,9 @@ internal fun liftDraft(
         }
     }
     val touched = reasons.filterIsInstance<PlanReason.ShortSession>().map { it.dayId }.toSet()
-    val reservedSeconds = TestPrep.place(fittedDays, answers).associate { day ->
-        day.id to TestPrep.reservedSeconds(day, answers.slotGoal)
+    val reservedSeconds = TestPrep.place(fittedDays, answers).zip(fittedDays).associate { (placed, ordinary) ->
+        placed.id to (SessionBudget.seconds(placed, answers.slotGoal) -
+            SessionBudget.seconds(ordinary, answers.slotGoal)).coerceAtLeast(0)
     }
     val (balancedDays, volumeReasons) = VolumeBalance.balance(fittedDays, answers, mains.map { it.id }.toSet(), touched,
         budgetSeconds, reservedSeconds)

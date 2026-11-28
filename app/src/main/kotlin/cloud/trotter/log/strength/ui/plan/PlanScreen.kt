@@ -46,6 +46,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import cloud.trotter.log.strength.ui.test.testRunTrainingText
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.data.serialization.PlanRecipeJson
 import cloud.trotter.log.strength.domain.model.ProgramDayKind
@@ -166,8 +167,13 @@ fun PlanScreen(state: PlanUiState, actions: PlanActions) {
                     } else {
                         PlanCardioGoal(goal, actions)
                     }
+                    state.testRun?.let { (test, program) ->
+                        Text(testRunTrainingText(test, program), Modifier.padding(horizontal = 16.dp))
+                    }
                 }
-                item(key = "test_goal") { state.testGoal?.let { PlanTestGoal(it, actions) } }
+                if (state.testGoal != null || state.testLifts.isNotEmpty()) item(key = "test_goal") {
+                    PlanTestGoal(state.testGoal, actions, state.testLifts, state.unit)
+                }
                 if (state.goals.isNotEmpty()) {
                     item(key = "goals_header") {
                         Box(Modifier.padding(horizontal = 16.dp)) { SectionHeader(stringResource(R.string.plan_goals)) }

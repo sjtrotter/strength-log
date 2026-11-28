@@ -3,6 +3,9 @@ package cloud.trotter.log.strength.store
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.assertIsNotEnabled
+import cloud.trotter.log.strength.domain.planner.PlanBranch
+import cloud.trotter.log.strength.domain.planner.RunGoal
+import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.planner.RunExperience
 import cloud.trotter.log.strength.domain.planner.FitnessTest
 
@@ -20,6 +23,7 @@ import cloud.trotter.log.strength.domain.theme.ThemePreference
 import cloud.trotter.log.strength.ui.text.UiText
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import cloud.trotter.log.strength.ui.wizard.PlanPreviewUi
+import cloud.trotter.log.strength.ui.wizard.LiftTestDraft
 import cloud.trotter.log.strength.ui.wizard.TestDraft
 import cloud.trotter.log.strength.ui.wizard.SetupDraft
 import cloud.trotter.log.strength.ui.wizard.SetupFlowActions
@@ -133,10 +137,10 @@ class SetupFlowPreviewShotsTest {
         state(SetupStep.EVENT, SetupFlowFixtures.half), scale = 2f)
     @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
     fun eventTest() = shot("s33-setup-event-test.png",
-        state(SetupStep.EVENT, SetupFlowFixtures.test))
+        state(SetupStep.TEST, SetupFlowFixtures.test.copy(fitnessTest = true, testRun = true, testDate = 21000)))
     @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
     fun eventTestLargeFont() = shot("s34-setup-event-test-2x.png",
-        state(SetupStep.EVENT, SetupFlowFixtures.test), scale = 2f)
+        state(SetupStep.TEST, SetupFlowFixtures.test.copy(fitnessTest = true, testRun = true, testDate = 21000)), scale = 2f)
     @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
     fun eventUltra() = shot("s35-setup-event-ultra.png",
         state(SetupStep.EVENT, SetupFlowFixtures.ultra))
@@ -275,12 +279,12 @@ class SetupFlowPreviewShotsTest {
     }
 
     private fun invalidTestTarget(name: String, scale: Float) {
-        val shown = mutableStateOf(state(SetupStep.EVENT,
-            SetupFlowFixtures.test.copy(test = FitnessTest.TWO_MILE, goalSeconds = null)))
+        val shown = mutableStateOf(state(SetupStep.TEST,
+            SetupFlowFixtures.test.copy(fitnessTest = true, testRun = true, testDate = 21000, test = FitnessTest.TWO_MILE, goalSeconds = null)))
         render(scale) { SetupFlowScreen(shown.value, SetupFlowActions(onGoalSeconds = {
-            shown.value = state(SetupStep.EVENT, shown.value.draft.copy(goalSeconds = it))
+            shown.value = state(SetupStep.TEST, shown.value.draft.copy(goalSeconds = it))
         })) }
-        rule.onNodeWithText("Target time").performScrollTo().performTextReplacement("16")
+        rule.onNodeWithText("Required time").performScrollTo().performTextReplacement("16")
         rule.onNodeWithText("Next").assertIsNotEnabled()
         capture(name)
     }
@@ -289,12 +293,12 @@ class SetupFlowPreviewShotsTest {
     @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
     fun testTargetInvalidLargeFont() = invalidTestTarget("p47-setup-test-target-invalid-2x.png", 2f)
 
-    private val testDraft = SetupDraft(tests = listOf(TestDraft("custom_pushup_window", 40, 24, 60)))
+    private val testDraft = SetupDraft(fitnessTest = true, tests = listOf(TestDraft("custom_pushup_window", 40, 24, 60)))
 
     @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
-    fun testCatalog() = shot("s75-setup-tests-catalog.png", state(SetupStep.TEST))
+    fun testCatalog() = shot("s75-setup-tests-catalog.png", state(SetupStep.TEST, SetupDraft(fitnessTest = true)))
     @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
-    fun testCatalogLargeFont() = shot("s76-setup-tests-catalog-2x.png", state(SetupStep.TEST), scale = 2f)
+    fun testCatalogLargeFont() = shot("s76-setup-tests-catalog-2x.png", state(SetupStep.TEST, SetupDraft(fitnessTest = true)), scale = 2f)
     @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
     fun testFields() = shot("s77-setup-tests-fields.png", state(SetupStep.TEST, testDraft))
     @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -307,6 +311,35 @@ class SetupFlowPreviewShotsTest {
     fun testSummary() = testSummaryShot("s81-setup-tests-summary.png", 1f)
     @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
     fun testSummaryLargeFont() = testSummaryShot("s82-setup-tests-summary-2x.png", 2f)
+
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun fitnessTestGoal() = shot("s83-setup-fitness-test-goal.png", state(SetupStep.GOAL, SetupDraft(fitnessTest = true)))
+    @Test @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
+    fun fitnessTestPicker() {
+        render { SetupFlowScreen(state(SetupStep.TEST, SetupDraft(fitnessTest = true)), SetupFlowActions()) }
+        rule.onNodeWithText("Add an event").performScrollTo().performClick()
+        capture("s84-setup-test-picker.png", true)
+    }
+    @Test @Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+    fun fitnessTestPickerLargeFont() {
+        render(2f) { SetupFlowScreen(state(SetupStep.TEST, SetupDraft(fitnessTest = true)), SetupFlowActions()) }
+        rule.onNodeWithText("Add an event").performScrollTo().performClick()
+        capture("s85-setup-test-picker-2x.png", true)
+    }
+
+    private val armyEvents = SetupDraft(fitnessTest = true, testRun = true, branch = PlanBranch.RUN,
+        runGoal = RunGoal.FITNESS_TEST, goal = LiftGoal.STRENGTH, cardioFirst = true,
+        goalSeconds = 960, testDate = 21000,
+        tests = listOf(TestDraft("aft_hrp", 40, 31), TestDraft("aft_plank", 220)),
+        testLifts = listOf(LiftTestDraft("trap_dl", 3, 340.0)))
+
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun fitnessTestEvents() = shot("s86-setup-test-events.png", state(SetupStep.TEST, armyEvents))
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun fitnessTestEventsLargeFont() = shot("s87-setup-test-events-2x.png", state(SetupStep.TEST, armyEvents), scale = 2f)
+    @Test @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+    fun fitnessTestGoalLargeFont() = shot("s88-setup-fitness-test-goal-2x.png",
+        state(SetupStep.GOAL, SetupDraft(fitnessTest = true)), scale = 2f)
 
     private fun testDateShot(name: String, scale: Float) {
         render(scale) { SetupFlowScreen(state(SetupStep.TEST, testDraft.copy(testDate = 20800)), SetupFlowActions()) }

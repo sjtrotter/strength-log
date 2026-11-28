@@ -1,5 +1,9 @@
 package cloud.trotter.log.strength.ui.wizard
 
+import cloud.trotter.log.strength.domain.standards.TestFormat
+import cloud.trotter.log.strength.domain.standards.TestPick
+import cloud.trotter.log.strength.domain.model.Program
+import cloud.trotter.log.strength.ui.test.TestTrainingUi
 import cloud.trotter.log.strength.domain.model.CardioActivity
 import java.time.DayOfWeek
 import cloud.trotter.log.strength.domain.planner.SprintEvent
@@ -73,6 +77,8 @@ sealed interface PlanPreviewUi {
         val balanceAdded: Int?,
         val why: List<PlanWhy>,
         val sprint: SprintPlanUi? = null,
+        val testTraining: List<TestTrainingUi> = emptyList(),
+        val testRun: Pair<FitnessTest, Program>? = null,
     ) : PlanPreviewUi
 }
 
@@ -102,7 +108,13 @@ data class SetupFlowUiState(
 
 /** Callbacks forwarded to [SetupFlowViewModel]. */
 data class SetupFlowActions(
-    val onTestEvent: (String, Boolean) -> Unit = { _, _ -> },
+    val onFitnessTest: () -> Unit = {},
+    val onTestPick: (TestPick) -> Unit = {},
+    val onTestRemove: (String) -> Unit = {},
+    val onTestFormat: (String, TestFormat) -> Unit = { _, _ -> },
+    val onTestEdition: (String, String?) -> Unit = { _, _ -> },
+    val onLiftReps: (String, Int) -> Unit = { _, _ -> },
+    val onLiftGoal: (String, Double?) -> Unit = { _, _ -> },
     val onTestRequired: (String, Int?) -> Unit = { _, _ -> },
     val onTestLast: (String, Int?) -> Unit = { _, _ -> },
     val onTestWindow: (String, Int?) -> Unit = { _, _ -> },
@@ -113,7 +125,7 @@ data class SetupFlowActions(
     val onRunGoal: (RunGoal) -> Unit = {}, val onRunExperience: (RunExperience) -> Unit = {},
     val onRunningInjury: (Boolean) -> Unit = {}, val onRunEvent: (RunEvent) -> Unit = {},
     val onEventDate: (Long?) -> Unit = {}, val onGoalSeconds: (Int?) -> Unit = {},
-    val onTest: (FitnessTest) -> Unit = {}, val onTestScore: (Int?) -> Unit = {},
+    val onTestScore: (Int?) -> Unit = {},
     val onRecent: (Int?, Int?) -> Unit = { _, _ -> }, val onLongestByDistance: (Boolean) -> Unit = {},
     val onLongest: (Int?) -> Unit = {}, val onActivity: (CardioActivity) -> Unit = {},
     val onMarathonBest: (Int?) -> Unit = {}, val onTogether: (BothAnswers.Together) -> Unit = {},

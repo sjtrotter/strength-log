@@ -535,8 +535,12 @@ private fun WorkoutHoldHero(hold: HoldState, benchmark: BenchmarkUi?, breathingC
     Text(stringResource(R.string.workout_hold_held), style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant)
     WorkoutClockProgress(hold.fraction)
-    Text(stringResource(if (benchmark != null) R.string.workout_test_ceiling else R.string.workout_hold_target, formatCardioTime(event.targetSeconds)),
-        style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val target = when {
+        benchmark == null -> stringResource(R.string.workout_hold_target, formatCardioTime(event.targetSeconds))
+        benchmark.ceilingSeconds != null -> stringResource(R.string.workout_test_ceiling, formatCardioTime(benchmark.ceilingSeconds))
+        else -> stringResource(R.string.workout_test_open_hold)
+    }
+    Text(target, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     if (event.sides > 1) Text(stringResource(if (event.sideNumber == 1) R.string.workout_hold_left else R.string.workout_hold_right),
         style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })

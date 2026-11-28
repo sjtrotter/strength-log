@@ -101,6 +101,14 @@ class HoldTimerSetScreenTest {
         rule.onNodeWithText("Target 3:40").assertDoesNotExist()
     }
 
+    @Test fun `a derived hold without a ceiling uses the open hold copy`() {
+        val held = hold().let { it.copy(event = it.event.copy(targetSeconds = 600, sides = 1)) }
+        show(state(held, benchmark = BenchmarkUi("Plank, max hold", null, null)))
+        rule.onNodeWithText("Until form breaks or you stop").assertIsDisplayed()
+        rule.onNodeWithText("Ceiling 10:00").assertDoesNotExist()
+        rule.onNodeWithText("Past target").assertDoesNotExist()
+    }
+
     @Test fun `an idle hold offers Start and keeps its editable target`() {
         var started: Pair<Long, Int>? = null
         show(state(), workoutActions().copy(onStartHold = { id, index -> started = id to index }))

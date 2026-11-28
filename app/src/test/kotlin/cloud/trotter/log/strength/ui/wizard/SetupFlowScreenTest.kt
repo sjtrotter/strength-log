@@ -1,8 +1,10 @@
 package cloud.trotter.log.strength.ui.wizard
 
+import cloud.trotter.log.strength.domain.standards.TestPick
 import cloud.trotter.log.strength.R
 import cloud.trotter.log.strength.domain.units.ClockText
 import android.content.Context
+import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -59,6 +61,7 @@ import cloud.trotter.log.strength.domain.planner.FitnessTest
 import cloud.trotter.log.strength.domain.planner.RunEvent
 import cloud.trotter.log.strength.domain.planner.RunExperience
 import cloud.trotter.log.strength.domain.planner.RunGoal
+import cloud.trotter.log.strength.domain.planner.Planner
 import cloud.trotter.log.strength.domain.progression.Effort
 import cloud.trotter.log.strength.domain.progression.LiftGoal
 import cloud.trotter.log.strength.domain.units.WeightUnit
@@ -66,6 +69,7 @@ import cloud.trotter.log.strength.transfer.backup.BackupService
 import cloud.trotter.log.strength.ui.TouchTargets.assertEveryTouchTargetIsAtLeast48dp
 import cloud.trotter.log.strength.ui.TouchTargets.assertNoOverlappingTouchTargets
 import cloud.trotter.log.strength.ui.text.UiText
+import cloud.trotter.log.strength.ui.test.testRunTrainingText
 import cloud.trotter.log.strength.ui.theme.AppTheme
 import java.io.File
 import kotlin.test.assertEquals
@@ -118,14 +122,15 @@ class SetupFlowScreenTest {
         show(SetupFlowUiState())
         rule.onNodeWithText("Lift").assertDoesNotExist(); rule.onNodeWithText("Next").assertIsNotEnabled(); touchTargets()
     }
-    @Test fun `goal shows four goals and restore on a first run`() {
+    @Test fun `goal shows five goals and restore on a first run`() {
         var restores = 0
         show(SetupFlowFixtures.state(firstRun = true), SetupFlowActions(onRestoreFromBackup = { restores++ }))
         rule.onNodeWithText("Lift").assertIsSelected().assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
         // PR 7f: Sprint absent → visible fourth goal.
         listOf("Run", "Both").forEach { rule.onNodeWithText(it).assertExists() }
         rule.onNodeWithText("Sprint").assertExists()
-        rule.onNodeWithText("Have a backup? Restore it").performClick(); assertEquals(1, restores); touchTargets()
+        rule.onNodeWithText("Fitness test").assertExists()
+        rule.onNodeWithText("Have a backup? Restore it").performScrollTo().performClick(); assertEquals(1, restores); touchTargets()
         rule.runOnIdle { shown = SetupFlowFixtures.state() }
         rule.onNodeWithText("Have a backup? Restore it").assertDoesNotExist(); touchTargets()
     }
@@ -530,18 +535,11 @@ class SetupFlowScreenTest {
         rule.runOnIdle { assertEquals(12600, shown.draft.marathonBestSeconds) }
     }
 
-    @Test fun `test Why mentions interval pace only with an aim`() {
-        show(state(SetupStep.EVENT, SetupFlowFixtures.test))
+    @Test fun `the test Why grades the evidence and names the unsupported events`() {
+        show(state(SetupStep.TEST, SetupDraft().chooseFitnessTest()))
         rule.onNodeWithText("Why we ask").performClick()
-        val interval = "Interval reps aim slightly faster than the target pace. A date tapers the last ten days."
-        val taper = "A date tapers the last ten days."
-        for (test in FitnessTest.entries) for (target in listOf(false, true)) {
-            rule.runOnIdle { shown = state(SetupStep.EVENT, SetupFlowFixtures.test.copy(test = test,
-                goalSeconds = if (target) 960 else null, testScore = if (target) 50 else null)) }
-            val hasAim = target && test !in listOf(FitnessTest.PACER, FitnessTest.HAMR)
-            rule.onNodeWithText(if (hasAim) interval else taper).assertExists()
-            rule.onNodeWithText(if (hasAim) taper else interval).assertDoesNotExist()
-        }
+        rule.onNodeWithText("Kotarsky 2018, moderate-to-weak", substring = true).assertExists()
+        rule.onNodeWithText("Not supported: cadence push-ups", substring = true).performScrollTo().assertExists()
     }
 
     @Test fun `running experience Why describes the ladder gate`() {
@@ -573,18 +571,18 @@ class SetupFlowScreenTest {
         assertTrue(!text.contains("lifts"))
     }
     @Test fun `a fitness test target that is not a time waits`() {
-        show(state(SetupStep.EVENT, SetupFlowFixtures.test.copy(test = FitnessTest.TWO_MILE, goalSeconds = null)),
-            SetupFlowActions(onGoalSeconds = { shown = state(SetupStep.EVENT, shown.draft.copy(goalSeconds = it)) }))
-        rule.onNodeWithText("Target time").performScrollTo().performTextReplacement("16")
+        show(state(SetupStep.TEST, SetupDraft().chooseFitnessTest().copy(testRun = true, test = FitnessTest.TWO_MILE, goalSeconds = null)),
+            SetupFlowActions(onGoalSeconds = { shown = state(SetupStep.TEST, shown.draft.copy(goalSeconds = it)) }))
+        rule.onNodeWithText("Required time").performScrollTo().performTextReplacement("16")
         rule.onNodeWithText("Next").assertIsNotEnabled()
         rule.runOnIdle { assertEquals(INVALID_GOAL_TIME, shown.draft.goalSeconds) }
-        rule.onNodeWithText("Target time").performTextReplacement("1:00")
+        rule.onNodeWithText("Required time").performTextReplacement("1:00")
         rule.onNodeWithText("Next").assertIsNotEnabled()
         rule.runOnIdle { assertEquals(INVALID_GOAL_TIME, shown.draft.goalSeconds) }
-        rule.onNodeWithText("Target time").performTextReplacement("")
-        rule.onNodeWithText("Next").assertIsEnabled()
+        rule.onNodeWithText("Required time").performTextReplacement("")
+        rule.onNodeWithText("Next").assertIsNotEnabled()
         rule.runOnIdle { assertNull(shown.draft.goalSeconds) }
-        rule.onNodeWithText("Target time").performTextReplacement("16:00")
+        rule.onNodeWithText("Required time").performTextReplacement("16:00")
         rule.onNodeWithText("Next").assertIsEnabled()
         rule.runOnIdle { assertEquals(960, shown.draft.goalSeconds) }
     }
@@ -685,13 +683,45 @@ class SetupFlowScreenTest {
         rule.onNodeWithText("Longest run without walk breaks in the past 30 days").assertDoesNotExist()
     }
 
-    @Test fun `the Test step shows the catalog events and the fields of a chosen one`() {
+    @Test fun `Your test shows the picked movement and format fields`() {
         show(state(SetupStep.TEST, SetupDraft(tests = listOf(TestDraft("custom_pushup_window")))))
-        listOf("AFT hand-release push-up", "AFT plank", "Timed push-ups", "Timed sit-ups").forEach {
-            rule.onAllNodesWithText(it).onFirst().assertExists()
+        listOf("Push-Up", "In a window", "Max unbroken", "Add an event", "Window", "Required reps", "Your last count (optional)").forEach {
+            rule.onNodeWithText(it).performScrollTo().assertExists()
         }
-        listOf("Window", "Required reps", "Last reps").forEach { rule.onNodeWithText(it).performScrollTo().assertExists() }
+        rule.onNodeWithText("Army rules").assertDoesNotExist()
         rule.onNodeWithText("Required hold").assertDoesNotExist()
+    }
+
+    @Test fun `the picker searches the library and disables other runs and lifts on a taken row`() {
+        var picked: TestPick? = null
+        show(state(SetupStep.TEST, SetupDraft().chooseFitnessTest().copy(testRun = true,
+            testLifts = listOf(LiftTestDraft("bb_bench", 5, 225.0)))), SetupFlowActions(onTestPick = { picked = it }))
+        rule.onNodeWithText("Add an event").performScrollTo().performClick()
+        rule.onNodeWithText("All").assertIsSelected()
+        rule.onNodeWithText("Cardio").performClick()
+        rule.onNodeWithText("1.5-mile run").performClick()
+        assertNull(picked)
+        rule.onAllNodesWithText("One run per test").onFirst().assertExists()
+        rule.onNodeWithText("Strength").performClick()
+        rule.onNodeWithText("Search").performTextReplacement("incline db")
+        rule.onNodeWithText("Incline DB Press").assertExists().performClick()
+        rule.onNodeWithText("One lift per row").assertExists()
+        assertNull(picked)
+        rule.onNodeWithText("Search").performTextReplacement("pull-up")
+        rule.onNodeWithText("Pull-Up / Chin-Up").performClick()
+        assertEquals(TestPick.Library(ExerciseLibrary.get("pullup")), picked)
+    }
+
+    @Test fun `none yet is accepted only on a movement with an easier variant`() {
+        show(state(SetupStep.TEST, SetupDraft().chooseFitnessTest().copy(tests = listOf(TestDraft("bw_dip:REPS_CONTINUOUS", 20)))),
+            SetupFlowActions(onTestLast = { id, value -> shown = state(SetupStep.TEST, shown.draft.copy(tests = shown.draft.tests.map {
+                if (it.eventId == id) it.copy(lastResult = value) else it
+            })) }))
+        rule.onNodeWithText("None yet").assertDoesNotExist()
+        rule.onNodeWithText("Your last count (optional)").performScrollTo().performTextReplacement("0")
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+        rule.onNodeWithText("Your last count (optional)").performTextReplacement("")
+        rule.onNodeWithText("Next").assertIsEnabled()
     }
 
     @Test fun `test hold fields show the one hour limit and block invalid entries`() {
@@ -704,14 +734,14 @@ class SetupFlowScreenTest {
                     if (it.eventId == id) it.copy(lastResult = value) else it
                 })) }))
         rule.onNodeWithText("Next").assertIsEnabled()
-        for (label in listOf("Required hold", "Last hold")) {
+        for (label in listOf("Required hold", "Your last hold (optional)")) {
             rule.onNodeWithText(label).performScrollTo().performTextReplacement("61:00")
             rule.onNodeWithText(label).performImeAction()
-            rule.onNodeWithText("Enter a time between 0:01 and 1:00:00").assertExists()
+            rule.onNodeWithText(if (label == "Required hold") "Enter a time between 0:01 and 1:00:00" else "Enter a time between 0:00 and 1:00:00").assertExists()
             rule.onNodeWithText("Next").assertIsNotEnabled()
             rule.onNodeWithText(label).performTextReplacement("60:00")
             rule.onNodeWithText(label).performImeAction()
-            rule.onNodeWithText("Enter a time between 0:01 and 1:00:00").assertDoesNotExist()
+            rule.onNodeWithText(if (label == "Required hold") "Enter a time between 0:01 and 1:00:00" else "Enter a time between 0:00 and 1:00:00").assertDoesNotExist()
             rule.onNodeWithText("Next").assertIsEnabled()
         }
         rule.runOnIdle { assertEquals(listOf(TestDraft("aft_plank", 3600, 3600)), shown.draft.tests) }
@@ -734,6 +764,95 @@ class SetupFlowScreenTest {
         rule.onNodeWithText("Enter a time between 0:10 and 1:00:00").assertDoesNotExist()
         rule.onNodeWithText("Next").assertIsEnabled()
         rule.runOnIdle { assertEquals(3600, shown.draft.tests.single().windowSeconds) }
+    }
+
+    @Test fun `Your test shows Date only for events that keep it`() {
+        val draft = SetupDraft().chooseFitnessTest().copy(testLifts = listOf(LiftTestDraft("trap_dl", 3, 340.0)))
+        show(state(SetupStep.TEST, draft))
+        rule.onNodeWithText("Date").assertDoesNotExist()
+        rule.onNodeWithText("Reps for the heaviest set").assertExists()
+        rule.runOnIdle { shown = state(SetupStep.TEST, draft.copy(testLifts = listOf(LiftTestDraft("bb_bench", 5, 225.0)))) }
+        rule.onNodeWithText("Reps for the heaviest set").assertExists()
+        rule.runOnIdle { shown = state(SetupStep.TEST, draft.copy(tests = listOf(TestDraft("custom_pushup_window", 30, windowSeconds = 60)))) }
+        rule.onNodeWithText("Date").assertExists()
+        rule.onNodeWithText("None yet").assertExists()
+        rule.runOnIdle { shown = state(SetupStep.TEST, draft.copy(testRun = true, test = FitnessTest.COOPER, testScore = 2000)) }
+        rule.onNodeWithText("Date").assertDoesNotExist()
+        rule.runOnIdle { shown = state(SetupStep.TEST, draft.copy(testRun = true, test = FitnessTest.PACER)) }
+        rule.onNodeWithText("Date").assertDoesNotExist()
+        rule.runOnIdle { shown = state(SetupStep.TEST, draft.copy(testRun = true, test = FitnessTest.PACER, testScore = 50)) }
+        rule.onNodeWithText("Date").assertExists()
+        rule.runOnIdle { shown = state(SetupStep.TEST, draft.copy(testRun = true, goalSeconds = 960)) }
+        rule.onNodeWithText("Date").assertExists()
+    }
+
+    @Test fun `heaviest set reps keep typed drafts and an empty field shows the range error`() {
+        val draft = SetupDraft().chooseFitnessTest().copy(step = SetupStep.TEST,
+            testLifts = listOf(LiftTestDraft("trap_dl", 3, 340.0)))
+        val handle = SavedStateHandle(mapOf("setup_initialized" to true,
+            "setup_draft" to SetupDraftJson.encode(draft)))
+        val (vm, _) = fields(handle)
+        rule.setContent { AppTheme {
+            val s by vm.uiState.collectAsState()
+            SetupFlowScreen(s, SetupFlowActions(onLiftReps = vm::setLiftReps))
+        } }
+        rule.waitUntil(5000) { rule.runOnIdle { vm.uiState.value.initialized } }
+        val label = "Reps for the heaviest set"
+        rule.onNodeWithText(label).performScrollTo().requestFocus().performTextReplacement("")
+        assertEquals("", rule.onNodeWithText(label).fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
+        rule.onNodeWithText("Enter a number between 1 and 10").assertExists()
+        rule.onNodeWithText(label).performTextReplacement("12")
+        assertEquals("12", rule.onNodeWithText(label).fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
+        rule.runOnIdle {
+            assertEquals(12, vm.uiState.value.draft.testLifts.single().reps)
+            assertEquals(12, requireNotNull(SetupDraftJson.decode(handle["setup_draft"])).testLifts.single().reps)
+            assertTrue(SetupFlowStateBuilder.answers(vm.uiState.value.draft).lifts.isEmpty())
+        }
+        rule.onNodeWithText("Enter a number between 1 and 10").assertExists()
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+        rule.onNodeWithText(label).performTextReplacement("")
+        rule.onNodeWithText(label).performImeAction()
+        assertEquals("", rule.onNodeWithText(label).fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
+        rule.onNodeWithText("Enter a number between 1 and 10").assertExists()
+        rule.onNodeWithText("Next").assertIsNotEnabled()
+        rule.runOnIdle {
+            assertEquals(0, requireNotNull(SetupDraftJson.decode(handle["setup_draft"])).testLifts.single().reps)
+        }
+        for (reps in listOf(1, 10)) {
+            rule.onNodeWithText(label).performTextReplacement(reps.toString())
+            rule.onNodeWithText(label).performImeAction()
+            assertEquals(reps.toString(), rule.onNodeWithText(label).fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
+            rule.onNodeWithText("Enter a number between 1 and 10").assertDoesNotExist()
+            rule.onNodeWithText("Next").assertIsEnabled()
+            rule.runOnIdle {
+                assertEquals(reps, SetupFlowStateBuilder.answers(vm.uiState.value.draft).lifts.single().reps)
+            }
+        }
+    }
+
+    @Test fun `the picker keeps runs disabled on a mixed race and test plan`() {
+        var picked: TestPick? = null
+        show(state(SetupStep.TEST, SetupFlowFixtures.both.copy(runGoal = RunGoal.FIRST_5K,
+            tests = listOf(TestDraft("aft_hrp", 40)))), SetupFlowActions(onTestPick = { picked = it }))
+        rule.onNodeWithText("Add an event").performScrollTo().performClick()
+        rule.onNodeWithText("Cardio").performClick()
+        rule.onNodeWithText("2-mile run").performClick()
+        assertNull(picked)
+        rule.onAllNodesWithText("Start from Fitness test to add a run").onFirst().assertExists()
+    }
+
+    @Test fun `run dose copy uses day for one interval day and days for two`() {
+        val answers = SetupFlowStateBuilder.answers(SetupDraft().chooseFitnessTest().copy(testRun = true, days = 6,
+            runExperience = RunExperience.SOME, longestSeconds = 1500, goalSeconds = 960))
+        val program = Planner.plan(answers).program
+        val intervalRule = program.days.single { it.id == "B" }.cardioRule
+        val shownProgram = mutableStateOf(program)
+        rule.setContent { AppTheme { Text(testRunTrainingText(FitnessTest.TWO_MILE, shownProgram.value)) } }
+        rule.onNodeWithText("intervals on day B", substring = true).assertExists()
+        rule.runOnIdle { shownProgram.value = program.copy(days = program.days.map {
+            if (it.id == "D") it.copy(cardioRule = intervalRule) else it
+        }) }
+        rule.onNodeWithText("intervals on days B and D", substring = true).assertExists()
     }
 
 
